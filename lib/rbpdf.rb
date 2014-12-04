@@ -14641,6 +14641,7 @@ public
     # adjust links
     tmplinks = @links
     tmplinks.each_with_index do |link, key|
+      next if link.nil?
       if link[0] > page
         @links[key][0] = link[0] - 1
       elsif link[0] == page
