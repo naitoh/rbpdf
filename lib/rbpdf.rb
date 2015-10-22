@@ -13465,7 +13465,7 @@ public
           Ln(0, cell)
           @x = parent['startx']
           # account for booklet mode
-          if @page > parent['startpage']
+          if parent['startpage'] and @page > parent['startpage']
             if @rtl and (@pagedim[@page]['orm'] != @pagedim[parent['startpage']]['orm'])
               @x -= @pagedim[@page]['orm'] - @pagedim[parent['startpage']]['orm']
             elsif !@rtl and (@pagedim[@page]['olm'] != @pagedim[parent['startpage']]['olm'])
