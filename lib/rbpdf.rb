@@ -13538,6 +13538,7 @@ public
               startpage = parent['startpage']
               end_page = parent['endpage']
             end
+            cellpos['startx'] ||= 0
             if end_page > startpage
               # design borders around HTML cells.
               startpage.upto(end_page) do |page|
