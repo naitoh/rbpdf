@@ -78,7 +78,7 @@ class RbpdfPageTest < Test::Unit::TestCase
     assert_equal 8, content.length
     assert_equal "0.57 w 0 J 0 j [] 0 d 0 G 0 g", content[6]
 
-    assert_equal "BT 31.19 792.37 Td 0 Tr 0.00 w [(\x00C\x00h\x00a\x00p\x00t\x00e\x00r)] TJ ET", content[7]
+    assert_match /BT 31.1[89] 792.37 Td 0 Tr 0.00 w \[\(\x00C\x00h\x00a\x00p\x00t\x00e\x00r\)\] TJ ET/, content[7]
 
     #################################################
     # 0.57 w 0 J 0 j [] 0 d 0 G 0 g                 # getCellCode
@@ -126,7 +126,7 @@ class RbpdfPageTest < Test::Unit::TestCase
     contents = pdf.getPageBuffer(page)
     contents.each_line {|line| content.push line.chomp }
     assert_equal 22, content.length
-    assert_equal "BT 31.19 801.84 Td 0 Tr 0.00 w [(abc def)] TJ ET", content[21]
+    assert_match /BT 31.1[89] 801.84 Td 0 Tr 0.00 w \[\(abc def\)\] TJ ET/, content[21]
   end
 
   test "write content RTL test" do
@@ -141,7 +141,7 @@ class RbpdfPageTest < Test::Unit::TestCase
     contents = pdf.getPageBuffer(page)
     contents.each_line {|line| content.push line.chomp }
     assert_equal 22, content.length
-    assert_equal "BT 524.73 801.84 Td 0 Tr 0.00 w [(abc def)] TJ ET", content[21]
+    assert_match /BT 524.7[34] 801.84 Td 0 Tr 0.00 w \[\(abc def\)\] TJ ET/, content[21]
   end
 
   test "write content back slash test" do
@@ -155,7 +155,7 @@ class RbpdfPageTest < Test::Unit::TestCase
     contents = pdf.getPageBuffer(page)
     contents.each_line {|line| content.push line.chomp }
     assert_equal 22, content.length
-    assert_equal "BT 31.19 801.84 Td 0 Tr 0.00 w [(abc \\\\def)] TJ ET", content[21]
+    assert_match /BT 31.1[89] 801.84 Td 0 Tr 0.00 w \[\(abc \\\\def\)\] TJ ET/, content[21]
   end
 
   test "write Persian Sunday content test" do
@@ -172,7 +172,7 @@ class RbpdfPageTest < Test::Unit::TestCase
 
     contents.each_line {|line| content.push line.chomp }
     assert_equal 22, content.length
-    assert_equal "BT 31.19 796.06 Td 0 Tr 0.00 w [(\xFE\xEA\xFE\x92\xFE\xE8\xFE\xB7 \f\xFB\x8F\xFB\xFE)] TJ ET", content[21]
+    assert_match /BT 31.1[89] 796.06 Td 0 Tr 0.00 w \[\(\xFE\xEA\xFE\x92\xFE\xE8\xFE\xB7 \f\xFB\x8F\xFB\xFE\)\] TJ ET/, content[21]
 
     pdf.set_rtl(true)
     line = pdf.write(0, utf8_persian_str_sunday)
@@ -197,7 +197,7 @@ class RbpdfPageTest < Test::Unit::TestCase
 
     contents.each_line {|line| content.push line.chomp }
     assert_equal 22, content.length
-    assert_equal "BT 31.19 796.06 Td 0 Tr 0.00 w [(\x00a\x00b\x00c\x00 \x00d\x00e\x00f\x00 \xFE\xEA\xFE\x92\xFE\xE8\xFE\xB7 \f\xFB\x8F\xFB\xFE)] TJ ET", content[21]
+    assert_match /BT 31.1[89] 796.06 Td 0 Tr 0.00 w \[\(\x00a\x00b\x00c\x00 \x00d\x00e\x00f\x00 \xFE\xEA\xFE\x92\xFE\xE8\xFE\xB7 \f\xFB\x8F\xFB\xFE\)\] TJ ET/, content[21]
 
     pdf.set_rtl(true)
     line = pdf.write(0, 'abc def ' + utf8_persian_str_sunday)
