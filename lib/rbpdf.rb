@@ -3729,7 +3729,7 @@ class RBPDF
       if (@color_flag)
         s<<' Q';
       end
-      if link && ((link.is_a?(String) and !link.empty?) or (link.is_a?(Fixnum) and link != 0)) # Fixnum is PDF file Page No.
+      if link && ((link.is_a?(String) and !link.empty?) or (link.is_a?(Integer) and link != 0)) # Integer is PDF file Page No.
         Link(xdx, y + ((h - @font_size) / 2.0), width, @font_size, link, ns)
       end
     end
