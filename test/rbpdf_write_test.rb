@@ -139,7 +139,7 @@ class RbpdfTest < Test::Unit::TestCase
   test "write endline x test 1" do
     pdf = MYPDF.new
     pdf.add_page()
-    line = pdf.write(0, " cccccccccc cccccccccc ", nil, 0, '', false, 0, true)
+    pdf.write(0, " cccccccccc cccccccccc ", nil, 0, '', false, 0, true)
     endlinex = pdf.endlinex()
     assert_not_equal 0, endlinex
   end
@@ -152,7 +152,7 @@ class RbpdfTest < Test::Unit::TestCase
     width = pdf.getPageWidth()
     x = width - r_margin - 10
     pdf.SetX(x)
-    line = pdf.write(0, " cccccccccc cccccccccc ", nil, 0, '', false, 0, true)
+    pdf.write(0, " cccccccccc cccccccccc ", nil, 0, '', false, 0, true)
     endlinex = pdf.endlinex()
     assert_equal x, endlinex
   end
@@ -165,7 +165,7 @@ class RbpdfTest < Test::Unit::TestCase
     width = pdf.getPageWidth()
     x = width - r_margin - 10
     pdf.SetX(x)
-    line = pdf.write(0, "cccccccccc cccccccccc ", nil, 0, '', false, 0, true)
+    pdf.write(0, "cccccccccc cccccccccc ", nil, 0, '', false, 0, true)
     endlinex = pdf.endlinex()
     assert_not_equal x, endlinex
   end
@@ -175,7 +175,7 @@ class RbpdfTest < Test::Unit::TestCase
 
     pdf = RBPDF.new('P', 'mm', 'A4', true, "UTF-8", true)
     str = 'test'.force_encoding('UTF-8')
-    width = pdf.write(0, str)
+    pdf.write(0, str)
     assert_equal 'UTF-8', str.encoding.to_s
   end
 

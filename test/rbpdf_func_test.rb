@@ -129,7 +129,7 @@ class RbpdfTest < Test::Unit::TestCase
 
     pdf = RBPDF.new
     str = 'test'.force_encoding('UTF-8')
-    width = pdf.get_string_width(str)
+    pdf.get_string_width(str)
     assert_equal 'UTF-8', str.encoding.to_s
   end
 end

@@ -43,6 +43,7 @@ class RbpdfHttpTest < Test::Unit::TestCase
       end
 
       result_img = pdf.image(img_file, 50, 0, 0, '', '', '', '', false, 300, '', true)
+      assert_equal i+1, result_img
       no = pdf.get_num_pages
       assert_equal i+1, no
 

@@ -16,9 +16,6 @@ class RbpdfTest < Test::Unit::TestCase
     img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit.png')
 
     info = pdf.getimagesize(img_file)
-    pixw = info[0]
-    pixh = info[1]
-    fileinfo = info[2]
     assert_equal 240,                       info[0] # width
     assert_equal 89,                        info[1] # height
     assert_equal 'PNG',                     info[2] # Image Type
@@ -34,9 +31,6 @@ class RbpdfTest < Test::Unit::TestCase
     img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit.gif')
 
     info = pdf.getimagesize(img_file)
-    pixw = info[0]
-    pixh = info[1]
-    fileinfo = info[2]
     assert_equal 240,                       info[0] # width
     assert_equal 89,                        info[1] # height
     assert_equal 'GIF',                     info[2] # Image Type
@@ -54,9 +48,6 @@ class RbpdfTest < Test::Unit::TestCase
     img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit_alpha.gif')
 
     info = pdf.getimagesize(img_file)
-    pixw = info[0]
-    pixh = info[1]
-    fileinfo = info[2]
     assert_equal 240,                       info[0] # width
     assert_equal 89,                        info[1] # height
     assert_equal 'GIF',                     info[2] # Image Type
@@ -74,9 +65,6 @@ class RbpdfTest < Test::Unit::TestCase
     img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit.jpg')
 
     info = pdf.getimagesize(img_file)
-    pixw = info[0]
-    pixh = info[1]
-    fileinfo = info[2]
     assert_equal 240,                       info[0] # width
     assert_equal 89,                        info[1] # height
     assert_equal 'JPEG',                    info[2] # Image Type
@@ -94,9 +82,6 @@ class RbpdfTest < Test::Unit::TestCase
     img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_mono_rgb.jpg')
 
     info = pdf.getimagesize(img_file)
-    pixw = info[0]
-    pixh = info[1]
-    fileinfo = info[2]
     assert_equal 240,                       info[0] # width
     assert_equal 89,                        info[1] # height
     assert_equal 'JPEG',                    info[2] # Image Type
@@ -114,9 +99,6 @@ class RbpdfTest < Test::Unit::TestCase
     img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_mono_gray.jpg')
 
     info = pdf.getimagesize(img_file)
-    pixw = info[0]
-    pixh = info[1]
-    fileinfo = info[2]
     assert_equal 240,                       info[0] # width
     assert_equal 89,                        info[1] # height
     assert_equal 'JPEG',                    info[2] # Image Type
@@ -132,9 +114,6 @@ class RbpdfTest < Test::Unit::TestCase
     img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_mono_rgb.png')
 
     info = pdf.getimagesize(img_file)
-    pixw = info[0]
-    pixh = info[1]
-    fileinfo = info[2]
     assert_equal 240,                       info[0] # width
     assert_equal 89,                        info[1] # height
     assert_equal 'PNG',                     info[2] # Image Type

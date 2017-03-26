@@ -279,7 +279,7 @@ class RbpdfTest < Test::Unit::TestCase
     # Image Error HTML
     htmlcontent = '<img src="/public/ng.png" alt="test alt attribute" width="30" height="30" border="0"/>'
     dom1 = pdf.getHtmlDomArray(htmlcontent)
-    y1 = pdf.get_y
+    #y1 = pdf.get_y
 
     dom2 = pdf.openHTMLTagHandler(dom1, 1, false)
     y2 = pdf.get_y
@@ -338,7 +338,7 @@ class RbpdfTest < Test::Unit::TestCase
 
     pdf = MYPDF.new('P', 'mm', 'A4', true, "UTF-8", true)
     htmlcontent = 'test'.force_encoding('ASCII-8BIT')
-    dom = pdf.getHtmlDomArray(htmlcontent)
+    pdf.getHtmlDomArray(htmlcontent)
     assert_equal 'ASCII-8BIT', htmlcontent.encoding.to_s
   end
 end

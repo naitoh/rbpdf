@@ -14,8 +14,6 @@ class RbpdfPageTest < Test::Unit::TestCase
     page = pdf.get_page
     assert_equal 0, page
 
-    width = pdf.get_page_width
-
     pdf.set_print_header(false)
     pdf.add_page
     page = pdf.get_page
@@ -122,7 +120,7 @@ class RbpdfPageTest < Test::Unit::TestCase
     assert_equal 1, page
 
     content = []
-    line = pdf.write(0, "abc def")
+    pdf.write(0, "abc def")
     contents = pdf.getPageBuffer(page)
     contents.each_line {|line| content.push line.chomp }
     assert_equal 22, content.length
@@ -137,7 +135,7 @@ class RbpdfPageTest < Test::Unit::TestCase
     assert_equal 1, page
 
     content = []
-    line = pdf.write(0, "abc def")
+    pdf.write(0, "abc def")
     contents = pdf.getPageBuffer(page)
     contents.each_line {|line| content.push line.chomp }
     assert_equal 22, content.length
@@ -151,7 +149,7 @@ class RbpdfPageTest < Test::Unit::TestCase
     assert_equal 1, page
 
     content = []
-    line = pdf.write(0, "abc \\def") # use escape() method in getCellCode()
+    pdf.write(0, "abc \\def") # use escape() method in getCellCode()
     contents = pdf.getPageBuffer(page)
     contents.each_line {|line| content.push line.chomp }
     assert_equal 22, content.length
@@ -167,7 +165,7 @@ class RbpdfPageTest < Test::Unit::TestCase
 
     utf8_persian_str_sunday = "\xdb\x8c\xda\xa9\xe2\x80\x8c\xd8\xb4\xd9\x86\xd8\xa8\xd9\x87"
     content = []
-    line = pdf.write(0, utf8_persian_str_sunday)
+    pdf.write(0, utf8_persian_str_sunday)
     contents = pdf.getPageBuffer(page)
 
     contents.each_line {|line| content.push line.chomp }
@@ -175,7 +173,7 @@ class RbpdfPageTest < Test::Unit::TestCase
     assert_match(/BT 31.1[89] 796.06 Td 0 Tr 0.00 w \[\(\xFE\xEA\xFE\x92\xFE\xE8\xFE\xB7 \f\xFB\x8F\xFB\xFE\)\] TJ ET/, content[21])
 
     pdf.set_rtl(true)
-    line = pdf.write(0, utf8_persian_str_sunday)
+    pdf.write(0, utf8_persian_str_sunday)
     contents = pdf.getPageBuffer(page)
 
     contents.each_line {|line| content.push line.chomp }
@@ -192,7 +190,7 @@ class RbpdfPageTest < Test::Unit::TestCase
 
     utf8_persian_str_sunday = "\xdb\x8c\xda\xa9\xe2\x80\x8c\xd8\xb4\xd9\x86\xd8\xa8\xd9\x87"
     content = []
-    line = pdf.write(0, 'abc def ' + utf8_persian_str_sunday)
+    pdf.write(0, 'abc def ' + utf8_persian_str_sunday)
     contents = pdf.getPageBuffer(page)
 
     contents.each_line {|line| content.push line.chomp }
@@ -200,7 +198,7 @@ class RbpdfPageTest < Test::Unit::TestCase
     assert_match(/BT 31.1[89] 796.06 Td 0 Tr 0.00 w \[\(\x00a\x00b\x00c\x00 \x00d\x00e\x00f\x00 \xFE\xEA\xFE\x92\xFE\xE8\xFE\xB7 \f\xFB\x8F\xFB\xFE\)\] TJ ET/, content[21])
 
     pdf.set_rtl(true)
-    line = pdf.write(0, 'abc def ' + utf8_persian_str_sunday)
+    pdf.write(0, 'abc def ' + utf8_persian_str_sunday)
     contents = pdf.getPageBuffer(page)
 
     contents.each_line {|line| content.push line.chomp }

@@ -1,12 +1,6 @@
 require 'test_helper'
 
 class RbpdfTest < Test::Unit::TestCase
-  class MYPDF < RBPDF
-    def getPageBuffer(page)
-      super
-    end
-  end
-
   test "set_x potision" do
     pdf = RBPDF.new
     width = pdf.get_page_width
@@ -207,7 +201,7 @@ class RbpdfTest < Test::Unit::TestCase
   end
 
   test "deletePage test" do
-    pdf = MYPDF.new
+    pdf = RBPDF.new
 
     pdf.add_page
     pdf.write(0, "Page 1")
@@ -217,7 +211,7 @@ class RbpdfTest < Test::Unit::TestCase
     pages = pdf.get_num_pages
     assert_equal 1, pages
 
-    contents1 = pdf.getPageBuffer(1)
+    contents1 = pdf.send(:getPageBuffer, 1)
 
     pdf.add_page
     pdf.write(0, "Page 2")
@@ -227,7 +221,7 @@ class RbpdfTest < Test::Unit::TestCase
     pages = pdf.get_num_pages
     assert_equal 2, pages
 
-    contents2 = pdf.getPageBuffer(2)
+    contents2 = pdf.send(:getPageBuffer, 2)
 
     pdf.deletePage(1)
     page = pdf.get_page
@@ -235,11 +229,11 @@ class RbpdfTest < Test::Unit::TestCase
     pages = pdf.get_num_pages
     assert_equal 1, pages
 
-    contents3 = pdf.getPageBuffer(1)
+    contents3 = pdf.send(:getPageBuffer, 1)
     assert_not_equal contents1, contents3
     assert_equal contents2, contents3
 
-    contents4 = pdf.getPageBuffer(2)
+    contents4 = pdf.send(:getPageBuffer, 2)
     assert_equal false, contents4
   end
 
@@ -294,12 +288,12 @@ class RbpdfTest < Test::Unit::TestCase
   test "Page Box A4 test 2" do
     format = {}
     type = ['CropBox', 'BleedBox', 'TrimBox', 'ArtBox']
-    type.each do |type|
-      format[type] = {}
-      format[type]['llx'] = 0
-      format[type]['lly'] = 0
-      format[type]['urx'] = 210
-      format[type]['ury'] = 297
+    type.each do |t|
+      format[t] = {}
+      format[t]['llx'] = 0
+      format[t]['lly'] = 0
+      format[t]['urx'] = 210
+      format[t]['ury'] = 297
     end
 
     pdf = RBPDF.new('P', 'mm', format)
@@ -329,12 +323,12 @@ class RbpdfTest < Test::Unit::TestCase
   test "Page Box A4 test 3" do
     format = {}
     type = ['MediaBox', 'CropBox', 'BleedBox', 'TrimBox', 'ArtBox']
-    type.each do |type|
-      format[type] = {}
-      format[type]['llx'] = 0
-      format[type]['lly'] = 0
-      format[type]['urx'] = 210
-      format[type]['ury'] = 297
+    type.each do |t|
+      format[t] = {}
+      format[t]['llx'] = 0
+      format[t]['lly'] = 0
+      format[t]['urx'] = 210
+      format[t]['ury'] = 297
     end
 
     pdf = RBPDF.new('P', 'mm', format)

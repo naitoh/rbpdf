@@ -55,12 +55,12 @@ class RbpdfTest < Test::Unit::TestCase
     pdf = RBPDF.new
     pdf.add_page
     img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit.png')
-    err = assert_nothing_raised(RuntimeError) { 
+    assert_nothing_raised(RuntimeError) { 
       pdf.image(img_file)
     }
 
     img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit .png')
-    err = assert_nothing_raised(RuntimeError) { 
+    assert_nothing_raised(RuntimeError) { 
       pdf.image(img_file)
     }
   end
@@ -71,14 +71,14 @@ class RbpdfTest < Test::Unit::TestCase
 
     utf8_japanese_aiueo_str  = "\xe3\x81\x82\xe3\x81\x84\xe3\x81\x86\xe3\x81\x88\xe3\x81\x8a"
     img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit_' + utf8_japanese_aiueo_str + '.png')
-    err = assert_nothing_raised(RuntimeError) { 
+    assert_nothing_raised(RuntimeError) { 
       pdf.image(img_file)
     }
   end
 
   test "Image basic filename error test" do
     pdf = RBPDF.new
-    err = assert_raises(RuntimeError) { 
+    err = assert_raise(RuntimeError) { 
       pdf.image(nil)
     }
     assert_equal 'RBPDF error: Image filename is empty.', err.message
@@ -103,6 +103,7 @@ class RbpdfTest < Test::Unit::TestCase
 
     no = pdf.get_num_pages
     assert_equal 1, no
+    assert_equal 1, result_img
   end
 
   test "Image fitonpage test 1" do
@@ -114,6 +115,7 @@ class RbpdfTest < Test::Unit::TestCase
 
     no = pdf.get_num_pages
     assert_equal 1, no
+    assert_equal 1, result_img
   end
 
   test "Image fitonpage test 2" do
@@ -128,6 +130,7 @@ class RbpdfTest < Test::Unit::TestCase
 
     no = pdf.get_num_pages
     assert_equal 1, no
+    assert_equal 1, result_img
   end
 
   test "HTML Image test without RMagick" do

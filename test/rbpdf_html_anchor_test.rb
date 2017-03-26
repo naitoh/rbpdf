@@ -1,12 +1,6 @@
 require 'test_helper'
 
 class RbpdfTest < Test::Unit::TestCase
-  class MYPDF < RBPDF
-    def getPageBuffer(page)
-      super
-    end
-  end
-
   test "anchor with text inside" do
     pdf = RBPDF.new
     pdf.add_page()
