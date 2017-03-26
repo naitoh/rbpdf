@@ -291,6 +291,11 @@ class RBPDF
     @img_scale ||= 1
     @r_margin ||= 0
     @l_margin ||= 0
+    @original_r_margin ||= nil
+    @original_l_margin ||= nil
+    @t_margin ||= nil
+    @b_margin ||= nil
+    @auto_page_break ||= nil
     @page_annots ||= []
 
     @header_font ||= ['', '', 10]
@@ -310,6 +315,7 @@ class RBPDF
     @header_string ||= ""
     @listordered ||= []
     @listcount ||= []
+    @listnum ||= 0
     @listindent ||= 0
     @listindentlevel ||= 0
     @lispacer ||= ""
@@ -324,6 +330,7 @@ class RBPDF
     @dpi = 72.0
     @newpagegroup ||= []
     @pagegroups ||= {}
+    @currpagegroup ||= nil
     @visibility ||= 'all'
     @cell_height_ratio = @@k_cell_height_ratio
     @viewer_preferences ||= {}
@@ -389,6 +396,7 @@ class RBPDF
     @num_columns ||= 0
     @current_column ||= 0
     @column_start_page ||= 0
+    @cur_orientation ||= nil
 
     # Text rendering mode:
     # 0 = Fill text;
@@ -435,6 +443,7 @@ class RBPDF
     @diffs ||= []
     @images ||= {}
     @links ||= []
+    @html_anchor ||= nil
     @html_anchors ||= {}
     @html_anchor_links ||= {}
     @gradients ||= []
@@ -451,6 +460,11 @@ class RBPDF
     @fill_color ||= '0 g'
     @text_color ||= '0 g'
     @color_flag ||= false
+    @title ||= nil
+    @author ||= nil
+    @subject ||= nil
+    @keywords ||= nil
+    @creator ||= nil
 
     # encryption values
     @encrypted ||= false
@@ -534,6 +548,7 @@ class RBPDF
     @annot_obj_id ||= @annots_start_obj_id
     @curr_annot_obj_id ||= @annots_start_obj_id
     @apxo_obj_id ||= @apxo_start_obj_id
+    @objcopy ||= nil
   end
 
   #
