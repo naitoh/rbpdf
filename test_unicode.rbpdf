@@ -1,4 +1,8 @@
 <%
+  # Copyright (c) 2011-2017 NAITOH Jun
+  # Released under the MIT license
+  # http://www.opensource.org/licenses/MIT
+
   doc_title = "test title"
   doc_subject = "test description"
   doc_keywords = "test keywords"

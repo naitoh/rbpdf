@@ -1,4 +1,8 @@
 # coding: utf-8
+# Copyright (c) 2011-2017 NAITOH Jun
+# Released under the MIT license
+# http://www.opensource.org/licenses/MIT
+
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'rbpdf/version'

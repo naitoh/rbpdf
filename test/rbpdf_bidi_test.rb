@@ -1,4 +1,9 @@
 # coding: ASCII-8BIT
+#
+# Copyright (c) 2011-2017 NAITOH Jun
+# Released under the MIT license
+# http://www.opensource.org/licenses/MIT
+
 require 'test_helper'
 
 class RbpdfTest < Test::Unit::TestCase

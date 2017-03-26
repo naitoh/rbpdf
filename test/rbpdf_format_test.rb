@@ -1,3 +1,7 @@
+# Copyright (c) 2011-2017 NAITOH Jun
+# Released under the MIT license
+# http://www.opensource.org/licenses/MIT
+
 require 'test_helper'
 
 class RbpdfFormatTest < Test::Unit::TestCase
