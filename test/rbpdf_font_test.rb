@@ -238,12 +238,12 @@ class RbpdfFontTest < Test::Unit::TestCase
 
     font = pdf.getFontBuffer('kozgopromediumI')
     assert_equal 99,     font['desc']['StemV']
-    assert_equal -11,    font['desc']['ItalicAngle']
+    assert_equal(-11,    font['desc']['ItalicAngle'])
     assert_equal 'KozGoPro-Medium-Acro,Italic', font['name']
 
     font = pdf.getFontBuffer('kozgopromediumBI')
     assert_equal 99 * 2, font['desc']['StemV']
-    assert_equal -11,    font['desc']['ItalicAngle']
+    assert_equal(-11,    font['desc']['ItalicAngle'])
     assert_equal 'KozGoPro-Medium-Acro,BoldItalic', font['name']
 
     pdf.set_font('kozminproregular', '', 18)
@@ -290,7 +290,7 @@ class RbpdfFontTest < Test::Unit::TestCase
     err = assert_raises(RuntimeError) { 
       pdf.set_font('err_font1', '', 18)
     }
-    assert_match /RBPDF error: The font definition file has a bad format: .*err_font1.rb/, err.message
+    assert_match(/RBPDF error: The font definition file has a bad format: .*err_font1.rb/, err.message)
 
     err = assert_raises(RuntimeError) { 
       pdf.set_font('err_font2', '', 18)

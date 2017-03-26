@@ -18,7 +18,7 @@ class RbpdfTest < Test::Unit::TestCase
 
     assert_equal 2, content.length
     assert_equal "0.57 w 0 J 0 j [] 0 d 0 G 0 g", content[0]
-    assert_match /BT 31.1[89] 795.17 Td 0 Tr 0.00 w \[\(abc\)\] TJ ET/, content[1]
+    assert_match(/BT 31.1[89] 795.17 Td 0 Tr 0.00 w \[\(abc\)\] TJ ET/, content[1])
     # BT
     #    31.19 795.17 Td
     #    0 Tr 0.00 w
@@ -35,7 +35,7 @@ class RbpdfTest < Test::Unit::TestCase
 
     assert_equal 2, content.length
     assert_equal "0.57 w 0 J 0 j [] 0 d 0 G 0 g", content[0]
-    assert_match /BT 31.1[89] 795.17 Td 0 Tr 0.00 w \[\(a\\\\bc\)\] TJ ET/, content[1]
+    assert_match(/BT 31.1[89] 795.17 Td 0 Tr 0.00 w \[\(a\\\\bc\)\] TJ ET/, content[1])
     # BT
     #    31.19 795.17 Td
     #    0 Tr 0.00 w
@@ -52,7 +52,7 @@ class RbpdfTest < Test::Unit::TestCase
 
     assert_equal 2, content.length
     assert_equal "0.57 w 0 J 0 j [] 0 d 0 G 0 g", content[0]
-    assert_match /28.35 813.8[23] m 28.35 784.91 l S 28.0[67] 813.54 m 56.98 813.54 l S 56.70 813.8[32] m 56.70 784.91 l S 28.0[67] 785.19 m 56.98 785.19 l S BT 31.1[89] 795.17 Td 0 Tr 0.00 w \[\(abc\)\] TJ ET/, content[1]
+    assert_match(/28.35 813.8[23] m 28.35 784.91 l S 28.0[67] 813.54 m 56.98 813.54 l S 56.70 813.8[32] m 56.70 784.91 l S 28.0[67] 785.19 m 56.98 785.19 l S BT 31.1[89] 795.17 Td 0 Tr 0.00 w \[\(abc\)\] TJ ET/, content[1])
     # 28.35 813.82 m 28.35 784.91 l S
     # 28.07 813.54 m 56.98 813.54 l S
     # 56.70 813.82 m 56.70 784.91 l S
@@ -79,7 +79,7 @@ class RbpdfTest < Test::Unit::TestCase
     contents.each_line {|line| content.push line.chomp }
 
     assert_equal 2, content.length
-    assert_match /BT 31.1[89] 795.17 Td 0 Tr 0.00 w \[\(abc\)\] TJ ET/, content[1]
+    assert_match(/BT 31.1[89] 795.17 Td 0 Tr 0.00 w \[\(abc\)\] TJ ET/, content[1])
     # BT
     #    31.19 795.17 Td
     #    0 Tr 0.00 w
@@ -107,7 +107,7 @@ class RbpdfTest < Test::Unit::TestCase
     contents.each_line {|line| content.push line.chomp }
 
     assert_equal 2, content.length
-    assert_match /BT 31.1[89] 795.17 Td 0 Tr 0.00 w \[\(abc\)\] TJ ET/, content[1]
+    assert_match(/BT 31.1[89] 795.17 Td 0 Tr 0.00 w \[\(abc\)\] TJ ET/, content[1])
     # BT
     #    31.19 795.17 Td
     #    0 Tr 0.00 w
