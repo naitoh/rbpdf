@@ -1496,7 +1496,7 @@ class RBPDF
   # [@since 1.0]
   #
   def Error(msg)
-    destroy(true)
+    #destroy(true)
     #Fatal error
     raise "RBPDF error: #{msg}"
   end
@@ -5590,7 +5590,7 @@ class RBPDF
     end
     self.instance_variables.each { |val|
       if destroyall or ((val != '@internal_encoding') and (val != '@state') and (val != '@bufferlen') and (val != '@buffer') and (val != '@diskcache') and (val != '@sign') and (val != '@signature_data') and (val != '@signature_max_length') and (val != '@byterange_string'))
-        if (!preserve_objcopy or (val.to_s != '@objcopy')) and @val
+        if (!preserve_objcopy or (val.to_s != '@objcopy')) and !val.nil?
           eval("#{val} = nil")
         end
       end
