@@ -178,7 +178,7 @@ class RbpdfTest < Test::Unit::TestCase
     img_file = File.join(File.dirname(__FILE__), 'png_test_alpha.png')
 
     if Object.const_defined?(:Magick)
-      tempfile = pdf.image_alpha_mask(img_file)
+      tempfile = pdf.send(:image_alpha_mask, img_file)
 
       info = pdf.parsepng(tempfile.path)
 

@@ -5123,22 +5123,6 @@ class RBPDF
   end
   protected :imageToPNG
 
-  def image_alpha_mask(file)
-    img = Magick::ImageList.new(file)
-
-    img2 = img.separate(Magick::OpacityChannel)
-    img = img2.negate(true)
-
-    #use a temporary file....
-    tmpFile = Tempfile.new(['msk_', '.png'], @@k_path_cache)
-    tmpFile.binmode
-    tmpFile.print img.to_blob
-    tmpFile
-  ensure
-    tmpFile.close unless tmpFile.nil?
-  end
-  protected :image_alpha_mask
-
   #
   # Extract info from a PNG file
   # [@access protected]
@@ -5255,6 +5239,7 @@ class RBPDF
   ensure
     tmpFile.close  unless tmpFile.nil?
   end
+  protected :image_alpha_mask
 
   #
   # Extract info from a PNG image with alpha channel using the GD library.
