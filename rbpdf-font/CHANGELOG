@@ -1,3 +1,6 @@
+1.19.1 2017-03-30
+       - Fixed deprecated warning
+
 1.19.0 2015-11-20
        - Fonts file was separated in rbpdf-font.gem.
        - Fonts utils were updated.

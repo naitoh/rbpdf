@@ -1,3 +1,13 @@
+1.19.1 2017-03-30
+       - Ruby 2.4 supported.
+       - Fixed get image file from remote URL
+       - Fixed get image file with Non-ASCII file name.
+       - Fixed function of SetFont bold/italic/bold and italic problem for CID-0 fonts.
+       - Fixed issue where backslash is duplicated in table tag. (by t-gergely)
+       - Fixed strict htmlentities dependency.
+       - Added the ability to specify abs-path font files. (by Artemiy Solopov)
+       - Use correct brackets to get second character in a string. (by vrobert)
+
 1.19.0 2015-11-20
        - Update base version to TCPDF 5.2.000.
        - IMPORTANT: Support for font subsetting was added by default to reduce the size of documents using large unicode font files.
