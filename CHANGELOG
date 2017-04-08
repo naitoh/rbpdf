@@ -1,3 +1,6 @@
+1.19.2 2017-04-08
+       - Ruby 1.9/2.0 on Windows install problem fixed.
+
 1.19.1 2017-03-30
        - Ruby 2.4 supported.
        - Fixed get image file from remote URL
