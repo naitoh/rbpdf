@@ -141,7 +141,8 @@ class RbpdfTest < Test::Unit::TestCase
   test "HTML Image test without RMagick" do
     return if Object.const_defined?(:Magick)
 
-    utf8_japanese_aiueo_str  = "\xe3\x81\x82\xe3\x81\x84\xe3\x81\x86\xe3\x81\x88\xe3\x81\x8a"
+    # no use
+    # utf8_japanese_aiueo_str  = "\xe3\x81\x82\xe3\x81\x84\xe3\x81\x86\xe3\x81\x88\xe3\x81\x8a"
 
     images = {
       'png_test_msk_alpha.png'    => 40.11,
@@ -149,7 +150,8 @@ class RbpdfTest < Test::Unit::TestCase
       'logo_rbpdf_8bit.png'       => 36.58,
       'logo_rbpdf_8bit .png'       => 36.58,
       'logo_rbpdf_8bit+ .png'       => 36.58,
-      'logo_rbpdf_8bit_' + utf8_japanese_aiueo_str + '.png'       => 36.58,
+      # no use
+      #'logo_rbpdf_8bit_' + utf8_japanese_aiueo_str + '.png'       => 36.58,
       'ng.png'                    => 9.42
     }
 
