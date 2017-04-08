@@ -69,16 +69,17 @@ class RbpdfTest < Test::Unit::TestCase
     }
   end
 
-  test "Image basic non ascii filename test" do
-    pdf = RBPDF.new
-    pdf.add_page
+  # no use
+  #test "Image basic non ascii filename test" do
+  #  pdf = RBPDF.new
+  #  pdf.add_page
 
-    utf8_japanese_aiueo_str  = "\xe3\x81\x82\xe3\x81\x84\xe3\x81\x86\xe3\x81\x88\xe3\x81\x8a"
-    img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit_' + utf8_japanese_aiueo_str + '.png')
-    assert_nothing_raised(RuntimeError) { 
-      pdf.image(img_file)
-    }
-  end
+  #  utf8_japanese_aiueo_str  = "\xe3\x81\x82\xe3\x81\x84\xe3\x81\x86\xe3\x81\x88\xe3\x81\x8a"
+  #  img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit_' + utf8_japanese_aiueo_str + '.png')
+  #  assert_nothing_raised(RuntimeError) { 
+  #    pdf.image(img_file)
+  #  }
+  #end
 
   test "Image basic filename error test" do
     pdf = RBPDF.new

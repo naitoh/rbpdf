@@ -28,9 +28,10 @@ class RbpdfHttpTest < Test::Unit::TestCase
       'logo_rbpdf_8bit .png',
       'logo_rbpdf_8bit+ .png',
     ]
-    if RUBY_VERSION >= '2.0' # Ruby 1.9.2/1.9.3
-      images << 'logo_rbpdf_8bit_' + utf8_japanese_aiueo_str + '.png'
-    end
+    # no use
+    #if RUBY_VERSION >= '2.0' # Ruby 1.9.2/1.9.3
+    #  images << 'logo_rbpdf_8bit_' + utf8_japanese_aiueo_str + '.png'
+    #end
 
     pdf = MYPDF.new
     images.each_with_index {|image, i|
