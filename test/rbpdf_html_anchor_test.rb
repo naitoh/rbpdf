@@ -79,7 +79,7 @@ class RbpdfTest < Test::Unit::TestCase
     pdf.write_html(htmlcontent, true, 0, true, 0)
 
     pdf.send(:mapLinksToHtmlAnchors)
-    link_position = pdf.instance_variable_get(:@links)[1]
+    link_position = pdf.instance_variable_get(:@links)[0]
     assert_equal [3, 73.50124999999998], link_position
   end
 
@@ -98,7 +98,7 @@ class RbpdfTest < Test::Unit::TestCase
 
     pdf.send(:mapLinksToHtmlAnchors)
 
-    link_position = pdf.instance_variable_get(:@links)[1]
+    link_position = pdf.instance_variable_get(:@links)[0]
     assert_equal [1, 10.001249999999999], link_position
   end
 
