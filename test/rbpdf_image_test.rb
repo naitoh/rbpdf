@@ -59,12 +59,12 @@ class RbpdfTest < Test::Unit::TestCase
     pdf = RBPDF.new
     pdf.add_page
     img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit.png')
-    assert_nothing_raised(RuntimeError) { 
+    assert_nothing_raised(RBPDFError) { 
       pdf.image(img_file)
     }
 
     img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit .png')
-    assert_nothing_raised(RuntimeError) { 
+    assert_nothing_raised(RBPDFError) { 
       pdf.image(img_file)
     }
   end
@@ -76,24 +76,24 @@ class RbpdfTest < Test::Unit::TestCase
 
   #  utf8_japanese_aiueo_str  = "\xe3\x81\x82\xe3\x81\x84\xe3\x81\x86\xe3\x81\x88\xe3\x81\x8a"
   #  img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit_' + utf8_japanese_aiueo_str + '.png')
-  #  assert_nothing_raised(RuntimeError) { 
+  #  assert_nothing_raised(RBPDFError) { 
   #    pdf.image(img_file)
   #  }
   #end
 
   test "Image basic filename error test" do
     pdf = RBPDF.new
-    err = assert_raise(RuntimeError) { 
+    err = assert_raise(RBPDFError) { 
       pdf.image(nil)
     }
     assert_equal 'RBPDF error: Image filename is empty.', err.message
 
-    err = assert_raises(RuntimeError) { 
+    err = assert_raises(RBPDFError) { 
       pdf.image('')
     }
     assert_equal 'RBPDF error: Image filename is empty.', err.message
 
-    err = assert_raises(RuntimeError) { 
+    err = assert_raises(RBPDFError) { 
       pdf.image('foo.png')
     }
     assert_equal 'RBPDF error: Missing image file: foo.png', err.message

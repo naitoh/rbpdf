@@ -95,6 +95,9 @@ PDF_PRODUCER = 'RBPDF 5.2.000'
 # @license:: http://www.gnu.org/copyleft/lesser.html LGPL 2.1
 #
 
+class RBPDFError < StandardError
+end
+
 class RBPDF
   include ActionView::Helpers
   include Rbpdf
@@ -367,7 +370,7 @@ class RBPDF
     @numfonts ||= 0
     @fontkeys ||= []
     @font_obj_ids ||= {}
-    @pageopen ||= []
+    @pageopen ||= [] # Store the fage status (true when opened, false when closed).
     @default_monospaced_font = 'courier'
 
 
@@ -442,7 +445,7 @@ class RBPDF
     @font_files ||= {}
     @diffs ||= []
     @images ||= {}
-    @links ||= []
+    @links ||= [] # array of internal links
     @html_anchor ||= nil
     @html_anchors ||= {}
     @html_anchor_links ||= {}
@@ -1507,13 +1510,21 @@ class RBPDF
   # This method is automatically called in case of fatal error; it simply outputs the message and halts the execution. An inherited class may override it to customize the error handling but should always halt the script, or the resulting document would probably be invalid.
   # * 2004-06-11 :: Nicola Asuni : changed bold tag with strong
   # [@param string :msg] The error message
+  # [@param string :err] Exception object
   # [@access public]
   # [@since 1.0]
   #
-  def Error(msg)
-    #destroy(true)
-    #Fatal error
-    raise "RBPDF error: #{msg}"
+  def Error(msg, err = nil)
+    if /^.+?:\d+(?::in `(.*)')?/ =~ caller(2).first
+      method = $1
+    end
+    if err and err.class != RBPDFError
+      logger.error "pdf: #{method}: #{err.message}"
+      err.backtrace.each{|trace|
+        logger.error trace
+      }
+    end
+    raise RBPDFError, "RBPDF error: #{msg}"
   end
   alias_method :error, :Error
 
@@ -3385,6 +3396,8 @@ class RBPDF
     end
     checkPageBreak(h)
     out(getCellCode(w, h, txt, border, ln, align, fill, link, stretch, ignore_min_height, calign, valign))
+  rescue => err
+    Error('Cell Error.', err)
   end
   alias_method :cell, :Cell
 
@@ -4036,6 +4049,8 @@ class RBPDF
 
     setContentMark()
     return nl
+  rescue => err
+    Error('MultiCell Error.', err)
   end
   alias_method :multi_cell, :MultiCell
 
@@ -4627,6 +4642,8 @@ class RBPDF
       return ''
     end
     return nl
+  rescue => err
+    Error('Write Error.', err)
   end
   alias_method :write, :Write
 
@@ -11827,6 +11844,8 @@ public
   def writeHTMLCell(w, h, x, y, html='', border=0, ln=0, fill=0, reseth=true, align='', autopadding=true)
     rtn = MultiCell(w, h, html, border, align, fill, ln, x, y, reseth, 0, true, autopadding, 0)
     return rtn
+  rescue => err
+    Error('writeHTMLCell Error.', err)
   end
   alias_method :write_html_cell, :writeHTMLCell
 
@@ -13007,6 +13026,8 @@ public
     @listcount = prev_listcount
     @lispacer = prev_lispacer
     dom = nil
+  rescue => err
+    Error('writeHTML Error.', err)
   end
   alias_method :write_html, :writeHTML
 
@@ -14820,6 +14841,8 @@ public
         movePage(page_last, page)
       end
     end
+  rescue => err
+    Error('addTOC Error.', err)
   end
   alias_method :add_toc, :addTOC
 
@@ -14924,6 +14947,8 @@ public
         movePage(page_last, page)
       end
     end
+  rescue => err
+    Error('addHTMLTOC Error.', err)
   end
   alias_method :add_html_toc, :addHTMLTOC
 

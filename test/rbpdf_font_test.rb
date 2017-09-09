@@ -286,17 +286,17 @@ class RbpdfFontTest < Test::Unit::TestCase
     pdf = RBPDF.new
     RBPDF.k_path_fonts = File.join File.dirname(__FILE__)
 
-    err = assert_raises(RuntimeError) { 
+    err = assert_raises(RBPDFError) { 
       pdf.set_font('err_font', '', 18)
     }
     assert_equal 'RBPDF error: Could not include font definition file: err_font', err.message
 
-    err = assert_raises(RuntimeError) { 
+    err = assert_raises(RBPDFError) { 
       pdf.set_font('err_font1', '', 18)
     }
     assert_match(/RBPDF error: The font definition file has a bad format: .*err_font1.rb/, err.message)
 
-    err = assert_raises(RuntimeError) { 
+    err = assert_raises(RBPDFError) { 
       pdf.set_font('err_font2', '', 18)
     }
     assert_equal 'RBPDF error: Unknow font type: Type0', err.message

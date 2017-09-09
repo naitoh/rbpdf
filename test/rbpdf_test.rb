@@ -174,7 +174,7 @@ class RbpdfTest < Test::Unit::TestCase
     pages = pdf.get_num_pages
     assert_equal 1, pages
 
-    assert_raise(RuntimeError) {pdf.set_page(0)} # Page under size
+    assert_raise(RBPDFError) {pdf.set_page(0)} # Page under size
   end
 
   test "add_page set_page Over Error" do
@@ -201,7 +201,7 @@ class RbpdfTest < Test::Unit::TestCase
     page = pdf.get_page
     assert_equal 1, page
 
-    assert_raise(RuntimeError) {pdf.set_page(3)} # Page over size
+    assert_raise(RBPDFError) {pdf.set_page(3)} # Page over size
   end
 
   test "deletePage test" do
