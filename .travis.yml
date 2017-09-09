@@ -1,7 +1,6 @@
 language: ruby
 rvm:
   - 1.8.7
-  - 1.9.2
   - 1.9.3
   - 2.0
   - 2.1
@@ -9,6 +8,8 @@ rvm:
   - 2.3.0
   - 2.4.0
   - jruby
+dist: precise
+sudo: required
 matrix:
   exclude:
     - rvm: 1.8.7
@@ -30,6 +31,8 @@ matrix:
   allow_failures:
     - rvm: jruby
       gemfile: Gemfile.rails4
+before_install:
+  - gem update bundler
 install:
   - bundle install
 script:
