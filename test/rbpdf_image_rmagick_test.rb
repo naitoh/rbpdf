@@ -177,19 +177,33 @@ class RbpdfTest < Test::Unit::TestCase
   end
 
   test "image_alpha_mask DeviceGray test" do
+    return unless Object.const_defined?(:Magick)
+
     pdf = MYPDF.new
     pdf.add_page
     img_file = File.join(File.dirname(__FILE__), 'png_test_alpha.png')
 
-    if Object.const_defined?(:Magick)
-      tempfile = pdf.send(:image_alpha_mask, img_file)
+    tempfile = pdf.send(:image_alpha_mask, img_file)
 
-      info = pdf.parsepng(tempfile.path)
+    info = pdf.parsepng(tempfile.path)
 
-      assert_not_equal 'pngalpha',    info
-      assert_equal      8,            info['bpc']
-      assert_equal      'DeviceGray', info['cs']
-    end
+    assert_not_equal 'pngalpha',    info
+    assert_equal      8,            info['bpc']
+    assert_equal      'DeviceGray', info['cs']
+
+    # embed mask image test
+    imgmask = pdf.image(tempfile.path, 10, 10, 100, '', 'PNG', '', '', false, 300, '', true, false)
+    assert_equal 1, imgmask
+  end
+
+  test "ImagePngAlpha test" do
+    return unless Object.const_defined?(:Magick)
+
+    pdf = RBPDF.new
+    pdf.add_page
+    img_file = File.join(File.dirname(__FILE__), 'png_test_alpha.png')
+    info = pdf.send(:ImagePngAlpha, img_file, 10, 10, 100, '', 'PNG', 'https://rubygems.org/gems/rbpdf')
+    assert_equal true, info
   end
 
   test "Image PNG test" do
