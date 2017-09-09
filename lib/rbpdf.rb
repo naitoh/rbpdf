@@ -3843,6 +3843,9 @@ class RBPDF
   #   SetFont(), SetDrawColor(), SetFillColor(), SetTextColor(), SetLineWidth(), Cell(), Write(), SetAutoPageBreak()
   #
   def MultiCell(w, h, txt, border=0, align='J', fill=0, ln=1, x='', y='', reseth=true, stretch=0, ishtml=false, autopadding=true, maxh=0)
+
+    @x ||= 0
+
     w = 0 unless w.is_a?(Numeric)
     h = 0 unless h.is_a?(Numeric)
 
@@ -13465,7 +13468,7 @@ public
           Ln(0, cell)
           @x = parent['startx']
           # account for booklet mode
-          if @page > parent['startpage']
+          if parent['startpage'] and @page > parent['startpage']
             if @rtl and (@pagedim[@page]['orm'] != @pagedim[parent['startpage']]['orm'])
               @x -= @pagedim[@page]['orm'] - @pagedim[parent['startpage']]['orm']
             elsif !@rtl and (@pagedim[@page]['olm'] != @pagedim[parent['startpage']]['olm'])
@@ -13535,6 +13538,7 @@ public
               startpage = parent['startpage']
               end_page = parent['endpage']
             end
+            cellpos['startx'] ||= 0
             if end_page > startpage
               # design borders around HTML cells.
               startpage.upto(end_page) do |page|
@@ -14637,6 +14641,7 @@ public
     # adjust links
     tmplinks = @links
     tmplinks.each_with_index do |link, key|
+      next if link.nil?
       if link[0] > page
         @links[key][0] = link[0] - 1
       elsif link[0] == page
