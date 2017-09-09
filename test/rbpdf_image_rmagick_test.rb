@@ -5,15 +5,6 @@
 require 'test_helper'
 
 class RbpdfTest < Test::Unit::TestCase
-  class MYPDF < RBPDF
-    def imageToPNG(file)
-      super
-    end
-    def parsepng(file)
-      super
-    end
-  end
-
   test "image getimagesize PNG test" do
     pdf = RBPDF.new
     pdf.add_page
@@ -126,25 +117,24 @@ class RbpdfTest < Test::Unit::TestCase
   end
 
   test "imageToPNG delete GIF test" do
-    pdf = MYPDF.new
+    return unless Object.const_defined?(:Magick)
+    pdf = RBPDF.new
     pdf.add_page
     img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit.gif')
 
-    if Object.const_defined?(:Magick)
-      tempfile = pdf.imageToPNG(img_file)
-      assert_not_equal false,      tempfile
+    tempfile = pdf.send(:imageToPNG, img_file)
+    assert_not_equal false,      tempfile
 
-      info = pdf.parsepng(tempfile.path)
+    info = pdf.send(:parsepng, tempfile.path)
 
-      assert_not_equal 'pngalpha', info
-      assert_equal     8,          info['bpc']
-      assert_equal     'Indexed',  info['cs']
-    end
+    assert_not_equal 'pngalpha', info
+    assert_equal     8,          info['bpc']
+    assert_equal     'Indexed',  info['cs']
   end
 
   test "Magick::ImageList delete GIF alpha channel test" do
     return unless Object.const_defined?(:Magick)
-    pdf = MYPDF.new
+    pdf = RBPDF.new
     pdf.add_page
     img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit_alpha.gif')
 
@@ -157,53 +147,51 @@ class RbpdfTest < Test::Unit::TestCase
   end
 
   test "imageToPNG delete GIF alpha channel test" do
-    pdf = MYPDF.new
+    return unless Object.const_defined?(:Magick)
+    pdf = RBPDF.new
     pdf.add_page
     img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit_alpha.gif')
 
-    if Object.const_defined?(:Magick)
-      tempfile = pdf.imageToPNG(img_file)
-      assert_not_equal false,      tempfile
+    tempfile = pdf.send(:imageToPNG, img_file)
+    assert_not_equal false,      tempfile
 
-      info = pdf.parsepng(tempfile.path)
+    info = pdf.send(:parsepng, tempfile.path)
 
-      assert_not_equal 'pngalpha', info
-      assert_equal     8,          info['bpc']
-      assert_equal     'Indexed',  info['cs']
-    end
+    assert_not_equal 'pngalpha', info
+    assert_equal     8,          info['bpc']
+    assert_equal     'Indexed',  info['cs']
   end
 
   test "imageToPNG delete PNG alpha channel test" do
-    pdf = MYPDF.new
+    return unless Object.const_defined?(:Magick)
+    pdf = RBPDF.new
     pdf.add_page
     img_file = File.join(File.dirname(__FILE__), 'png_test_alpha.png')
 
-    if Object.const_defined?(:Magick)
-      tempfile = pdf.imageToPNG(img_file)
-      assert_not_equal  false,       tempfile
+    tempfile = pdf.send(:imageToPNG, img_file)
+    assert_not_equal  false,       tempfile
 
-      info = pdf.parsepng(tempfile.path)
+    info = pdf.send(:parsepng, tempfile.path)
 
-      assert_not_equal 'pngalpha',   info
-      assert_equal      8,           info['bpc']
-      assert_equal      'DeviceRGB', info['cs']
-    end
+    assert_not_equal 'pngalpha',  info
+    assert_equal      8,          info['bpc']
+    assert_equal     'DeviceRGB', info['cs']
   end
 
   test "image_alpha_mask DeviceGray test" do
     return unless Object.const_defined?(:Magick)
 
-    pdf = MYPDF.new
+    pdf = RBPDF.new
     pdf.add_page
     img_file = File.join(File.dirname(__FILE__), 'png_test_alpha.png')
 
     tempfile = pdf.send(:image_alpha_mask, img_file)
 
-    info = pdf.parsepng(tempfile.path)
+    info = pdf.send(:parsepng, tempfile.path)
 
-    assert_not_equal 'pngalpha',    info
-    assert_equal      8,            info['bpc']
-    assert_equal      'DeviceGray', info['cs']
+    assert_not_equal 'pngalpha',   info
+    assert_equal      8,           info['bpc']
+    assert_equal     'DeviceGray', info['cs']
 
     # embed mask image test
     imgmask = pdf.image(tempfile.path, 10, 10, 100, '', 'PNG', '', '', false, 300, '', true, false)
