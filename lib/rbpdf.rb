@@ -5127,7 +5127,7 @@ class RBPDF
     img = Magick::ImageList.new(file)
     img.format = 'PNG'       # convert to PNG from gif
     if img.alpha?
-      img.opacity = 0          # PNG alpha channel delete
+      img.alpha = Magick::DeactivateAlphaChannel   # PNG alpha channel delete
       if img.alpha?
         return false
       end

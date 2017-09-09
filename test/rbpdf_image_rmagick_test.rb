@@ -142,6 +142,20 @@ class RbpdfTest < Test::Unit::TestCase
     end
   end
 
+  test "Magick::ImageList delete GIF alpha channel test" do
+    return unless Object.const_defined?(:Magick)
+    pdf = MYPDF.new
+    pdf.add_page
+    img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit_alpha.gif')
+
+    img = Magick::ImageList.new(img_file)
+    img.format = 'PNG'       # convert to PNG from gif
+    assert_equal true,   img.alpha?
+
+    img.alpha = Magick::DeactivateAlphaChannel   # PNG alpha channel delete
+    assert_equal false,   img.alpha?
+  end
+
   test "imageToPNG delete GIF alpha channel test" do
     pdf = MYPDF.new
     pdf.add_page
