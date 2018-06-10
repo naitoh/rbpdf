@@ -7,4 +7,4 @@ source 'https://rubygems.org'
 # Specify your gem's dependencies in rbpdf.gemspec
 gemspec
 
-gem "actionpack", "~> 5.1.4"
+gem "actionpack", "~> 5.2.0"
