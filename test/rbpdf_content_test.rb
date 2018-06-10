@@ -110,7 +110,7 @@ class RbpdfPageTest < Test::Unit::TestCase
     assert_equal '370.62 391.58 340.88 408.76 308.08 414.54 c', content[6]  # 2/9 circle
     assert_equal '275.27 420.32 241.45 414.36 212.60 397.70 c', content[7]  # 3/9 circle
     assert_equal '183.75 381.05 161.67 354.74 150.28 323.44 c', content[8]  # 4/9 circle
-    assert_equal '138.89 292.13 138.89 257.79 150.28 226.49 c', content[9]  # 5/9 circle
+    assert_match(/138.8[89] 292.13 138.8[89] 257.79 150.28 226.4[89] c/, content[9]) # 5/9 circle
     assert_equal '161.67 195.18 183.75 168.87 212.60 152.22 c', content[10] # 6/9 circle
     assert_equal '241.45 135.56 275.27 129.60 308.08 135.38 c', content[11] # 7/9 circle
     assert_equal '340.88 141.17 370.62 158.34 392.04 183.86 c', content[12] # 8/9 circle
