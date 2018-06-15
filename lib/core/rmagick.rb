@@ -46,7 +46,10 @@ module Rbpdf
       return out
     end
 
-    return false unless Object.const_defined?(:Magick)
+    unless Object.const_defined?(:Magick)
+      Error('No RMagick: Non-PNG file is not supported.: ' + filename);
+      return false
+    end
 
     image = Magick::ImageList.new(filename)
     
