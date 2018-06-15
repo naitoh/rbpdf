@@ -5,122 +5,48 @@
 require 'test_helper'
 
 class RbpdfTest < Test::Unit::TestCase
-  test "image getimagesize PNG test" do
+  images = {
+    'PNG'                => {:file => 'logo_rbpdf_8bit.png',       :type => 'PNG',  :mime => 'image/png',  :use_magick => false},
+    'PNG monotone'       => {:file => 'logo_rbpdf_mono_rgb.png',   :type => 'PNG',  :mime => 'image/png',  :use_magick => false},
+    'GIF'                => {:file => 'logo_rbpdf_8bit.gif',       :type => 'GIF',  :mime => 'image/gif',  :use_magick => true, :channels => 3, :bits => 8},
+    'GIF alpha'          => {:file => 'logo_rbpdf_8bit_alpha.gif', :type => 'GIF',  :mime => 'image/gif',  :use_magick => true, :channels => 3, :bits => 8},
+    'JPEG RGB'           => {:file => 'logo_rbpdf_8bit.jpg',       :type => 'JPEG', :mime => 'image/jpeg', :use_magick => true, :channels => 3, :bits => 8},
+    'JPEG monotone RGB'  => {:file => 'logo_rbpdf_mono_rgb.jpg',   :type => 'JPEG', :mime => 'image/jpeg', :use_magick => true, :channels => 3, :bits => 8},
+    'JPEG monotone Gray' => {:file => 'logo_rbpdf_mono_gray.jpg',  :type => 'JPEG', :mime => 'image/jpeg', :use_magick => true, :channels => 0, :bits => 8},
+  }
+
+  data(images)
+  test "image getimagesize test" do |data|
+    if data[:use_magick] and !Object.const_defined?(:Magick)
+      return
+    end
+
     pdf = RBPDF.new
     pdf.add_page
-    img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit.png')
+    img_file = File.join(File.dirname(__FILE__), data[:file])
 
     info = pdf.getimagesize(img_file)
     assert_equal 240,                       info[0] # width
     assert_equal 89,                        info[1] # height
-    assert_equal 'PNG',                     info[2] # Image Type
+    assert_equal data[:type],               info[2] # Image Type
     assert_equal 'height="89" width="240"', info[3]
-    assert_equal 'image/png',               info['mime']
+    assert_equal data[:mime],               info['mime']
+    assert_equal data[:channels],           info['channels'] if @channels # RGB
+    assert_equal data[:bits],               info['bits']     if @bits     # depth
   end
 
-  test "image getimagesize GIF test" do
-    return unless Object.const_defined?(:Magick)
+  images = {
+    'PNG alpha'          => {:file => 'png_test_alpha.png',        :cs => 'DeviceRGB'},
+    'GIF'                => {:file => 'logo_rbpdf_8bit.gif',       :cs => 'Indexed'},
+    'GIF alpha'          => {:file => 'logo_rbpdf_8bit_alpha.gif', :cs => 'Indexed'},
+  }
 
-    pdf = RBPDF.new
-    pdf.add_page
-    img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit.gif')
-
-    info = pdf.getimagesize(img_file)
-    assert_equal 240,                       info[0] # width
-    assert_equal 89,                        info[1] # height
-    assert_equal 'GIF',                     info[2] # Image Type
-    assert_equal 'height="89" width="240"', info[3]
-    assert_equal 'image/gif',               info['mime']
-    assert_equal 3,                         info['channels'] # RGB
-    assert_equal 8,                         info['bits']     # depth
-  end
-
-  test "image getimagesize GIF alpha test" do
-    return unless Object.const_defined?(:Magick)
-
-    pdf = RBPDF.new
-    pdf.add_page
-    img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit_alpha.gif')
-
-    info = pdf.getimagesize(img_file)
-    assert_equal 240,                       info[0] # width
-    assert_equal 89,                        info[1] # height
-    assert_equal 'GIF',                     info[2] # Image Type
-    assert_equal 'height="89" width="240"', info[3]
-    assert_equal 'image/gif',               info['mime']
-    assert_equal 3,                         info['channels'] # RGB
-    assert_equal 8,                         info['bits']     # depth
-  end
-
-  test "image getimagesize JPEG RGB test" do
-    return unless Object.const_defined?(:Magick)
-
-    pdf = RBPDF.new
-    pdf.add_page
-    img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit.jpg')
-
-    info = pdf.getimagesize(img_file)
-    assert_equal 240,                       info[0] # width
-    assert_equal 89,                        info[1] # height
-    assert_equal 'JPEG',                    info[2] # Image Type
-    assert_equal 'height="89" width="240"', info[3]
-    assert_equal 'image/jpeg',              info['mime']
-    assert_equal 3,                         info['channels'] # RGB
-    assert_equal 8,                         info['bits']     # depth
-  end
-
-  test "image getimagesize JPEG monotone RGB test" do
-    return unless Object.const_defined?(:Magick)
-
-    pdf = RBPDF.new
-    pdf.add_page
-    img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_mono_rgb.jpg')
-
-    info = pdf.getimagesize(img_file)
-    assert_equal 240,                       info[0] # width
-    assert_equal 89,                        info[1] # height
-    assert_equal 'JPEG',                    info[2] # Image Type
-    assert_equal 'height="89" width="240"', info[3]
-    assert_equal 'image/jpeg',              info['mime']
-    assert_equal 3,                         info['channels'] # RGB
-    assert_equal 8,                         info['bits']     # depth
-  end
-
-  test "image getimagesize JPEG monotone Gray test" do
-    return unless Object.const_defined?(:Magick)
-
-    pdf = RBPDF.new
-    pdf.add_page
-    img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_mono_gray.jpg')
-
-    info = pdf.getimagesize(img_file)
-    assert_equal 240,                       info[0] # width
-    assert_equal 89,                        info[1] # height
-    assert_equal 'JPEG',                    info[2] # Image Type
-    assert_equal 'height="89" width="240"', info[3]
-    assert_equal 'image/jpeg',              info['mime']
-    assert_equal 0,                         info['channels'] # Gray
-    assert_equal 8,                         info['bits']     # depth
-  end
-
-  test "image getimagesize PNG monotone test" do
-    pdf = RBPDF.new
-    pdf.add_page
-    img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_mono_rgb.png')
-
-    info = pdf.getimagesize(img_file)
-    assert_equal 240,                       info[0] # width
-    assert_equal 89,                        info[1] # height
-    assert_equal 'PNG',                     info[2] # Image Type
-    assert_equal 'height="89" width="240"', info[3]
-    assert_equal 'image/png',               info['mime']
-  end
-
-  test "imageToPNG delete GIF test" do
+  data(images)
+  test "imageToPNG delete test" do |data|
     return unless Object.const_defined?(:Magick)
     pdf = RBPDF.new
     pdf.add_page
-    img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit.gif')
+    img_file = File.join(File.dirname(__FILE__), data[:file])
 
     tempfile = pdf.send(:imageToPNG, img_file)
     assert_not_equal false,      tempfile
@@ -129,7 +55,7 @@ class RbpdfTest < Test::Unit::TestCase
 
     assert_not_equal 'pngalpha', info
     assert_equal     8,          info['bpc']
-    assert_equal     'Indexed',  info['cs']
+    assert_equal     data[:cs],  info['cs']
   end
 
   test "Magick::ImageList delete GIF alpha channel test" do
@@ -144,38 +70,6 @@ class RbpdfTest < Test::Unit::TestCase
 
     img.alpha = Magick::DeactivateAlphaChannel   # PNG alpha channel delete
     assert_equal false,   img.alpha?
-  end
-
-  test "imageToPNG delete GIF alpha channel test" do
-    return unless Object.const_defined?(:Magick)
-    pdf = RBPDF.new
-    pdf.add_page
-    img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit_alpha.gif')
-
-    tempfile = pdf.send(:imageToPNG, img_file)
-    assert_not_equal false,      tempfile
-
-    info = pdf.send(:parsepng, tempfile.path)
-
-    assert_not_equal 'pngalpha', info
-    assert_equal     8,          info['bpc']
-    assert_equal     'Indexed',  info['cs']
-  end
-
-  test "imageToPNG delete PNG alpha channel test" do
-    return unless Object.const_defined?(:Magick)
-    pdf = RBPDF.new
-    pdf.add_page
-    img_file = File.join(File.dirname(__FILE__), 'png_test_alpha.png')
-
-    tempfile = pdf.send(:imageToPNG, img_file)
-    assert_not_equal  false,       tempfile
-
-    info = pdf.send(:parsepng, tempfile.path)
-
-    assert_not_equal 'pngalpha',  info
-    assert_equal      8,          info['bpc']
-    assert_equal     'DeviceRGB', info['cs']
   end
 
   test "image_alpha_mask DeviceGray test" do
@@ -208,52 +102,26 @@ class RbpdfTest < Test::Unit::TestCase
     assert_equal true, info
   end
 
-  test "Image PNG test" do
-    pdf = RBPDF.new
-    pdf.add_page
-    img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit.png')
-    info = pdf.image(img_file, 10, 10, 100, '', '', 'https://rubygems.org/gems/rbpdf', '', false, 300)
-    assert_equal 1, info
-  end
+  images = {
+    'PNG'                => {:file => 'logo_rbpdf_8bit.png',       :info => 1,    :use_magick => false},
+    'PNG alpha'          => {:file => 'png_test_alpha.png',        :info => true, :use_magick => true},
+    'GIF'                => {:file => 'logo_rbpdf_8bit.gif',       :info => 1,    :use_magick => true},
+    'GIF alpha'          => {:file => 'logo_rbpdf_8bit_alpha.gif', :info => 1,    :use_magick => true},
+    'JPEG'               => {:file => 'logo_rbpdf_8bit.jpg',       :info => 1,    :use_magick => true},
+  }
 
-  test "Image PNG alpha test" do
-    return unless Object.const_defined?(:Magick)
-
-    pdf = RBPDF.new
-    pdf.add_page
-    img_file = File.join(File.dirname(__FILE__), 'png_test_alpha.png')
-    info = pdf.image(img_file, 10, 10, 100, '', '', 'https://rubygems.org/gems/rbpdf', '', false, 300)
-    assert_equal true, info
-  end
-
-  test "Image GIF test" do
-    return unless Object.const_defined?(:Magick)
+  data(images)
+  test "Image test" do |data|
+    if data[:use_magick] and !Object.const_defined?(:Magick)
+      return
+    end
 
     pdf = RBPDF.new
     pdf.add_page
-    img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit.gif')
+    img_file = File.join(File.dirname(__FILE__), data[:file])
+
     info = pdf.image(img_file, 10, 10, 100, '', '', 'https://rubygems.org/gems/rbpdf', '', false, 300)
-    assert_equal 1, info
-  end
-
-  test "Image GIF alpha test" do
-    return unless Object.const_defined?(:Magick)
-
-    pdf = RBPDF.new
-    pdf.add_page
-    img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit_alpha.gif')
-    info = pdf.image(img_file, 10, 10, 100, '', '', 'https://rubygems.org/gems/rbpdf', '', false, 300)
-    assert_equal 1, info
-  end
-
-  test "Image JPEG test" do
-    return unless Object.const_defined?(:Magick)
-
-    pdf = RBPDF.new
-    pdf.add_page
-    img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit.jpg')
-    info = pdf.image(img_file, 10, 10, 100, '', '', 'https://rubygems.org/gems/rbpdf', '', false, 300)
-    assert_equal 1, info
+    assert_equal data[:info], info
   end
 
   test "HTML Image test" do
