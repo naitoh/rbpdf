@@ -5294,6 +5294,11 @@ class RBPDF
     if tempfile_plain == false
       return false
     end
+    info=parsepng(tempfile_plain.path)
+    if info['cs'] != 'DeviceRGB'
+      tempfile_plain.delete
+      return false
+    end
 
     tempfile_alpha = image_alpha_mask(file)
 

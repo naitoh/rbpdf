@@ -92,19 +92,28 @@ class RbpdfTest < Test::Unit::TestCase
     assert_equal 1, imgmask
   end
 
-  test "ImagePngAlpha test" do
+
+  images = {
+    'PNG alpha'          => {:file => 'png_test_alpha.png',        :info => true},
+    'PNG alpha Error'    => {:file => 'png_test_alpha.png',        :info => false, :png_alpha_error => true},
+  }
+
+  data(images)
+  test "ImagePngAlpha test" do |data|
     return unless Object.const_defined?(:Magick)
 
     pdf = RBPDF.new
     pdf.add_page
-    img_file = File.join(File.dirname(__FILE__), 'png_test_alpha.png')
+    img_file = File.join(File.dirname(__FILE__), data[:file])
+    pdf.singleton_class.send(:define_method, :parsepng){|*args| {:cs => 'Indexed'}} if data[:png_alpha_error]
     info = pdf.send(:ImagePngAlpha, img_file, 10, 10, 100, '', 'PNG', 'https://rubygems.org/gems/rbpdf')
-    assert_equal true, info
+    assert_equal data[:info], info
   end
 
   images = {
     'PNG'                => {:file => 'logo_rbpdf_8bit.png',       :info => 1,    :use_magick => false},
     'PNG alpha'          => {:file => 'png_test_alpha.png',        :info => true, :use_magick => true},
+    'PNG alpha Error'    => {:file => 'png_test_alpha.png',        :info => 1,    :use_magick => true, :png_alpha_error => true},
     'GIF'                => {:file => 'logo_rbpdf_8bit.gif',       :info => 1,    :use_magick => true},
     'GIF alpha'          => {:file => 'logo_rbpdf_8bit_alpha.gif', :info => 1,    :use_magick => true},
     'JPEG'               => {:file => 'logo_rbpdf_8bit.jpg',       :info => 1,    :use_magick => true},
@@ -119,7 +128,7 @@ class RbpdfTest < Test::Unit::TestCase
     pdf = RBPDF.new
     pdf.add_page
     img_file = File.join(File.dirname(__FILE__), data[:file])
-
+    pdf.singleton_class.send(:define_method, :parsepng){|*args| {:cs => 'Indexed'}} if data[:png_alpha_error]
     info = pdf.image(img_file, 10, 10, 100, '', '', 'https://rubygems.org/gems/rbpdf', '', false, 300)
     assert_equal data[:info], info
   end
