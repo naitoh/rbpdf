@@ -1,3 +1,8 @@
+1.19.4 2018-06-16
+       - Ruby 2.5 supported.
+       - Rails 5.2 supported.
+       - Fixed exception handling of ImagePngAlpha function.
+
 1.19.3 2017-09-10
        - Rails 5.1 supported.
        - nil link bug fixed. (by jkraemer)
