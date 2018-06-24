@@ -1,3 +1,9 @@
+1.19.5 2018-06-24
+       - Fixed that the handling of Tempfile was wrong.
+       - Fixed compatibility problem with Magick::RGBColorspace and Magick::SRGBColorspace.
+         image_alpha_mask function has been fixed to use Magick :: ExtractAlphaChannel.
+       - Deleted exception handling of ImagePngAlpha function.
+
 1.19.4 2018-06-16
        - Ruby 2.5 supported.
        - Rails 5.2 supported.
