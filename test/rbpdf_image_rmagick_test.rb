@@ -31,8 +31,8 @@ class RbpdfTest < Test::Unit::TestCase
     assert_equal data[:type],               info[2] # Image Type
     assert_equal 'height="89" width="240"', info[3]
     assert_equal data[:mime],               info['mime']
-    assert_equal data[:channels],           info['channels'] if @channels # RGB
-    assert_equal data[:bits],               info['bits']     if @bits     # depth
+    assert_equal data[:channels],           info['channels'] if data[:channels] # RGB
+    assert_equal data[:bits],               info['bits']     if data[:bits]     # depth
   end
 
   images = {
