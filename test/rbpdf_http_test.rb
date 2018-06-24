@@ -24,9 +24,11 @@ class RbpdfHttpTest < Test::Unit::TestCase
     utf8_japanese_aiueo_str  = "\xe3\x81\x82\xe3\x81\x84\xe3\x81\x86\xe3\x81\x88\xe3\x81\x8a"
 
     images = [
-      'logo_rbpdf_8bit.png',
-      'logo_rbpdf_8bit .png',
-      'logo_rbpdf_8bit+ .png',
+      # file_name,                    error_message
+      ['logo_rbpdf_8bit.png',         nil],
+      ['logo_rbpdf_8bit .png',        nil],
+      ['logo_rbpdf_8bit+ .png',       nil],
+      ['logo_rbpdf_8bit_no_file.png', /^RBPDF error: Unable to get image width and height: /],
     ]
     # no use
     #if RUBY_VERSION >= '2.0' # Ruby 1.9.2/1.9.3
@@ -36,19 +38,26 @@ class RbpdfHttpTest < Test::Unit::TestCase
     pdf = MYPDF.new
     images.each_with_index {|image, i|
       pdf.add_page
-      #tmpFile = pdf.get_image_file('http://127.0.0.1:' + @port.to_s + '/logo_rbpdf_8bit.png')
-      #tmpFile = pdf.get_image_file('http://127.0.0.1:' + @port.to_s + '/logo_rbpdf_8bit .png')
-      #tmpFile = pdf.get_image_file('http://127.0.0.1:' + @port.to_s + '/' + image)
-      #image.force_encoding('ASCII-8BIT') if image.respond_to?(:force_encoding)
-      tmpFile = pdf.get_image_file('http://127.0.0.1:' + @port.to_s + '/' + image)
+      #image[0].force_encoding('ASCII-8BIT') if image[0].respond_to?(:force_encoding)
+      tmpFile = pdf.get_image_file('http://127.0.0.1:' + @port.to_s + '/' + image[0])
+
       img_file = tmpFile.path
       assert_not_equal "", img_file
       unless File.exist?(img_file)
         assert false, "file not found. :" + img_file
       end
 
-      result_img = pdf.image(img_file, 50, 0, 0, '', '', '', '', false, 300, '', true)
-      assert_equal i+1, result_img
+      if image[1].nil?
+        result_img = pdf.image(img_file, 50, 0, 0, '', '', '', '', false, 300, '', true)
+        assert_equal i+1, result_img
+      else
+        err = assert_raise(RBPDFError) { 
+          result_img = pdf.image(img_file, 50, 0, 0, '', '', '', '', false, 300, '', true)
+        }
+        assert_match image[1], err.message
+        assert_equal nil, result_img
+      end
+
       no = pdf.get_num_pages
       assert_equal i+1, no
 

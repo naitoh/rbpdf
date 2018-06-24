@@ -96,7 +96,7 @@ class RbpdfTest < Test::Unit::TestCase
     err = assert_raises(RBPDFError) { 
       pdf.image('foo.png')
     }
-    assert_equal 'RBPDF error: Missing image file: foo.png', err.message
+    assert_equal 'RBPDF error: Image file is not found. : foo.png', err.message
   end
 
   test "Image basic test" do

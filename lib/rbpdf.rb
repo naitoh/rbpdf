@@ -4836,6 +4836,9 @@ class RBPDF
     # set bottomcoordinates
     @img_rb_y = y + h
     Error('Image filename is empty.') if file.nil? or file.length == 0
+    unless File.exist?(file)
+      Error('Image file is not found. : ' + file)
+    end
 
     # get image dimensions
     imsize = getimagesize(file)
@@ -4845,14 +4848,14 @@ class RBPDF
       imsize = getimagesize(file)
 
       if imsize.nil?
-        Error('Missing image file: ' + file)
+        Error("Can't get image dimension. : " + file)
       elsif imsize == false
         if (w > 0) and (h > 0)
           pw = getHTMLUnitToUnits(w, 0, @pdfunit, true) * @img_scale * @k
           ph = getHTMLUnitToUnits(h, 0, @pdfunit, true) * @img_scale * @k
           imsize = [pw, ph]
         else
-          Error('[Image] Unable to get image width and height: ' + file)
+          Error('Unable to get image width and height: ' + file)
         end
       end
     end
@@ -4963,7 +4966,7 @@ class RBPDF
           tmpFile = imageToPNG(file)
           if tmpFile != false
             info=parsepng(tmpFile.path)
-            tmpFile.delete
+            tmpFile.close(true)
           end
         else
           #Allow for additional formats
@@ -4997,10 +5000,10 @@ class RBPDF
           tmpname.binmode
           jpeg_quality = @jpeg_quality
           tmpname.print img.to_blob { self.quality = jpeg_quality }
-          tmpname.close
+          tmpname.fsync
 
           info = parsejpeg(tmpname.path)
-          tmpname.delete
+          tmpname.close(true)
         else
           return false
         end
@@ -5137,9 +5140,8 @@ class RBPDF
     tmpFile = Tempfile.new(['', '_' + File::basename(file) + '.png'], @@k_path_cache);
     tmpFile.binmode
     tmpFile.print img.to_blob
+    tmpFile.fsync
     tmpFile
-  ensure
-    tmpFile.close unless tmpFile.nil?
   end
   protected :imageToPNG
 
@@ -5255,9 +5257,8 @@ class RBPDF
     tmpFile = Tempfile.new(['msk_', '.png'], @@k_path_cache)
     tmpFile.binmode
     tmpFile.print img.to_blob
+    tmpFile.fsync
     tmpFile
-  ensure
-    tmpFile.close  unless tmpFile.nil?
   end
   protected :image_alpha_mask
 
@@ -5296,20 +5297,22 @@ class RBPDF
     end
     info=parsepng(tempfile_plain.path)
     if info['cs'] != 'DeviceRGB'
-      tempfile_plain.delete
+      tempfile_plain.close(true)
       return false
     end
 
     tempfile_alpha = image_alpha_mask(file)
+    if tempfile_alpha == false
+      return false
+    end
 
     # embed mask image
     imgmask = Image(tempfile_alpha.path, x, y, w, h, 'PNG', '', '', resize, dpi, '', true, false)
+    tempfile_alpha.close(true)
 
     # embed image, masked with previously embedded mask
     Image(tempfile_plain.path, x, y, w, h, type, link, align, resize, dpi, palign, false, imgmask)
-    # remove temp files
-    tempfile_alpha.delete
-    tempfile_plain.delete
+    tempfile_plain.close(true)
 
     return true
   end
@@ -11775,9 +11778,8 @@ protected
       res = http.get(uri.path)
       tmpFile.print res.body
     end
+    tmpFile.fsync
     tmpFile
-  ensure
-    tmpFile.close  unless tmpFile.nil?
   end
 
   #
@@ -13266,7 +13268,7 @@ public
           result_img = false
         ensure
           # remove temp files
-          tmpFile.delete unless tmpFile.nil?
+          tmpFile.close(true) unless tmpFile.nil?
         end
 
         if result_img or ih != 0
@@ -14149,8 +14151,6 @@ protected
     tmpFile = Tempfile.new(name + '_', @@k_path_cache)
     tmpFile.binmode
     tmpFile
-  ensure
-    tmpFile.close
   end
 
   #
