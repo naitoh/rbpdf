@@ -95,7 +95,7 @@ class RbpdfTest < Test::Unit::TestCase
 
   images = {
     'PNG alpha'          => {:file => 'png_test_alpha.png',        :info => true},
-    'PNG alpha Error'    => {:file => 'png_test_alpha.png',        :info => false, :png_alpha_error => true},
+    #'PNG alpha Error'    => {:file => 'png_test_alpha.png',        :info => false, :png_alpha_error => true}, # no use
   }
 
   data(images)
@@ -105,7 +105,7 @@ class RbpdfTest < Test::Unit::TestCase
     pdf = RBPDF.new
     pdf.add_page
     img_file = File.join(File.dirname(__FILE__), data[:file])
-    pdf.singleton_class.send(:define_method, :parsepng){|*args| {:cs => 'Indexed'}} if data[:png_alpha_error]
+    #pdf.singleton_class.send(:define_method, :parsepng){|*args| {:cs => 'Indexed'}} if data[:png_alpha_error] # no use
     info = pdf.send(:ImagePngAlpha, img_file, 10, 10, 100, '', 'PNG', 'https://rubygems.org/gems/rbpdf')
     assert_equal data[:info], info
   end
@@ -113,7 +113,7 @@ class RbpdfTest < Test::Unit::TestCase
   images = {
     'PNG'                => {:file => 'logo_rbpdf_8bit.png',       :info => 1,    :use_magick => false},
     'PNG alpha'          => {:file => 'png_test_alpha.png',        :info => true, :use_magick => true},
-    'PNG alpha Error'    => {:file => 'png_test_alpha.png',        :info => 1,    :use_magick => true, :png_alpha_error => true},
+    #'PNG alpha Error'    => {:file => 'png_test_alpha.png',        :info => 1,    :use_magick => true, :png_alpha_error => true}, # no use
     'GIF'                => {:file => 'logo_rbpdf_8bit.gif',       :info => 1,    :use_magick => true},
     'GIF alpha'          => {:file => 'logo_rbpdf_8bit_alpha.gif', :info => 1,    :use_magick => true},
     'JPEG'               => {:file => 'logo_rbpdf_8bit.jpg',       :info => 1,    :use_magick => true},
@@ -128,7 +128,7 @@ class RbpdfTest < Test::Unit::TestCase
     pdf = RBPDF.new
     pdf.add_page
     img_file = File.join(File.dirname(__FILE__), data[:file])
-    pdf.singleton_class.send(:define_method, :parsepng){|*args| {:cs => 'Indexed'}} if data[:png_alpha_error]
+    #pdf.singleton_class.send(:define_method, :parsepng){|*args| {:cs => 'Indexed'}} if data[:png_alpha_error] # no use
     info = pdf.image(img_file, 10, 10, 100, '', '', 'https://rubygems.org/gems/rbpdf', '', false, 300)
     assert_equal data[:info], info
   end

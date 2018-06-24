@@ -5249,9 +5249,11 @@ class RBPDF
 
   def image_alpha_mask(file)
     img = Magick::ImageList.new(file)
-
-    img2 = img.separate(Magick::OpacityChannel)
-    img = img2.negate(true)
+    if img.alpha?
+      img.alpha = Magick::ExtractAlphaChannel   # PNG alpha channel Mask
+    else
+      return false
+    end
 
     #use a temporary file....
     tmpFile = Tempfile.new(['msk_', '.png'], @@k_path_cache)
@@ -5293,11 +5295,6 @@ class RBPDF
   def ImagePngAlpha(file, x='', y='', w=0, h=0, type='', link='', align='', resize=false, dpi=300, palign='')
     tempfile_plain = imageToPNG(file)
     if tempfile_plain == false
-      return false
-    end
-    info=parsepng(tempfile_plain.path)
-    if info['cs'] != 'DeviceRGB'
-      tempfile_plain.close(true)
       return false
     end
 
