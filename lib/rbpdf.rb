@@ -3993,7 +3993,11 @@ class RBPDF
           end
         end
         SetX(nx)
+
+        prevLastH = @lasth
         ccode = getCellCode(w, h, '', cborder, 1, '', fill, '', 0, false)
+        @lasth = prevLastH
+
         if (cborder != 0) or (fill == 1)
           pagebuff = getPageBuffer(@page)
           pstart = pagebuff[0, @intmrk[@page]]
@@ -4007,8 +4011,12 @@ class RBPDF
       # put cursor at the beginning of text
       SetY(y)
       SetX(x)
+
+      prevLastH = @lasth
       # design a cell around the text
       ccode = getCellCode(w, h, '', border, 1, '', fill, '', 0, true)
+      @lasth = prevLastH
+
       if (border != 0) or (fill == 1)
         if !@transfmrk[@page].nil?
           pagemark = @transfmrk[@page]
@@ -13596,8 +13604,12 @@ public
                     @x += @pagedim[page]['olm'] - @pagedim[startpage]['olm']
                   end
                 end
+
+                prevLastH = @lasth
                 # design a cell around the text
                 ccode = @fill_color + "\n" + getCellCode(cw, ch, '', cborder, 1, '', fill, '', 0, true)
+                @lasth = prevLastH
+
                 if (cborder != 0) or (fill == 1)
                   pagebuff = getPageBuffer(@page)
                   pstart = pagebuff[0, @intmrk[@page]]
@@ -13618,8 +13630,12 @@ public
               @y = parent['starty']
               cw = (cellpos['endx'] - cellpos['startx']).abs
               ch = endy - parent['starty']
+
+              prevLastH = @lasth
               # design a cell around the text
               ccode = @fill_color + "\n" + getCellCode(cw, ch, '', border, 1, '', fill, '', 0, true)
+              @lasth = prevLastH
+
               if (border != 0) or (fill == 1)
                 if !@transfmrk[@page].nil?
                   pagemark = @transfmrk[@page]

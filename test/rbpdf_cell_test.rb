@@ -172,10 +172,18 @@ class RbpdfTest < Test::Unit::TestCase
         w = param[:w]
       end
 
+      lasth_0 = pdf.get_last_h
       y1 = pdf.get_y
       pdf.multi_cell(w, 0, txt)
+      lasth_1 = pdf.get_last_h
       pno = pdf.get_page
       assert_equal param[:pno], pno
+
+      if i == 0
+        assert_not_equal 0, lasth_1
+      else
+        assert_equal lasth_0, lasth_1
+      end
 
       y2 = pdf.get_y
       h1 = y2 - y1
