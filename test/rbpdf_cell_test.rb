@@ -1,4 +1,4 @@
-# Copyright (c) 2011-2017 NAITOH Jun
+# Copyright (c) 2011-2018 NAITOH Jun
 # Released under the MIT license
 # http://www.opensource.org/licenses/MIT
 
@@ -131,203 +131,61 @@ class RbpdfTest < Test::Unit::TestCase
     assert_equal " /Annots [ 200001 0 R ]", annots
   end
 
-  test "getStringHeight Basic test" do
-    pdf = RBPDF.new('P', 'mm', 'A4', true, "UTF-8", true)
+  texts = {
+    'Basic'                   => {:params => [{:txt => "abcdefg", :w => 50, :pno => 1, :line => 1},
+                                              {:txt => "abcdefg", :w => 20, :pno => 1, :line => 1}]},
+    'Line Break'              => {:params => [{:txt => "abcdefg", :w => 10, :pno => 1, :line => 3},
+                                              {:txt => "abcdefg", :w => 5, :pno => 1, :line => 7}]},
+    'Multi Line'              => {:params => [{:txt => "abc\ndif\nhij", :w => 100, :pno => 1, :line => 3}]},
+    'Minimum Width'           => {:params => [{:txt => "Export to PDF: align is Good.", :w => 'OO', :pno => 1, :line => 16}]},
+    'Minimum Width with font' => {:font => "kozminproregular", :orientation => 'L',
+                                  :params => [{:txt => "20", :w => '20', :pno => 1, :line => 2}]},
+    'Minimum Bidi'            => {:params => [{:txt => "\xd7\xa2\xd7\x91\xd7\xa8\xd7\x99\xd7\xaa", :w => 'OO', :pno => 1, :line => 5},
+                                              {:txt => "? \xd7\x93\xd7\x92 \xd7\xa1\xd7\xa7\xd7\xa8\xd7\x9f \xd7\xa9\xd7\x98 \xd7\x91\xd7\x99\xd7\x9d \xd7\x9e\xd7\x90\xd7\x95\xd7\x9b\xd7\x96\xd7\x91 \xd7\x95\xd7\x9c\xd7\xa4\xd7\xaa\xd7\xa2 \xd7\x9e\xd7\xa6\xd7\x90 \xd7\x9c\xd7\x95 \xd7\x97\xd7\x91\xd7\xa8\xd7\x94 \xd7\x90\xd7\x99\xd7\x9a \xd7\x94\xd7\xa7\xd7\x9c\xd7\x99\xd7\x98\xd7\x94", :w => 'OO', :pno => 1, :line => 41}]},
+    'Minimum Bidi with font'  => {:font => "freesans", :rtl => true,
+                                  :params => [{:txt => "\xd7\x9c 000", :w => 'OO', :pno => 1, :line => 3}]},
+  }
+
+  data(texts)
+  test "getStringHeight test" do |data|
+    orientation = data[:orientation] ? data[:orientation] : 'P'
+    pdf = RBPDF.new(orientation, 'mm', 'A4', true, "UTF-8", true)
+    pdf.set_font(data[:font], '', 8) if data[:font]
+
+    if data[:rtl]
+      pdf.set_rtl(true)
+      pdf.set_temp_rtl('R')
+    end
+
     pdf.add_page
 
-    txt = 'abcdefg'
+    data[:params].each_with_index {|param, i|
+      txt = param[:txt]
+      if param[:w].is_a? String
+        if data[:font]
+          margins = pdf.get_margins
+          w = pdf.get_string_width(param[:w]) + margins['cell'] * 2
+        else
+          w = pdf.get_string_width(param[:w])
+        end
+      else
+        w = param[:w]
+      end
 
-    w = 50
-    y1 = pdf.get_y
-    pdf.multi_cell(w, 0, txt)
-    pno = pdf.get_page
-    assert_equal 1, pno
-    y2 = pdf.get_y
-    h1 = y2 - y1
+      y1 = pdf.get_y
+      pdf.multi_cell(w, 0, txt)
+      pno = pdf.get_page
+      assert_equal param[:pno], pno
 
-    h2 = pdf.getStringHeight(w, txt)
-    assert_in_delta h1, h2, 0.01
+      y2 = pdf.get_y
+      h1 = y2 - y1
 
-    line = pdf.get_num_lines(txt, w)
-    assert_equal 1, line
+      h2 = pdf.getStringHeight(w, txt)
+      assert_in_delta h1, h2, 0.01
 
-    w = 20
-    y1 = pdf.get_y
-    pdf.multi_cell(w, 0, txt)
-    pno = pdf.get_page
-    assert_equal 1, pno
-    y2 = pdf.get_y
-    h1 = y2 - y1
-
-    h2 = pdf.getStringHeight(w, txt)
-    assert_in_delta h1, h2, 0.01
-
-    line = pdf.get_num_lines(txt, w)
-    assert_equal 1, line
-  end
-
-  test "getStringHeight Line Break test" do
-    pdf = RBPDF.new('P', 'mm', 'A4', true, "UTF-8", true)
-    pdf.add_page
-
-    txt = 'abcdefg'
-
-    w = 10
-    y1 = pdf.get_y
-    pdf.multi_cell(w, 0, txt)
-    pno = pdf.get_page
-    assert_equal 1, pno
-    y2 = pdf.get_y
-    h1 = y2 - y1
-
-    h2 = pdf.getStringHeight(w, txt)
-    assert_in_delta h1, h2, 0.01
-
-    line = pdf.get_num_lines(txt, w)
-    assert_equal 3, line
-
-
-    w = 5
-    y1 = pdf.get_y
-    pdf.multi_cell(w, 0, txt)
-    pno = pdf.get_page
-    assert_equal 1, pno
-    y2 = pdf.get_y
-    h1 = y2 - y1
-
-    h2 = pdf.getStringHeight(w, txt)
-    assert_in_delta h1, h2, 0.01
-
-    line = pdf.get_num_lines(txt, w)
-    assert_equal 7, line
-  end
-
-  test "getStringHeight Multi Line test" do
-    pdf = RBPDF.new('P', 'mm', 'A4', true, "UTF-8", true)
-    pdf.add_page
-
-    txt = "abc\ndif\nhij"
-
-    w = 100
-    y1 = pdf.get_y
-    pdf.multi_cell(w, 0, txt)
-    pno = pdf.get_page
-    assert_equal 1, pno
-    y2 = pdf.get_y
-    h1 = y2 - y1
-
-    h2 = pdf.getStringHeight(w, txt)
-    assert_in_delta h1, h2, 0.01
-
-    line = pdf.get_num_lines(txt, w)
-    assert_equal 3, line
-  end
-
-  test "getStringHeight Minimum Width test 1" do
-    pdf = RBPDF.new('P', 'mm', 'A4', true, "UTF-8", true)
-    pdf.add_page
-
-    w = pdf.get_string_width('OO')
-
-    txt = "Export to PDF: align is Good."
-
-    y1 = pdf.get_y
-    pdf.multi_cell(w, 0, txt)
-    pno = pdf.get_page
-    assert_equal 1, pno
-    y2 = pdf.get_y
-    h1 = y2 - y1
-
-    h2 = pdf.getStringHeight(w, txt)
-    assert_in_delta h1, h2, 0.01
-
-    line = pdf.get_num_lines(txt, w)
-    assert_equal 16, line
-  end
-
- test "getStringHeight Minimum Width test 2" do
-    pdf = RBPDF.new('L', 'mm', 'A4', true, "UTF-8", true)
-    pdf.set_font('kozminproregular', '', 8)
-    pdf.add_page
-
-    margins = pdf.get_margins
-    w = pdf.get_string_width('20') + margins['cell'] * 2
-
-    txt = "20"
-
-    y1 = pdf.get_y
-    pdf.multi_cell(w, 0, txt)
-    pno = pdf.get_page
-    assert_equal 1, pno
-    y2 = pdf.get_y
-    h1 = y2 - y1
-
-    h2 = pdf.getStringHeight(w, txt)
-    assert_in_delta h1, h2, 0.01
-
-    line = pdf.get_num_lines(txt, w)
-    assert_equal 2, line
-  end
-
-  test "getStringHeight Minimum Bidi test 1" do
-    pdf = RBPDF.new('P', 'mm', 'A4', true, "UTF-8", true)
-    pdf.add_page
-
-    w = pdf.get_string_width('OO')
-
-    txt  = "\xd7\xa2\xd7\x91\xd7\xa8\xd7\x99\xd7\xaa"
-    y1 = pdf.get_y
-    pdf.multi_cell(w, 0, txt)
-    pno = pdf.get_page
-    assert_equal 1, pno
-    y2 = pdf.get_y
-    h1 = y2 - y1
-    h2 = pdf.getStringHeight(w, txt)
-    assert_in_delta h1, h2, 0.01
-
-    line = pdf.get_num_lines(txt, w)
-    assert_equal 5, line
-
-    txt = "? \xd7\x93\xd7\x92 \xd7\xa1\xd7\xa7\xd7\xa8\xd7\x9f \xd7\xa9\xd7\x98 \xd7\x91\xd7\x99\xd7\x9d \xd7\x9e\xd7\x90\xd7\x95\xd7\x9b\xd7\x96\xd7\x91 \xd7\x95\xd7\x9c\xd7\xa4\xd7\xaa\xd7\xa2 \xd7\x9e\xd7\xa6\xd7\x90 \xd7\x9c\xd7\x95 \xd7\x97\xd7\x91\xd7\xa8\xd7\x94 \xd7\x90\xd7\x99\xd7\x9a \xd7\x94\xd7\xa7\xd7\x9c\xd7\x99\xd7\x98\xd7\x94"
-
-    y1 = pdf.get_y
-    pdf.multi_cell(w, 0, txt)
-    pno = pdf.get_page
-    assert_equal 1, pno
-    y2 = pdf.get_y
-    h1 = y2 - y1
-
-    h2 = pdf.getStringHeight(w, txt)
-    assert_in_delta h1, h2, 0.01
-
-    line = pdf.get_num_lines(txt, w)
-    assert_equal 41, line
-  end
-
-  test "getStringHeight Minimum Bidi test 2" do
-    pdf = RBPDF.new('P', 'mm', 'A4', true, "UTF-8", true)
-    pdf.set_font('freesans', '')
-    pdf.set_rtl(true)
-    pdf.set_temp_rtl('R')
-    pdf.add_page
-
-    margins = pdf.get_margins
-    w = pdf.get_string_width('OO') + margins['cell'] * 2
-
-    txt =  "\xd7\x9c 000"
-
-    y1 = pdf.get_y
-    pdf.multi_cell(w, 0, txt)
-    pno = pdf.get_page
-    assert_equal 1, pno
-    y2 = pdf.get_y
-    h1 = y2 - y1
-
-    h2 = pdf.getStringHeight(w, txt)
-    assert_in_delta h1, h2, 0.01
-
-    line = pdf.get_num_lines(txt, w)
-    assert_equal 3, line
+      line = pdf.get_num_lines(txt, w)
+      assert_equal param[:line], line
+    }
   end
 
   test "removeSHY encoding test" do
