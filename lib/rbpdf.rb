@@ -11250,7 +11250,17 @@ protected
       html_b = html[offset, pos - offset + 6]
       while html_b =~ /<xre([^\>]*)>(.*?)\n(.*?)<\/pre>/mi
         # preserve newlines on <pre> tag
-        html_b = html_b.gsub(/<xre([^\>]*)>(.*?)\n(.*?)<\/pre>/mi, "<xre\\1>\\2<br />\\3</pre>")
+        html_b = html_b.gsub(/<xre([^\>]*)>(.*?)\n(.*?)<\/pre>/mi) do
+          if ($2 != '') and ($3 != '') 
+            "<xre#{$1}>#{$2}<br />#{$3}</pre>"
+          elsif ($2 == '') and ($3 != '') 
+            "<xre#{$1}>#{$3}</pre>"
+          elsif ($2 != '') and ($3 == '') 
+            "<xre#{$1}>#{$2}</pre>"
+          else
+            "<xre#{$1}></pre>"
+          end
+        end
       end
       while html_b =~ /<xre([^\>]*)>(.*?)[\s](.*?)<\/pre>/mi
         # preserve whitespace on <pre> tag

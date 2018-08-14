@@ -23,6 +23,11 @@ class RbpdfTest < Test::Unit::TestCase
                                       {:parent => 0, :tag => true,  :value => 'b',     :elkey => 0, :opening => true, :attribute => {}},
                                       {:parent => 1, :tag => false, :value => 'abc',   :elkey => 1, :block => false},     # parent -> open tag key
                                       {:parent => 1, :tag => true,  :value => 'b',     :elkey => 2, :opening => false}]}, # parent -> open tag key
+    'pre Tag'         => {:html => "<pre>abc</pre>", :length => 4,  # See. 'Dom pre tag test'
+                          :params => [{:parent => 0, :tag => false, :attribute => {}}, # parent -> Root
+                                      {:parent => 0, :tag => true,  :value => 'pre',   :elkey => 0, :opening => true, :attribute => {}},
+                                      {:parent => 1, :tag => false, :value => 'abc',   :elkey => 1, :block => false},     # parent -> open tag key
+                                      {:parent => 1, :tag => true,  :value => 'pre',   :elkey => 2, :opening => false}]}, # parent -> open tag key
     'Error Tag (doble colse tag)' => {:html => '</ul></div>',
                                       :validated_length => 1, # for Rails 4.2 later (no use Rails 3.x/4.0/4.1)
                           :params => [{:parent => 0, :tag => false, :attribute => {}}, # parent -> Root
@@ -85,6 +90,33 @@ class RbpdfTest < Test::Unit::TestCase
         end
       }
     }
+  end
+
+  test "Dom pre tag test" do
+    pdf = RBPDF.new
+
+    # No Text
+    dom = pdf.send(:getHtmlDomArray, "<pre></pre>")
+    dom2 = pdf.send(:getHtmlDomArray, "<pre>\n</pre>")
+    assert_equal dom, dom2
+
+    # Simple Tag
+    dom = pdf.send(:getHtmlDomArray, "<pre>abc</pre>")
+    dom2 = pdf.send(:getHtmlDomArray, "<pre>\nabc\n</pre>")
+    assert_equal dom, dom2
+    dom2 = pdf.send(:getHtmlDomArray, "<pre>\nabc</pre>")
+    assert_equal dom, dom2
+    dom2 = pdf.send(:getHtmlDomArray, "<pre>abc\n</pre>")
+    assert_equal dom, dom2
+
+    # with line feed
+    dom = pdf.send(:getHtmlDomArray, "<pre>abc\ndef</pre>")
+    dom2 = pdf.send(:getHtmlDomArray, "<pre>\nabc\ndef\n</pre>")
+    assert_equal dom, dom2
+    dom2 = pdf.send(:getHtmlDomArray, "<pre>\nabc\ndef</pre>")
+    assert_equal dom, dom2
+    dom2 = pdf.send(:getHtmlDomArray, "<pre>abc\ndef\n</pre>")
+    assert_equal dom, dom2
   end
 
   test "Dom self close tag test" do
