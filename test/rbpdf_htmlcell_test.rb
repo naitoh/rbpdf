@@ -12,6 +12,8 @@ class RbpdfTest < Test::Unit::TestCase
                                :border => 0,      :pno => 2, :y => 40.0, :no => 2},
     'Page Break border'    => {:html => '<p>foo</p>', :margin => 30,
                                :border => 'LRBT', :pno => 2, :y => 40.0, :no => 2},
+    'pre tag y position'   => {:html => "<p>test 0</p>\n <pre>test 1\ntest 2\ntest 3</pre>\n <p>test 10</p>",
+                               :border => 0,      :pno => 1, :y => 49.0, :no => 1},
   }
 
   data(htmls)
