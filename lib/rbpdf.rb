@@ -11262,6 +11262,12 @@ protected
           end
         end
       end
+
+      # Delete the <br /> tag located immediately after the <pre> tag.
+      html_b = html_b.gsub(/<xre([^\>]*)>((?:<[^\>]+>)*)<br \/>/, "<xre\\1>\\2")
+      # Delete the <br /> tag located immediately before the </pre> tag.
+      html_b = html_b.gsub(/<br \/>((?:<\/[^\>]+>)*)<\/pre>/, "\\1</pre>")
+
       while html_b =~ /<xre([^\>]*)>(.*?)[\s](.*?)<\/pre>/mi
         # preserve whitespace on <pre> tag
         html_b = html_b.gsub(/<xre([^\>]*)>(.*?)[\s](.*?)<\/pre>/mi, "<xre\\1>\\2&nbsp;\\3</pre>")

@@ -28,6 +28,18 @@ class RbpdfTest < Test::Unit::TestCase
                                       {:parent => 0, :tag => true,  :value => 'pre',   :elkey => 0, :opening => true, :attribute => {}},
                                       {:parent => 1, :tag => false, :value => 'abc',   :elkey => 1, :block => false},     # parent -> open tag key
                                       {:parent => 1, :tag => true,  :value => 'pre',   :elkey => 2, :opening => false}]}, # parent -> open tag key
+    'pre code Tag'    => {:html => '<pre><code class="ruby">abc</code></pre>', :length => 4,  # See. 'Dom pre tag test (code)'
+                          :params => [{:parent => 0, :tag => false, :attribute => {}}, # parent -> Root
+                                      {:parent => 0, :tag => true,  :value => 'pre',   :elkey => 0, :opening => true, :attribute => {}},
+                                      {:parent => 1, :tag => false, :value => 'abc',   :elkey => 1, :block => false},     # parent -> open tag key
+                                      {:parent => 1, :tag => true,  :value => 'pre',   :elkey => 2, :opening => false}]}, # parent -> open tag key
+    'pre code span Tag' => {:html => '<pre><code class="ruby syntaxhl"><span class="CodeRay">abc</span></code></pre>', :length => 6,  # See. 'Dom pre tag test (code span)'
+                          :params => [{:parent => 0, :tag => false, :attribute => {}}, # parent -> Root
+                                      {:parent => 0, :tag => true,  :value => 'pre',   :elkey => 0, :opening => true, :attribute => {}},
+                                      {:parent => 1, :tag => true,  :value => 'span',  :elkey => 1, :opening => true},
+                                      {:parent => 2, :tag => false, :value => 'abc',   :elkey => 2, :block => false},     # parent -> open tag key
+                                      {:parent => 2, :tag => true,  :value => 'span',  :elkey => 3, :opening => false}, # parent -> open tag key
+                                      {:parent => 1, :tag => true,  :value => 'pre',   :elkey => 4, :opening => false}]}, # parent -> open tag key
     'Error Tag (doble colse tag)' => {:html => '</ul></div>',
                                       :validated_length => 1, # for Rails 4.2 later (no use Rails 3.x/4.0/4.1)
                           :params => [{:parent => 0, :tag => false, :attribute => {}}, # parent -> Root
@@ -108,6 +120,8 @@ class RbpdfTest < Test::Unit::TestCase
     assert_equal dom, dom2
     dom2 = pdf.send(:getHtmlDomArray, "<pre>abc\n</pre>")
     assert_equal dom, dom2
+    dom2 = pdf.send(:getHtmlDomArray, "<pre>abc<br /></pre>")
+    assert_equal dom, dom2
 
     # with line feed
     dom = pdf.send(:getHtmlDomArray, "<pre>abc\ndef</pre>")
@@ -116,6 +130,28 @@ class RbpdfTest < Test::Unit::TestCase
     dom2 = pdf.send(:getHtmlDomArray, "<pre>\nabc\ndef</pre>")
     assert_equal dom, dom2
     dom2 = pdf.send(:getHtmlDomArray, "<pre>abc\ndef\n</pre>")
+    assert_equal dom, dom2
+
+    # code Tag
+    dom = pdf.send(:getHtmlDomArray, '<pre><code class="ruby">abc</code></pre>')
+    dom2 = pdf.send(:getHtmlDomArray, "<pre><code class=\"ruby\">\nabc\n</code></pre>")
+    assert_equal dom, dom2
+    dom2 = pdf.send(:getHtmlDomArray, "<pre><code class=\"ruby\">\nabc</code></pre>")
+    assert_equal dom, dom2
+    dom2 = pdf.send(:getHtmlDomArray, "<pre><code class=\"ruby\">abc\n</code></pre>")
+    assert_equal dom, dom2
+
+    # code span Tag
+    dom = pdf.send(:getHtmlDomArray, '<pre><code class="ruby syntaxhl"><span class="CodeRay">abc</span></code></pre>')
+    dom2 = pdf.send(:getHtmlDomArray, "<pre><code class=\"ruby syntaxhl\"><span class=\"CodeRay\">\nabc\n</span></code></pre>")
+    assert_equal dom, dom2
+    dom2 = pdf.send(:getHtmlDomArray, "<pre><code class=\"ruby syntaxhl\"><span class=\"CodeRay\">\nabc</span></code></pre>")
+    assert_equal dom, dom2
+    dom2 = pdf.send(:getHtmlDomArray, "<pre><code class=\"ruby syntaxhl\"><span class=\"CodeRay\">abc\n</span></code></pre>")
+    assert_equal dom, dom2
+    dom2 = pdf.send(:getHtmlDomArray, "<pre><code class=\"ruby syntaxhl\"><span class=\"CodeRay\">abc</span>\n</code></pre>")
+    assert_equal dom, dom2
+    dom2 = pdf.send(:getHtmlDomArray, "<pre><code class=\"ruby syntaxhl\">\n<span class=\"CodeRay\">\nabc\n</span>\n</code></pre>")
     assert_equal dom, dom2
   end
 
