@@ -40,7 +40,7 @@ class Example001Controller < ApplicationController
     pdf.set_footer_margin(PDF_MARGIN_FOOTER)
 
     # set auto page breaks
-    pdf.set_auto_page_break(TRUE, PDF_MARGIN_BOTTOM)
+    pdf.set_auto_page_break(true, PDF_MARGIN_BOTTOM)
 
     # set image scale factor
     pdf.set_image_scale(PDF_IMAGE_SCALE_RATIO)
@@ -69,7 +69,7 @@ class Example001Controller < ApplicationController
 EOD
 
     # Print text using write_html_cell()
-    pdf.write_html_cell(w=0, h=0, x='', y='', html, border=0, ln=1, fill=0, reseth=true, align='', autopadding=true)
+    pdf.write_html_cell(0, 0, '', '', html, 0, 1, 0, true, '', true)
 
     # ---------------------------------------------------------
 

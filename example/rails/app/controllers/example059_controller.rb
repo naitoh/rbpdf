@@ -70,7 +70,7 @@ class Example059Controller < ApplicationController
     pdf.set_footer_margin(PDF_MARGIN_FOOTER)
     
     # set auto page breaks
-    pdf.set_auto_page_break(TRUE, PDF_MARGIN_BOTTOM)
+    pdf.set_auto_page_break(true, PDF_MARGIN_BOTTOM)
     
     # set image scale factor
     pdf.set_image_scale(PDF_IMAGE_SCALE_RATIO)
@@ -150,7 +150,7 @@ class Example059Controller < ApplicationController
     
     # add table of content at page 1
     # (check the example n. 45 for a text-only TOC
-    pdf.add_html_toc(page=1, toc_name='INDEX', bookmark_templates, correct_align=true)
+    pdf.add_html_toc(1, 'INDEX', bookmark_templates, true)
     
     # end of TOC page
     pdf.end_toc_page()

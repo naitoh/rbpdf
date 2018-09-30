@@ -35,7 +35,7 @@ class Example002Controller < ApplicationController
     pdf.set_margins(PDF_MARGIN_LEFT, PDF_MARGIN_TOP, PDF_MARGIN_RIGHT)
     
     # set auto page breaks
-    pdf.set_auto_page_break(TRUE, PDF_MARGIN_BOTTOM)
+    pdf.set_auto_page_break(true, PDF_MARGIN_BOTTOM)
     
     # set image scale factor
     pdf.set_image_scale(PDF_IMAGE_SCALE_RATIO)
@@ -59,7 +59,7 @@ Default page header and footer are disabled using set_print_header() and set_pri
 EOD
     
     # print a block of text using write()
-    pdf.write(h=0, txt, link='', fill=0, align='C', ln=true, stretch=0, firstline=false, firstblock=false, maxh=0)
+    pdf.write(0, txt, '', 0, 'C', true, 0, false, false, 0)
     
     # ---------------------------------------------------------
     

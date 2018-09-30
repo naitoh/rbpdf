@@ -35,7 +35,7 @@ class Example028Controller < ApplicationController
     pdf.set_margins(10, PDF_MARGIN_TOP, 10)
     
     # set auto page breaks
-    pdf.set_auto_page_break(TRUE, PDF_MARGIN_BOTTOM)
+    pdf.set_auto_page_break(true, PDF_MARGIN_BOTTOM)
     
     # set image scale factor
     pdf.set_image_scale(PDF_IMAGE_SCALE_RATIO)

@@ -40,7 +40,7 @@ class Example040Controller < ApplicationController
     pdf.set_footer_margin(PDF_MARGIN_FOOTER)
     
     # set auto page breaks
-    pdf.set_auto_page_break(TRUE, PDF_MARGIN_BOTTOM)
+    pdf.set_auto_page_break(true, PDF_MARGIN_BOTTOM)
     
     # set image scale factor
     pdf.set_image_scale(PDF_IMAGE_SCALE_RATIO)
@@ -51,7 +51,7 @@ class Example040Controller < ApplicationController
     # ---------------------------------------------------------
     
     # set display mode
-    pdf.set_display_mode(zoom='fullpage', layout='TwoColumnRight', mode='UseNone')
+    pdf.set_display_mode('fullpage', 'TwoColumnRight', 'UseNone')
     
     # set pdf viewer preferences
     pdf.set_viewer_preferences({'Duplex' => 'DuplexFlipLongEdge'})

@@ -53,7 +53,7 @@ class Example011Controller < ApplicationController
         cell(w[2], 6, number_with_delimiter(row[2], :delimiter => ","), 'LR', 0, 'R', fill)
         cell(w[3], 6, number_with_delimiter(row[3], :delimiter => ","), 'LR', 0, 'R', fill)
         ln()
-        fill = fill == 0 ? 1 :0
+        fill = fill == 0 ? 1 : 0
       }
       ww = w.inject {|sum,x| sum ? sum + x : x }
       cell(ww, 0, '', 'T')
@@ -87,7 +87,7 @@ class Example011Controller < ApplicationController
     pdf.set_footer_margin(PDF_MARGIN_FOOTER)
     
     # set auto page breaks
-    pdf.set_auto_page_break(TRUE, PDF_MARGIN_BOTTOM)
+    pdf.set_auto_page_break(true, PDF_MARGIN_BOTTOM)
     
     # set image scale factor
     pdf.set_image_scale(PDF_IMAGE_SCALE_RATIO)
