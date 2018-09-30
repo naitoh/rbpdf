@@ -66,16 +66,16 @@ class Example042Controller < ApplicationController
     # --- Method (A) ------------------------------------------
     # the image() method recognizes the alpha channel embedded on the image:
     
-    pdf.image('' + Rails.root.to_s + '/public/png_test_alpha.png', 50, 50, 100, '', '', 'https://github.com/naitoh/rbpdf', '', false, 300)
+    pdf.image(PDF_PNG_TEST_ALPHA_PNG, 50, 50, 100, '', '', 'https://github.com/naitoh/rbpdf', '', false, 300)
     
     # --- Method (B) ------------------------------------------
     # provide image + separate 8-bit mask
     
     # first embed mask image (w, h, x and y will be ignored, the image will be scaled to the target image's size)
-    mask = pdf.image('' + Rails.root.to_s + '/public/png_test_msk_alpha.png', 50, 140, 100, '', '', '', '', false, 300, '', true)
+    mask = pdf.image(PDF_PNG_TEST_MSK_ALPHA_PNG, 50, 140, 100, '', '', '', '', false, 300, '', true)
     
     # embed image, masked with previously embedded mask
-    pdf.image('' + Rails.root.to_s + '/public/png_test_non_alpha.png', 50, 140, 100, '', '', 'https://github.com/naitoh/rbpdf', '', false, 300, '', false, mask)
+    pdf.image(PDF_PNG_TEST_NON_ALPHA_PNG, 50, 140, 100, '', '', 'https://github.com/naitoh/rbpdf', '', false, 300, '', false, mask)
     
     # ---------------------------------------------------------
     

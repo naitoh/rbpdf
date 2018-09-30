@@ -65,7 +65,7 @@ class Example034Controller < ApplicationController
     pdf.star_polygon(105, 100, 30, 10, 3, 0, 1, 'CNZ')
     
     # draw jpeg image to be clipped
-    pdf.image('' + Rails.root.to_s + '/public/image_demo.jpg', 75, 70, 60, 60, '', 'https://github.com/naitoh/rbpdf', '', true, 72)
+    pdf.image(PDF_IMAGE_DEMO_JPG, 75, 70, 60, 60, '', 'https://github.com/naitoh/rbpdf', '', true, 72)
     
     # Stop Graphic Transformation
     pdf.stop_transform()

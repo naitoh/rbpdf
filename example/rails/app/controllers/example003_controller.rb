@@ -18,7 +18,7 @@ class Example003Controller < ApplicationController
     # Page header
     def Header()
       # Logo
-      image_file = Rails.root.to_s + '/public/logo_example.png'
+      image_file = PDF_EXAMPLE_LOGO
       Image(image_file, 10, 10, 15, '', 'PNG', '', 'T', false, 300, '', false, false, 0, false, false, false)
       # Set font
       set_font('helvetica', 'B', 20)

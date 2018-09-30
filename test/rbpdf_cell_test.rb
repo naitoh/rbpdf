@@ -18,6 +18,9 @@ class RbpdfTest < Test::Unit::TestCase
     pdf.add_page()
     content = []
     contents = pdf.send(:getCellCode, 10, 10, 'abc')
+    #pdf.send(:getCellCode, 10, 10, 'abc')
+    #contents = pdf.output()
+
     contents.each_line {|line| content.push line.chomp }
 
     assert_equal 2, content.length
@@ -129,6 +132,22 @@ class RbpdfTest < Test::Unit::TestCase
 
     annots = pdf.send(:getannotsrefs, 1)
     assert_equal " /Annots [ 200001 0 R ]", annots
+  end
+
+  test "Cell link with Close and output PDF document test" do
+    pdf = RBPDF.new
+
+    # add a page
+    pdf.add_page()
+
+    text="DUMMY"
+    pdf.cell(0, 0, text, 1, 1, 'L', 1, 0)
+
+    # Close and output PDF document
+    content = []
+    contents = pdf.output()
+    contents.each_line {|line| content.push line.chomp }
+    assert_match(/3 0 obj/, content[1])
   end
 
   texts = {

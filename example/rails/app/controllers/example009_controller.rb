@@ -59,7 +59,7 @@ class Example009Controller < ApplicationController
     # image(file, x='', y='', w=0, h=0, type='', link='', align='', resize=false, dpi=300, palign='', ismask=false, imgmask=false, border=0, fitbox=false, hidden=false, fitonpage=false)
     
     # Image example
-    pdf.image('' + Rails.root.to_s + '/public/image_demo.jpg', 50, 50, 100, 150, 'JPG', 'https://github.com/naitoh/rbpdf', '', true, 150, '', false, false, 1, false, false, false)
+    pdf.image(PDF_IMAGE_DEMO_JPG, 50, 50, 100, 150, 'JPG', 'https://github.com/naitoh/rbpdf', '', true, 150, '', false, false, 1, false, false, false)
     
     # ---------------------------------------------------------
     

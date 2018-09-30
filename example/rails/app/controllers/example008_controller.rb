@@ -58,7 +58,7 @@ class Example008Controller < ApplicationController
     
     # get esternal file content
     utf8text=''
-    file = Rails.root.to_s + '/public/utf8test.txt'
+    file = PDF_UTF8TEST_TXT
     open(file,'rb') do |f|
       utf8text<<f.read()
     end

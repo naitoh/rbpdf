@@ -62,7 +62,7 @@ class Example041Controller < ApplicationController
     pdf.write(0, txt, '', 0, 'L', true, 0, false, false, 0)
     
     # attach an external file
-    pdf.annotation(85, 27, 5, 5, 'text file', {'Subtype'=>'FileAttachment', 'Name' => 'PushPin', 'FS' => "#{File.join(Rails.root, 'public')}/utf8test.txt"})
+    pdf.annotation(85, 27, 5, 5, 'text file', {'Subtype'=>'FileAttachment', 'Name' => 'PushPin', 'FS' => PDF_UTF8TEST_TXT})
     
     # ---------------------------------------------------------
     

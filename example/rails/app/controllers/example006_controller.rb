@@ -67,7 +67,7 @@ class Example006Controller < ApplicationController
     <h2>List</h2>
     List example:
     <ol>
-    	<li><img src="' + Rails.root.to_s + '/public/logo_example.png" alt="test alt attribute" width="30" height="30" border="0" /> test image</li>
+    	<li><img src="' + PDF_EXAMPLE_LOGO + '" alt="test alt attribute" width="30" height="30" border="0" /> test image</li>
     	<li><b>bold text</b></li>
     	<li><i>italic text</i></li>
     	<li><u>underlined text</u></li>
@@ -95,7 +95,7 @@ class Example006Controller < ApplicationController
     	<dd>White cold drink</dd>
     </dl>
     <div style="text-align:center">IMAGES<br />
-    <img src="' + Rails.root.to_s + '/public/logo_example.png" alt="test alt attribute" width="100" height="100" border="0" /><img src="' + Rails.root.to_s + '/public/tiger.ai" alt="test alt attribute" width="100" height="100" border="0" /><img src="' + Rails.root.to_s + '/public/logo_example.png" alt="test alt attribute" width="100" height="100" border="0" />
+    <img src="' + PDF_EXAMPLE_LOGO + '" alt="test alt attribute" width="100" height="100" border="0" /><img src="' + PDF_TIGER_AI + '" alt="test alt attribute" width="100" height="100" border="0" /><img src="' + PDF_EXAMPLE_LOGO+ '" alt="test alt attribute" width="100" height="100" border="0" />
     </div>'
     
     # output the HTML content
@@ -198,13 +198,13 @@ class Example006Controller < ApplicationController
     # create some HTML content
     html = '<h1>Image alignments on HTML table</h1>
     <table cellpadding="1" cellspacing="1" border="1" style="text-align:center;">
-    <tr><td><img src="' + Rails.root.to_s + '/public/logo_example.png" border="0" height="41" width="41" /></td></tr>
-    <tr style="text-align:left;"><td><img src="' + Rails.root.to_s + '/public/logo_example.png" border="0" height="41" width="41" align="top" /></td></tr>
-    <tr style="text-align:center;"><td><img src="' + Rails.root.to_s + '/public/logo_example.png" border="0" height="41" width="41" align="middle" /></td></tr>
-    <tr style="text-align:right;"><td><img src="' + Rails.root.to_s + '/public/logo_example.png" border="0" height="41" width="41" align="bottom" /></td></tr>
-    <tr><td style="text-align:left;"><img src="' + Rails.root.to_s + '/public/logo_example.png" border="0" height="41" width="41" align="top" /></td></tr>
-    <tr><td style="text-align:center;"><img src="' + Rails.root.to_s + '/public/logo_example.png" border="0" height="41" width="41" align="middle" /></td></tr>
-    <tr><td style="text-align:right;"><img src="' + Rails.root.to_s + '/public/logo_example.png" border="0" height="41" width="41" align="bottom" /></td></tr>
+    <tr><td><img src="' + PDF_EXAMPLE_LOGO + '" border="0" height="41" width="41" /></td></tr>
+    <tr style="text-align:left;"><td><img src="' + PDF_EXAMPLE_LOGO + '" border="0" height="41" width="41" align="top" /></td></tr>
+    <tr style="text-align:center;"><td><img src="' + PDF_EXAMPLE_LOGO + '" border="0" height="41" width="41" align="middle" /></td></tr>
+    <tr style="text-align:right;"><td><img src="' + PDF_EXAMPLE_LOGO + '" border="0" height="41" width="41" align="bottom" /></td></tr>
+    <tr><td style="text-align:left;"><img src="' + PDF_EXAMPLE_LOGO + '" border="0" height="41" width="41" align="top" /></td></tr>
+    <tr><td style="text-align:center;"><img src="' + PDF_EXAMPLE_LOGO + '" border="0" height="41" width="41" align="middle" /></td></tr>
+    <tr><td style="text-align:right;"><img src="' + PDF_EXAMPLE_LOGO + '" border="0" height="41" width="41" align="bottom" /></td></tr>
     </table>'
     
     # output the HTML content

@@ -2994,7 +2994,7 @@ class RBPDF
   #
   def AddLink()
     #Create a new internal link
-    n = @links.length
+    n = @links.length + 1
     @links[n]=[0,0];
     return n;
   end
@@ -3757,7 +3757,7 @@ class RBPDF
       if (@color_flag)
         s<<' Q';
       end
-      if link && ((link.is_a?(String) and !link.empty?) or (link.is_a?(Integer) and link >= 0)) # Integer is @links array index
+      if link && ((link.is_a?(String) and !link.empty?) or (link.is_a?(Integer) and link != 0)) # Integer is PDF file Page No.
         Link(xdx, y + ((h - @font_size) / 2.0), width, @font_size, link, ns)
       end
     end

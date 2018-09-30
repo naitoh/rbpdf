@@ -107,7 +107,7 @@ class Example011Controller < ApplicationController
     header = ['Country', 'Capital', 'Area (sq km)', 'Pop. (thousands)']
     
     # Data loading
-    data = pdf.LoadData("#{File.join(Rails.root, 'public')}/table_data_demo.txt")
+    data = pdf.LoadData(PDF_TABLE_DATA_DEMO_TXT)
     
     # print colored table
     pdf.ColoredTable(header, data)

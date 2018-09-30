@@ -86,7 +86,7 @@ class Example025Controller < ApplicationController
     pdf.rect(70, 80, 60, 60, 'DF')
     
     # draw jpeg image
-    pdf.image('' + Rails.root.to_s + '/public/image_demo.png', 90, 100, 60, 60, '', 'https://github.com/naitoh/rbpdf', '', true, 72)
+    pdf.image(PDF_IMAGE_DEMO_PNG, 90, 100, 60, 60, '', 'https://github.com/naitoh/rbpdf', '', true, 72)
     
     # restore full opacity
     pdf.set_alpha(1)

@@ -78,25 +78,25 @@ class Example026Controller < ApplicationController
     pdf.start_transform()
     pdf.set_text_rendering_mode(stroke=0, fill=true, clip=true)
     pdf.write(0, 'Fill text and add to path for clipping', '', 0, '', true, 0, false, false, 0)
-    pdf.image('' + Rails.root.to_s + '/public/image_demo.png', 15, 65, 170, 10, '', '', '', true, 72)
+    pdf.image(PDF_IMAGE_DEMO_PNG, 15, 65, 170, 10, '', '', '', true, 72)
     pdf.stop_transform()
     
     pdf.start_transform()
     pdf.set_text_rendering_mode(stroke=0.3, fill=false, clip=true)
     pdf.write(0, 'Stroke text and add to path for clipping', '', 0, '', true, 0, false, false, 0)
-    pdf.image('' + Rails.root.to_s + '/public/image_demo.png', 15, 75, 170, 10, '', '', '', true, 72)
+    pdf.image(PDF_IMAGE_DEMO_PNG, 15, 75, 170, 10, '', '', '', true, 72)
     pdf.stop_transform()
     
     pdf.start_transform()
     pdf.set_text_rendering_mode(stroke=0.3, fill=true, clip=true)
     pdf.write(0, 'Fill, then stroke text and add to path for clipping', '', 0, '', true, 0, false, false, 0)
-    pdf.image('' + Rails.root.to_s + '/public/image_demo.png', 15, 85, 170, 10, '', '', '', true, 72)
+    pdf.image(PDF_IMAGE_DEMO_PNG, 15, 85, 170, 10, '', '', '', true, 72)
     pdf.stop_transform()
     
     pdf.start_transform()
     pdf.set_text_rendering_mode(stroke=0, fill=false, clip=true)
     pdf.write(0, 'Add text to path for clipping', '', 0, '', true, 0, false, false, 0)
-    pdf.image('' + Rails.root.to_s + '/public/image_demo.png', 15, 95, 170, 10, '', '', '', true, 72)
+    pdf.image(PDF_IMAGE_DEMO_PNG, 15, 95, 170, 10, '', '', '', true, 72)
     pdf.stop_transform()
     
     # reset text rendering mode
