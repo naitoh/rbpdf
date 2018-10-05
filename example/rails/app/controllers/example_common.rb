@@ -9,11 +9,6 @@
 # License: LGPL 2.1 or later
 #============================================================+
 
-if !defined? ApplicationController
-  class ApplicationController
-  end
-end
-
 PDF_PAGE_ORIENTATION='P'
 PDF_UNIT='mm'
 PDF_PAGE_FORMAT='A4'

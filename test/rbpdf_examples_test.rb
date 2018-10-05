@@ -4,6 +4,16 @@
 
 require 'test_helper'
 
+def logger
+  require 'logger'
+  return Logger.new(STDOUT)
+end
+
+if !defined? ApplicationController
+  class ApplicationController
+  end
+end
+
 class RbpdfTest < Test::Unit::TestCase
   htmls = {
     '001 : Default Header and Footer'                       => '001',

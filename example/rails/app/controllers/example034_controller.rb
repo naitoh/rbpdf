@@ -4,7 +4,7 @@
 # Last Update : 2010-05-20
 #
 # Description : Example 034 for RBPDF class
-#               Clipping
+#               Clipping (need rmagick)
 #
 # Author: Jun NAITOH
 # License: LGPL 2.1 or later
@@ -64,8 +64,12 @@ class Example034Controller < ApplicationController
     # set clipping mask
     pdf.star_polygon(105, 100, 30, 10, 3, 0, 1, 'CNZ')
     
-    # draw jpeg image to be clipped
-    pdf.image(PDF_IMAGE_DEMO_JPG, 75, 70, 60, 60, '', 'https://github.com/naitoh/rbpdf', '', true, 72)
+    # draw jpeg image to be clipped (need rmagick)
+    begin
+      pdf.image(PDF_IMAGE_DEMO_JPG, 75, 70, 60, 60, '', 'https://github.com/naitoh/rbpdf', '', true, 72)
+    rescue => err
+      logger.error "pdf: Image: error: #{err.message}"
+    end
     
     # Stop Graphic Transformation
     pdf.stop_transform()

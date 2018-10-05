@@ -4,7 +4,7 @@
 # Last Update : 2010-05-20
 #
 # Description : Example 042 for RBPDF class
-#               Test Image with alpha channel
+#               Test Image with alpha channel (need rmagick)
 #
 # Author: Jun NAITOH
 # License: LGPL 2.1 or later
@@ -63,6 +63,8 @@ class Example042Controller < ApplicationController
     
     pdf.multi_cell(0, 5, background_text, 0, 'J', 0, 2, '', '', true, 0, false)
     
+  # need rmagick
+  begin
     # --- Method (A) ------------------------------------------
     # the image() method recognizes the alpha channel embedded on the image:
     
@@ -76,6 +78,9 @@ class Example042Controller < ApplicationController
     
     # embed image, masked with previously embedded mask
     pdf.image(PDF_PNG_TEST_NON_ALPHA_PNG, 50, 140, 100, '', '', 'https://github.com/naitoh/rbpdf', '', false, 300, '', false, mask)
+  rescue => err
+    logger.error "pdf: Image: error: #{err.message}"
+  end
     
     # ---------------------------------------------------------
     

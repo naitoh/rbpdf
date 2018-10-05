@@ -4,7 +4,7 @@
 # Last Update : 2010-05-20
 #
 # Description : Example 009 for RBPDF class
-#               Test Image
+#               Test Image (need rmagick)
 #
 # Author: Jun NAITOH
 # License: LGPL 2.1 or later
@@ -58,8 +58,12 @@ class Example009Controller < ApplicationController
     
     # image(file, x='', y='', w=0, h=0, type='', link='', align='', resize=false, dpi=300, palign='', ismask=false, imgmask=false, border=0, fitbox=false, hidden=false, fitonpage=false)
     
-    # Image example
-    pdf.image(PDF_IMAGE_DEMO_JPG, 50, 50, 100, 150, 'JPG', 'https://github.com/naitoh/rbpdf', '', true, 150, '', false, false, 1, false, false, false)
+    # Image example (need rmagick)
+    begin
+      pdf.image(PDF_IMAGE_DEMO_JPG, 50, 50, 100, 150, 'JPG', 'https://github.com/naitoh/rbpdf', '', true, 150, '', false, false, 1, false, false, false)
+    rescue => err
+      logger.error "pdf: Image: error: #{err.message}"
+    end
     
     # ---------------------------------------------------------
     
