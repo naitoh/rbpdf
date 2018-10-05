@@ -1,3 +1,15 @@
+1.19.6 2018-10-06
+       - The problem of the line feed position of Ln() function has been fixed.
+       - Fixed a problem of line feed position occurring in the following <pre> tag of HTML in the following cases.
+         When a <br> tag is included immediately after the start of the <pre> tag.
+         When a <br> tag is included immediately before the end of the <pre> tag.
+         When a line feed is included immediately after the start of the tag.
+         When a line feed is included immediately before the end of the tag.
+       - Fixed a problem of line feed position occurring in the following </pre> and <p> tags of HTML in the following cases.
+         When a space is included between the </pre> tag and the <p> tag.
+       - Cell link bug fixed.
+       - Examples test added.
+
 1.19.5 2018-06-24
        - Fixed that the handling of Tempfile was wrong.
        - Fixed compatibility problem with Magick::RGBColorspace and Magick::SRGBColorspace.
