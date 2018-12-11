@@ -9,6 +9,7 @@ rvm:
   - 2.3.0
   - 2.4.1
   - 2.5.1
+  - 2.6
   - jruby
 matrix:
   exclude:
@@ -47,6 +48,14 @@ matrix:
     - rvm: 2.5.1
       gemfile: Gemfile.rails4
     - rvm: 2.5.1
+      gemfile: Gemfile.rails4_rmagick
+    - rvm: 2.6
+      gemfile: Gemfile.rails3
+    - rvm: 2.6
+      gemfile: Gemfile.rails3_rmagick
+    - rvm: 2.6
+      gemfile: Gemfile.rails4
+    - rvm: 2.6
       gemfile: Gemfile.rails4_rmagick
     - rvm: jruby
       gemfile: Gemfile.rails3_rmagick
