@@ -39,7 +39,7 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency "rbpdf-font", "~> 1.19.0"
   spec.required_ruby_version = '>= 1.8.7'
 
-  spec.add_development_dependency "bundler", "~> 1.6"
+  spec.add_development_dependency "bundler"
   if RUBY_VERSION <'1.9.3' # Ruby 1.8.7 or 1.9.2
     spec.add_development_dependency "rake", "<= 10.5"
   else
