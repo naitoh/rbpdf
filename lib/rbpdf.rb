@@ -9639,10 +9639,10 @@ public
 
     # X1. Begin by setting the current embedding level to the paragraph embedding level. Set the directional override status to neutral. Process each character iteratively, applying rules X2 through X9. Only embedding levels from 0 to 61 are valid in this phase.
     #   In the resolution of levels in rules I1 and I2, the maximum embedding level of 62 can be reached.
-    reg_KRP = /^(@@k_rle|@@k_lre|@@k_rlo|@@k_lro|@@k_pdf)$/
-    reg_KR = /^(@@k_rle|@@k_lre|@@k_rlo|@@k_lro)$/
     numchars.times do |i|
-      if ta[i] !~ reg_KRP
+      case ta[i]
+      when @@k_rle, @@k_lre, @@k_rlo, @@k_lro, @@k_pdf
+      else
         # X6. For all types besides RLE, LRE, RLO, LRO, and PDF:
         #  a. Set the level of the current character to the current embedding level.
         #  b. Whenever the directional override status is not neutral, reset the current character type to the directional override status.
@@ -9710,7 +9710,8 @@ public
         # X7. With each PDF, determine the matching embedding or override code. If there was a valid matching code, restore (pop) the last remembered (pushed) embedding level and directional override.
         if remember.length
           last = remember.length - 1
-          if remember[last][:num] =~ reg_KR
+          case remember[last][:num]
+          when @@k_rle, @@k_lre, @@k_rlo, @@k_lro
             match = remember.pop
             cel = match[:cel]
             dos = match[:dos]

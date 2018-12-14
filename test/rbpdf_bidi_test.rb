@@ -7,6 +7,9 @@
 require 'test_helper'
 
 class RbpdfTest < Test::Unit::TestCase
+  require 'unicode_data.rb'
+  include Unicode_data
+
   class MYPDF < RBPDF
     def UTF8StringToArray(str)
       super
@@ -98,6 +101,7 @@ class RbpdfTest < Test::Unit::TestCase
 
     ary_ucs4 = pdf.utf8Bidi(pdf.UTF8StringToArray(ascii_str))
     assert_equal [0x61, 0x62, 0x63], ary_ucs4
+
     ary_ucs4 = pdf.utf8Bidi(pdf.UTF8StringToArray(ascii_str), ascii_str, 'R')
     assert_equal [0x61, 0x62, 0x63], ary_ucs4
 
@@ -131,8 +135,14 @@ class RbpdfTest < Test::Unit::TestCase
     current_font = pdf.get_current_font
     assert_equal 256 + 5, current_font['subsetchars'].compact.length
 
-    ary_str = pdf.utf8Bidi(pdf.UTF8StringToArray(ascii_str + utf8_str_2), ascii_str + utf8_str_2, 'R')
+    ary_str = pdf.utf8Bidi(pdf.UTF8StringToArray(ascii_str + utf8_str_2), ascii_str + utf8_str_2, 'R') # LTR -> RTL
     assert_equal [0x5ea, 0x5d9, 0x5e8, 0x5d1, 0x5e2, 0x61, 0x62, 0x63], ary_str
+    current_font = pdf.get_current_font
+    assert_equal 256 + 5, current_font['subsetchars'].compact.length
+
+    # Left-to-right embedding (LRE) : 202A
+    ary_str = pdf.utf8Bidi([@@k_lre] + pdf.UTF8StringToArray(ascii_str + utf8_str_2), ascii_str + utf8_str_2, 'R') # LTR -> RTL -> LTR
+    assert_equal [0x61, 0x62, 0x63, 0x5ea, 0x5d9, 0x5e8, 0x5d1, 0x5e2], ary_str
     current_font = pdf.get_current_font
     assert_equal 256 + 5, current_font['subsetchars'].compact.length
 
