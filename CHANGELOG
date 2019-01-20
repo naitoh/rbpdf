@@ -1,3 +1,7 @@
+1.19.7 2019-01-20
+       - Ruby 2.6 supported.
+       - utf8Bidi() X6,X7 bug fixed.
+
 1.19.6 2018-10-06
        - The problem of the line feed position of Ln() function has been fixed.
        - Fixed a problem of line feed position occurring in the following <pre> tag of HTML in the following cases.
