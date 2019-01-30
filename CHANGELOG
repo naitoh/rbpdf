@@ -1,3 +1,6 @@
+1.19.8 2019-01-30
+       - Fixed a bug that escaping parentheses when <div style = "text-align: justify;"> is specified in write_html method.
+
 1.19.7 2019-01-20
        - Ruby 2.6 supported.
        - utf8Bidi() X6,X7 bug fixed.
