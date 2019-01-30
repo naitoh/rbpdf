@@ -12351,7 +12351,7 @@ public
               no = 0 # spaces without trim
               ns = 0 # spaces with trim
 
-              pmidtemp = pmid
+              pmidtemp = pmid.dup
               # escape special characters
               pmidtemp.gsub!(/[\\][\(]/x, '\\#!#OP#!#')
               pmidtemp.gsub!(/[\\][\)]/x, '\\#!#CP#!#')
@@ -12527,7 +12527,7 @@ public
                 if (@current_font['type'] == 'TrueTypeUnicode') or (@current_font['type'] == 'cidfont0')
                   # multibyte characters
                   spacew = spacewidthu
-                  pmidtemp = pmid
+                  pmidtemp = pmid.dup
                   # escape special characters
                   pmidtemp.gsub!(/[\\][\(]/x, '\\#!#OP#!#')
                   pmidtemp.gsub!(/[\\][\)]/x, '\\#!#CP#!#')

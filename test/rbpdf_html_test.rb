@@ -403,6 +403,31 @@ class RbpdfHtmlTest < Test::Unit::TestCase
     assert_equal 1, count_text
   end
 
+  test "write_html Justify text test" do
+    pdf = MYPDF.new
+    pdf.set_font('times', 'BI', 20)
+    pdf.add_page()
+
+    text         = 'hello Ruby (inside hello world) hello Ruby (inside hello world) hello Ruby (inside hello world)'
+    justify_text = 'hello Ruby \(inside hello world\) hello Ruby \(inside hello world\)'
+    htmlcontent  = '<div style="text-align:justify;">' + text + '</div>'
+
+    pdf.write_html(htmlcontent, true, 0, true, 0)
+
+    page = pdf.get_page
+    assert_equal 1, page
+
+    content = []
+    contents = pdf.getPageBuffer(1)
+    contents.each_line {|line| content.push line.chomp if line.include? ' TJ ET' } #  Text Line set
+
+    count_text = 0
+    content.each do |line|
+      count_text += 1 unless line.scan(justify_text).empty?
+    end
+    assert_equal 1, count_text, "'#{justify_text}' is not include in '#{content.inspect}'"
+  end
+
   test "write_html Non ASCII text test" do
     pdf = MYPDF.new
     pdf.add_page()
