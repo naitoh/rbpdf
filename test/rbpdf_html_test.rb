@@ -143,7 +143,7 @@ class RbpdfHtmlTest < Test::Unit::TestCase
     page = pdf.get_page
     assert_equal 1, page
 
-    _count_line, count_text, xpos = pdf.get_html_text_position_x(1, /ABCD/) # Header
+    _count_line, count_text, _xpos = pdf.get_html_text_position_x(1, /ABCD/) # Header
     assert_equal 1, count_text
   end
 
