@@ -14,7 +14,7 @@ class RbpdfHtmlTest < Test::Unit::TestCase
 
     # get text count and x_pos from pdf page
     def get_html_text_position_x(page, regrep_text, x_pos_exp=nil)
-      count_line, count_text, x_pos, y_pos = get_html_text_position(page, regrep_text, x_pos_exp)
+      count_line, count_text, x_pos, _y_pos = get_html_text_position(page, regrep_text, x_pos_exp)
       return count_line, count_text, x_pos
     end
 
