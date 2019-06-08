@@ -21,8 +21,6 @@ class RbpdfHttpTest < Test::Unit::TestCase
   end
 
   test "Image get image file test" do
-    utf8_japanese_aiueo_str  = "\xe3\x81\x82\xe3\x81\x84\xe3\x81\x86\xe3\x81\x88\xe3\x81\x8a"
-
     images = [
       # file_name,                    error_message
       ['logo_rbpdf_8bit.png',         nil],
@@ -32,6 +30,7 @@ class RbpdfHttpTest < Test::Unit::TestCase
     ]
     # no use
     #if RUBY_VERSION >= '2.0' # Ruby 1.9.2/1.9.3
+    #  utf8_japanese_aiueo_str  = "\xe3\x81\x82\xe3\x81\x84\xe3\x81\x86\xe3\x81\x88\xe3\x81\x8a"
     #  images << 'logo_rbpdf_8bit_' + utf8_japanese_aiueo_str + '.png'
     #end
 
