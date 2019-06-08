@@ -221,11 +221,11 @@ class RbpdfTest < Test::Unit::TestCase
     pdf = RBPDF.new('P', 'mm', 'A4', true, "UTF-8", true)
 
     str = 'test'.force_encoding('UTF-8')
-    txt = pdf.removeSHY(str)
+    pdf.removeSHY(str)
     assert_equal 'UTF-8', str.encoding.to_s
 
     str = 'test'.force_encoding('ASCII-8BIT')
-    txt = pdf.removeSHY(str)
+    pdf.removeSHY(str)
     assert_equal 'ASCII-8BIT', str.encoding.to_s
   end
 end
