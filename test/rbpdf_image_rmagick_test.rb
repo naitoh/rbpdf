@@ -68,7 +68,7 @@ class RbpdfTest < Test::Unit::TestCase
     img.format = 'PNG'       # convert to PNG from gif
     assert_equal true,   img.alpha?
 
-    img.alpha = Magick::DeactivateAlphaChannel   # PNG alpha channel delete
+    img.alpha Magick::DeactivateAlphaChannel   # PNG alpha channel delete
     assert_equal false,   img.alpha?
   end
 
