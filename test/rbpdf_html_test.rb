@@ -14,13 +14,13 @@ class RbpdfHtmlTest < Test::Unit::TestCase
 
     # get text count and x_pos from pdf page
     def get_html_text_position_x(page, regrep_text, x_pos_exp=nil)
-      count_line, count_text, x_pos, y_pos = get_html_text_position(page, regrep_text, x_pos_exp)
+      count_line, count_text, x_pos, _y_pos = get_html_text_position(page, regrep_text, x_pos_exp)
       return count_line, count_text, x_pos
     end
 
     # get text count and y_pos from pdf page
     def get_html_text_position_y(page, regrep_text)
-      count_line, count_text, x_pos, y_pos = get_html_text_position(page, regrep_text)
+      count_line, count_text, _x_pos, y_pos = get_html_text_position(page, regrep_text)
       return count_line, count_text, y_pos
     end
 
@@ -143,7 +143,7 @@ class RbpdfHtmlTest < Test::Unit::TestCase
     page = pdf.get_page
     assert_equal 1, page
 
-    count_line, count_text, xpos = pdf.get_html_text_position_x(1, /ABCD/) # Header
+    _count_line, count_text, _xpos = pdf.get_html_text_position_x(1, /ABCD/) # Header
     assert_equal 1, count_text
   end
 
