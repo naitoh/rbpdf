@@ -1,4 +1,5 @@
 # coding: ASCII-8BIT
+# frozen_string_literal: true
 #============================================================+
 # File name   : unicode_data.rb
 # Begin       : 2008-01-01
