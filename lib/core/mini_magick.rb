@@ -23,7 +23,6 @@
 
 module Rbpdf
 
-  # http://uk2.php.net/getimagesize
   def getimagesize(filename)
     return nil unless File.exist?(filename)
 
@@ -46,15 +45,16 @@ module Rbpdf
       return out
     end
 
-    unless Object.const_defined?(:Magick)
-      Error('No RMagick: Non-PNG file is not supported.: ' + filename);
+    unless Object.const_defined?(:MiniMagick)
+      Error('No Mini Magick: Non-PNG file is not supported.: ' + filename);
       return false
     end
 
-    image = Magick::ImageList.new(filename)
+    image = MiniMagick::Image.open(filename)
     
-    width = image.columns
-    height = image.rows
+    width = image.width
+    height = image.height
+
     out[0] = width
     out[1] = height
     
@@ -76,21 +76,24 @@ module Rbpdf
     out['mime'] = image.mime_type
     
     # This needs work to cover more situations
-    # I can't see how to just list the number of channels with ImageMagick / rmagick
-    case image.colorspace.to_s.downcase
-    when 'cmykcolorspace'
+    # I can't see how to just list the number of channels with ImageMagick / mini_magick
+    case image["%[channels]"].downcase
+    when 'cmyk'
       out['channels'] = 4
-    when 'rgbcolorspace', 'srgbcolorspace' # Mac OS X : sRGBColorspace
-      if image.image_type.to_s == 'GrayscaleType' and image.class_type.to_s == 'PseudoClass'
+    when 'rgb', 'rgba', 'srgb', 'srgba'  # Mac OS X : sRGB
+      out['channels'] = 3
+      if image.colorspace.downcase == 'pseudoclassgray'  # PseudoClassGray
         out['channels'] = 0
       else
         out['channels'] = 3
       end
-    when 'graycolorspace'
+    when 'gray', 'graya'
+        out['channels'] = 0
+    else
         out['channels'] = 0
     end
 
-    out['bits'] = image.channel_depth
+    out['bits'] = image["%[depth]"].to_i
     
     out
   end

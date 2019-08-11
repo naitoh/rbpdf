@@ -53,21 +53,29 @@ require 'rbpdf-font'
 require 'erb'
 
 begin
-  # RMagick 2.14.0
-  # [DEPRECATION] requiring "RMagick" is deprecated. Use "rmagick" instead
-  # https://github.com/gemhome/rmagick/pull/141
-  require 'rmagick' unless Object.const_defined?(:Magick)
+  require 'mini_magick' unless Object.const_defined?(:MiniMagick)
+  require 'core/mini_magick'
 rescue LoadError
-  # RMagick is not available
+  # MiniMagick is not available
 end
 
-begin
-  require 'RMagick' unless Object.const_defined?(:Magick)
-rescue LoadError
-  # RMagick is not available
-end
+unless Object.const_defined?(:MiniMagick)
+  begin
+    # RMagick 2.14.0
+    # [DEPRECATION] requiring "RMagick" is deprecated. Use "rmagick" instead
+    # https://github.com/gemhome/rmagick/pull/141
+    require 'rmagick' unless Object.const_defined?(:Magick)
+  rescue LoadError
+    # RMagick is not available
+  end
 
-require 'core/rmagick'
+  begin
+    require 'RMagick' unless Object.const_defined?(:Magick)
+  rescue LoadError
+    # RMagick is not available
+  end
+  require 'core/rmagick'
+end
 
 # Needed to run the test suite outside of a Rails environment.
 require 'rubygems' if RUBY_VERSION < '1.9' # Ruby 1.8.7
@@ -4782,7 +4790,7 @@ class RBPDF
   # * explicit width and height (expressed in user unit)
   # * one explicit dimension, the other being calculated automatically in order to keep the original proportions
   # * no explicit dimension, in which case the image is put at 72 dpi
-  # Supported formats are PNG images whitout RMagick library and JPEG and GIF images supported by RMagick.
+  # Supported formats are PNG images whitout RMagick/MiniMagick library and JPEG and GIF images supported by RMagick/MiniMagick.
   # For JPEG, all flavors are allowed:
   # * gray scales
   # * true colors (24 bits)
@@ -4808,7 +4816,7 @@ class RBPDF
   #   * M: middle-right for LTR or middle-left for RTL
   #   * B: bottom-right for LTR or bottom-left for RTL
   #   * N: next line
-  # [@param mixed :resize] If true resize (reduce) the image to fit :w and :h (requires RMagick library); if false do not resize; if 2 force resize in all cases (upscaling and downscaling).
+  # [@param mixed :resize] If true resize (reduce) the image to fit :w and :h (requires RMagick/MiniMagick library); if false do not resize; if 2 force resize in all cases (upscaling and downscaling).
   # [@param int :dpi] dot-per-inch resolution used on resize
   # [@param string :palign]
   #   Allows to center or align the image on the current line. Possible values are:
@@ -4984,7 +4992,7 @@ class RBPDF
           end
           info=send(mtd, file);
         end
-        if info == 'pngalpha' and ismask == false and Object.const_defined?(:Magick)
+        if info == 'pngalpha' and ismask == false and (Object.const_defined?(:MiniMagick) or Object.const_defined?(:Magick))
           info = ImagePngAlpha(file, x, y, w, h, 'PNG', link, align, resize, dpi, palign)
           if false != info
             return true
@@ -4992,7 +5000,22 @@ class RBPDF
         end
       end
       if !info
-        if Object.const_defined?(:Magick)
+        if Object.const_defined?(:MiniMagick)
+          # MiniMagick library
+
+          ### T.B.D ### TCPDF 5.0.000 ###
+          # if type == 'SVG'
+          # else
+            img = MiniMagick::Image.open(file)
+          # end
+          if resize
+            img.resize("#{neww}x#{newh}")
+          end
+          img.format 'jpeg'
+          tmpname = Tempfile.new(File::basename(file), @@k_path_cache)
+          tmpname.binmode
+          tmpname.print img.to_blob
+        elsif Object.const_defined?(:Magick)
           # RMagick library
 
           ### T.B.D ### TCPDF 5.0.000 ###
@@ -5008,13 +5031,12 @@ class RBPDF
           tmpname.binmode
           jpeg_quality = @jpeg_quality
           tmpname.print img.to_blob { self.quality = jpeg_quality }
-          tmpname.fsync
-
-          info = parsejpeg(tmpname.path)
-          tmpname.close(true)
         else
           return false
         end
+        tmpname.fsync
+        info = parsejpeg(tmpname.path)
+        tmpname.close(true)
       end
 
       if info == false
@@ -5135,13 +5157,32 @@ class RBPDF
   protected :parsejpeg
 
   def imageToPNG(file)
-    img = Magick::ImageList.new(file)
-    img.format = 'PNG'       # convert to PNG from gif
-    if img.alpha?
-      img.alpha Magick::DeactivateAlphaChannel   # PNG alpha channel delete
-      if img.alpha?
-        return false
+    if Object.const_defined?(:MiniMagick)
+      # MiniMagick library
+
+      img = MiniMagick::Image.open(file)
+      img.format 'png' # convert to PNG from gif
+      if ['rgba', 'srgba', 'graya'].include?(img["%[channels]"].downcase)
+        img.combine_options do |mogrify|
+            mogrify.alpha 'off'
+        end
+        if ['rgba', 'srgba', 'graya'].include?(img["%[channels]"].downcase)
+          return false
+        end
       end
+    elsif Object.const_defined?(:Magick)
+      # RMagick library
+
+      img = Magick::ImageList.new(file)
+      img.format = 'PNG'       # convert to PNG from gif
+      if img.alpha?
+        img.alpha Magick::DeactivateAlphaChannel   # PNG alpha channel delete
+        if img.alpha?
+          return false
+        end
+      end
+    else
+      return false
     end
 
     #use a temporary file....
@@ -5180,11 +5221,11 @@ class RBPDF
     elsif (ct==3)
       colspace='Indexed';
     else
-      if Object.const_defined?(:Magick)
+      if Object.const_defined?(:MiniMagick) or Object.const_defined?(:Magick)
         # alpha channel
         return 'pngalpha'
       else
-        Error('No RMagick: Alpha channel not supported: ' + file);
+        Error('No RMagick/MiniMagick : Alpha channel not supported: ' + file);
       end
     end
     if (f.read(1).unpack('C')[0] != 0)
@@ -5197,10 +5238,10 @@ class RBPDF
     end
 
     if (bpc>8)
-      if Object.const_defined?(:Magick)
+      if Object.const_defined?(:MiniMagick) or Object.const_defined?(:Magick)
         return false
       else
-        Error('No RMagick: 16-bit depth not supported: ' + file)
+        Error('No RMagick/MiniMagick : 16-bit depth not supported: ' + file)
       end
     end
 
@@ -5256,9 +5297,28 @@ class RBPDF
   protected :parsepng
 
   def image_alpha_mask(file)
-    img = Magick::ImageList.new(file)
-    if img.alpha?
-      img.alpha Magick::ExtractAlphaChannel   # PNG alpha channel Mask
+    if Object.const_defined?(:MiniMagick)
+      # MiniMagick library
+
+      img = MiniMagick::Image.open(file)
+      img.format('png')
+      if ['rgba', 'srgba', 'graya'].include?(img["%[channels]"].downcase)
+        img.combine_options do |mogrify|
+          mogrify.channel 'matte'
+          mogrify.separate '+matte'
+        end
+      else
+        return false
+      end
+    elsif  Object.const_defined?(:Magick)
+      # RMagick library
+
+      img = Magick::ImageList.new(file)
+      if img.alpha?
+        img.alpha Magick::ExtractAlphaChannel   # PNG alpha channel Mask
+      else
+        return false
+      end
     else
       return false
     end

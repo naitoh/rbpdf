@@ -1,5 +1,5 @@
 # coding: utf-8
-# Copyright (c) 2011-2017 NAITOH Jun
+# Copyright (c) 2011-2019 NAITOH Jun
 # Released under the MIT license
 # http://www.opensource.org/licenses/MIT
 
@@ -19,6 +19,7 @@ Gem::Specification.new do |spec|
   spec.files         = Dir.glob("lib/rbpdf/version.rb") +
                        Dir.glob("lib/*.rb") +
                        Dir.glob("lib/core/rmagick.rb") +
+                       Dir.glob("lib/core/mini_magick.rb") +
                        Dir.glob("test/*") +
                        ["Rakefile", "rbpdf.gemspec", "Gemfile",
                         "CHANGELOG", "test_unicode.rbpdf", "README.md", "LICENSE.TXT", "MIT-LICENSE",

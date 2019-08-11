@@ -17,7 +17,7 @@ class RbpdfTest < Test::Unit::TestCase
 
   data(images)
   test "image getimagesize test" do |data|
-    if data[:use_magick] and !Object.const_defined?(:Magick)
+    if data[:use_magick] and (!Object.const_defined?(:Magick) and !Object.const_defined?(:MiniMagick))
       return
     end
 
