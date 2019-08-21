@@ -20,7 +20,6 @@ Gem::Specification.new do |spec|
                        Dir.glob("lib/*.rb") +
                        Dir.glob("lib/core/rmagick.rb") +
                        Dir.glob("lib/core/mini_magick.rb") +
-                       Dir.glob("test/*") +
                        ["Rakefile", "rbpdf.gemspec", "Gemfile",
                         "CHANGELOG", "test_unicode.rbpdf", "README.md", "LICENSE.TXT", "MIT-LICENSE",
                         "utf8test.txt", "logo_example.png" ]
