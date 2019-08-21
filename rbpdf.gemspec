@@ -15,7 +15,7 @@ Gem::Specification.new do |spec|
   spec.summary       = %q{RBPDF via TCPDF.}
   spec.description   = %q{A template plugin allowing the inclusion of ERB-enabled RBPDF template files.}
   spec.homepage      = ""
-  spec.licenses      = ['MIT', 'LGPL 2.1 or later']
+  spec.licenses      = ['MIT', 'LGPL-2.1-or-later']
   spec.files         = Dir.glob("lib/rbpdf/version.rb") +
                        Dir.glob("lib/*.rb") +
                        Dir.glob("lib/core/rmagick.rb") +
