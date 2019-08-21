@@ -3,5 +3,5 @@
 # http://www.opensource.org/licenses/MIT
 
 module Rbpdf
-  VERSION = "1.20.0"
+  VERSION = "1.20.1"
 end
