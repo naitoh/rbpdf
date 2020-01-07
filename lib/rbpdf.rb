@@ -9768,7 +9768,7 @@ public
         end
       when @@k_pdf
         # X7. With each PDF, determine the matching embedding or override code. If there was a valid matching code, restore (pop) the last remembered (pushed) embedding level and directional override.
-        if remember.length
+        unless remember.empty?
           last = remember.length - 1
           case remember[last][:num]
           when @@k_rle, @@k_lre, @@k_rlo, @@k_lro
