@@ -49,7 +49,7 @@
 require "rbpdf/version"
 
 require 'htmlentities'
-require 'rbpdf-font' 
+require 'rbpdf-font'
 require 'erb'
 
 begin
@@ -11312,11 +11312,11 @@ protected
       while html_b =~ /<xre([^\>]*)>(.*?)\n(.*?)<\/pre>/mi
         # preserve newlines on <pre> tag
         html_b = html_b.gsub(/<xre([^\>]*)>(.*?)\n(.*?)<\/pre>/mi) do
-          if ($2 != '') and ($3 != '') 
+          if ($2 != '') and ($3 != '')
             "<xre#{$1}>#{$2}<br />#{$3}</pre>"
-          elsif ($2 == '') and ($3 != '') 
+          elsif ($2 == '') and ($3 != '')
             "<xre#{$1}>#{$3}</pre>"
-          elsif ($2 != '') and ($3 == '') 
+          elsif ($2 != '') and ($3 == '')
             "<xre#{$1}>#{$2}</pre>"
           else
             "<xre#{$1}></pre>"
