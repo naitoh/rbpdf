@@ -10176,12 +10176,7 @@ public
         end
       end
       # remove marked characters
-      chardata2.each_with_index do |value, key|
-        if value[:char] == false
-          chardata2.delete_at(key)
-        end
-      end
-      chardata = chardata2
+      chardata = chardata2.reject {|value| value[:char] == false }
       numchars = chardata.size
       chardata2 = nil
       arabicarr = nil
