@@ -9228,6 +9228,7 @@ public
   # [@since 2.1.000 (2008-01-08)]
   #
   def Circle(x0, y0, r, angstr=0, angend=360, style='', line_style=nil, fill_color=nil, nc=2)
+    return if r == 0
     Ellipse(x0, y0, r, r, 0, angstr, angend, style, line_style, fill_color, nc)
   end
   alias_method :circle, :Circle
