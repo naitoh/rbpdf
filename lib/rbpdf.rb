@@ -12165,12 +12165,19 @@ public
           autolinebreak = false
           if dom[key]['width'] and (dom[key]['width'].to_i > 0)
             imgw = getHTMLUnitToUnits(dom[key]['width'], 1, 'px', false)
-            if (@rtl and (@x - imgw < @l_margin + @c_margin)) or (!@rtl and (@x + imgw > @w - @r_margin - @c_margin))
-              # add automatic line break
-              autolinebreak = true
-              Ln('', cell)
-              # go back to evaluate this line break
-              key -= 1
+            if cell
+              cellmargin = @c_margin
+            else
+              cellmargin = 0
+            end
+            if (@rtl and (@x - imgw < @l_margin + cellmargin)) or (!@rtl and (@x + imgw > @w - @r_margin - cellmargin))
+              # add automatic line break only if we can grow up the width
+              unless ((@rtl and (@x == @w - @r_margin - cellmargin)) or (!@rtl and (@x == @l_margin + cellmargin)))
+                autolinebreak = true
+                Ln('', cell)
+                # go back to evaluate this line break
+                key -= 1
+              end
             end
           end
           if !autolinebreak
