@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/naitoh/rbpdf.svg?branch=master)](https://travis-ci.org/naitoh/rbpdf)
+[![Build Status](https://github.com/naitoh/rbpdf/workflows/test/badge.svg)](https://github.com/naitoh/rbpdf/actions)
 
 # RBPDF Template Plugin
 

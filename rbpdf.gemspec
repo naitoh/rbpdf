@@ -50,4 +50,5 @@ Gem::Specification.new do |spec|
   else
     spec.add_development_dependency "test-unit", "~> 3.2"
   end
+  spec.add_development_dependency "webrick"
 end

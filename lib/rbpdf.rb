@@ -5030,7 +5030,7 @@ class RBPDF
           tmpname = Tempfile.new(File::basename(file), @@k_path_cache)
           tmpname.binmode
           jpeg_quality = @jpeg_quality
-          tmpname.print img.to_blob { self.quality = jpeg_quality }
+          tmpname.print img.to_blob { |image| image.quality = jpeg_quality }
         else
           return false
         end
@@ -8855,7 +8855,7 @@ public
       dash = style['dash']
       dash_string = ''
       if dash != 0 and dash != ''
-        if dash =~ /^.+,/
+        if dash.is_a?(String) && dash =~ /^.+,/
           tab = dash.split(',')
         else
           tab = [dash]
