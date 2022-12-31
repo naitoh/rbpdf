@@ -1,0 +1,34 @@
+
+name: test
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ['jruby', '2.3', '2.4', '2.5', '2.6', '2.7', '3.0', '3.1']
+        gemfile: ['Gemfile.rails5', 'Gemfile.rails5_rmagick', 'Gemfile.rails5_mini_magick', 'Gemfile.rbpdf-font']
+        exclude:
+          - { ruby: 'jruby', gemfile: 'Gemfile.rails5_rmagick' }
+          - { ruby: 'jruby', gemfile: 'Gemfile.rails5_mini_magick' }
+    env:
+      BUNDLE_GEMFILE: ${{ matrix.gemfile }}
+    name: Ruby ${{ matrix.ruby }}, ${{ matrix.gemfile }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: rbpdf-font tests
+        id: rbpdf-font
+        if: contains(matrix.gemfile, 'rbpdf-font')
+        run:  bundle install && cd rbpdf-font && rake test
+      - name: rbpdf tests
+        id: rbpdf
+        if: steps.rbpdf-font.conclusion == 'skipped'
+        run:  bundle exec rake test
