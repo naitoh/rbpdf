@@ -152,6 +152,10 @@ class RbpdfTest < Test::Unit::TestCase
     assert_equal [0x61, 0x62, 0x63, 0x5ea, 0x5d9, 0x5e8, 0x5d1, 0x5e2], ary_str
     ary_str = pdf.utf8Bidi(pdf.UTF8StringToArray(utf8_str_2 + ascii_str), utf8_str_2 + ascii_str, 'R')
     assert_equal [0x61, 0x62, 0x63, 0x5ea, 0x5d9, 0x5e8, 0x5d1, 0x5e2], ary_str
+
+    utf8_str_3 = "(425,1\xE2\x80\xAC hours)"
+    ary_str = pdf.utf8Bidi(pdf.UTF8StringToArray(utf8_str_3), utf8_str_3, 'L')
+    assert_equal [0x28, 0x34, 0x32, 0x35, 0x2C, 0x31, 0x20, 0x68, 0x6F, 0x75, 0x72, 0x73, 0x29], ary_str
   end
 
   test "Bidi ascii space test" do
