@@ -8855,7 +8855,7 @@ public
       dash = style['dash']
       dash_string = ''
       if dash != 0 and dash != ''
-        if dash =~ /^.+,/
+        if dash.is_a?(String) && dash =~ /^.+,/
           tab = dash.split(',')
         else
           tab = [dash]
