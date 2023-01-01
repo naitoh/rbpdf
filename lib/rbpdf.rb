@@ -9131,6 +9131,8 @@ public
   # [@since 4.9.019 (2010-04-26)]
   #
   def outellipticalarc(xc, yc, rx, ry, xang=0, angs=0, angf=360, pie=false, nc=2)
+    return if rx == 0 && ry == 0
+
     k = @k
     if nc < 2
       nc = 2

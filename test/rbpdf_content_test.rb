@@ -118,6 +118,21 @@ class RbpdfPageTest < Test::Unit::TestCase
     assert_equal 'S'                                          , content[14]
   end
 
+  test "circle content radius=0 (no circle output)" do
+    pdf = MYPDF.new
+
+    pdf.set_print_header(false)
+    pdf.add_page
+    pdf.circle(100, 200, 0)
+
+    content = []
+    contents = pdf.getPageBuffer(1)
+    contents.each_line {|line| content.push line.chomp }
+
+    assert_equal 5, content.length
+    assert_equal 'S'                                          , content[4]
+  end
+
   test "write content test" do
     pdf = MYPDF.new
     pdf.add_page()
