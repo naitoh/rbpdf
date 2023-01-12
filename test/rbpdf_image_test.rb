@@ -138,8 +138,8 @@ class RbpdfTest < Test::Unit::TestCase
     assert_equal 1, result_img
   end
 
-  test "HTML Image test without RMagick" do
-    return if Object.const_defined?(:Magick)
+  test "HTML Image test without RMagick or MiniMagick" do
+    return if Object.const_defined?(:Magick) or Object.const_defined?(:MiniMagick)
 
     # no use
     # utf8_japanese_aiueo_str  = "\xe3\x81\x82\xe3\x81\x84\xe3\x81\x86\xe3\x81\x88\xe3\x81\x8a"
@@ -155,8 +155,8 @@ class RbpdfTest < Test::Unit::TestCase
       'ng.png'                    => 9.42
     }
 
-    pdf = RBPDF.new
     images.each {|image, h|
+      pdf = RBPDF.new
       pdf.add_page
       img_file = File.join(File.dirname(__FILE__), image)
       htmlcontent = '<img src="'+ img_file + '"/>'
@@ -169,6 +169,39 @@ class RbpdfTest < Test::Unit::TestCase
 
       assert_equal '[' + image + ']:' + x_org.to_s, '[' + image + ']:' + x.to_s
       assert_equal '[' + image + ']:' + (y_org + h).round(2).to_s, '[' + image + ']:' + y.round(2).to_s
+    }
+  end
+
+  test "HTML Image vertically align image in line test without RMagick or MiniMagick" do
+    return if Object.const_defined?(:Magick) or Object.const_defined?(:MiniMagick)
+
+    image_sizes = [
+      {'width' => 10,  'height' => 20, 'cell' => false},
+      {'width' => 100, 'height' => 100, 'cell' => false},
+      {'width' => 100, 'height' => 100, 'cell' => true},
+      {'width' => 500, 'height' => 100, 'cell' => false},
+    ]
+
+    img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit.png')
+    image_sizes.each {|size|
+      pdf = RBPDF.new
+      pdf.add_page
+      htmlcontent = "<body><img src='#{img_file}' width='#{size['width']}' height='#{size['height']}'/></body>"
+
+      x_org = pdf.get_x
+      y_org = pdf.get_y
+
+      imgh = pdf.getHTMLUnitToUnits(size['height'])
+      pdf.write_html(htmlcontent, true, 0, true, size['cell'])
+      x = pdf.get_x
+      y = pdf.get_y
+
+      lasth = pdf.get_font_size * pdf.get_cell_height_ratio
+      result = lasth + imgh - pdf.get_font_size_pt / pdf.get_scale_factor
+
+      test_name = "[ width: #{size['width']} height: #{size['height']} cell: #{size['cell']}]:"
+      assert_equal test_name + x_org.to_s, test_name + x.to_s
+      assert_equal test_name + (y_org + result).round(2).to_s, test_name + y.round(2).to_s
     }
   end
 end
