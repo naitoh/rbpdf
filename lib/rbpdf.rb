@@ -6796,9 +6796,12 @@ protected
     # sort glyphs by key
     #ksort(subsetglyphs)
     # add composite glyps to subsetglyphs and remove missing glyphs
+    subsetglyphs_tmp = []
     subsetglyphs.each_with_index {|val, key|
       next if val.nil?
+
       if indexToLoc[key]
+        subsetglyphs_tmp[key] = val
         offset = table['glyf']['offset'] + indexToLoc[key]
         numberOfContours = getSHORT(font, offset); offset += 2
         if numberOfContours < 0  # composite glyph
@@ -6808,7 +6811,7 @@ protected
             glyphIndex = getUSHORT(font, offset); offset += 2
             if subsetglyphs[glyphIndex].nil? and indexToLoc[glyphIndex]
               # add missing glyphs
-              subsetglyphs[glyphIndex] = true
+              subsetglyphs_tmp[glyphIndex] = true
             end
             # skip some bytes by case
             if (flags & 1) != 0
@@ -6827,10 +6830,10 @@ protected
             break if (flags & 32) == 0
           }
         end
-      else
-        subsetglyphs.delete_at(key)
       end
     }
+    subsetglyphs = subsetglyphs_tmp
+
     # build new glyf table with only used glyphs
     glyf = ''
     glyfSize = 0
@@ -11021,16 +11024,20 @@ protected
       cssblocks[key] = block.split('{')
     }
     # split groups of selectors (comma-separated list of selectors)
+    cssblocks_tmp = []
     cssblocks.each_with_index { |block, key|
       # index 0 contains the CSS selector, index 1 contains CSS properties
       if block[0].index(',')
         selectors = block[0].split(',')
         selectors.each {|sel|
-          cssblocks.push [sel.strip, block[1]]
+          cssblocks_tmp.push [sel.strip, block[1]]
         }
-        cssblocks.delete_at(key)
+      else
+        cssblocks_tmp.push [block[0], block[1]]
       end
     }
+    cssblocks = cssblocks_tmp
+
     # covert array to selector => properties
     cssdata = {}
     cssblocks.each { |block|
