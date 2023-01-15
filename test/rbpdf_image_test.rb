@@ -138,8 +138,8 @@ class RbpdfTest < Test::Unit::TestCase
     assert_equal 1, result_img
   end
 
-  test "HTML Image test without RMagick" do
-    return if Object.const_defined?(:Magick)
+  test "HTML Image test without RMagick or MiniMagick" do
+    return if Object.const_defined?(:Magick) or Object.const_defined?(:MiniMagick)
 
     # no use
     # utf8_japanese_aiueo_str  = "\xe3\x81\x82\xe3\x81\x84\xe3\x81\x86\xe3\x81\x88\xe3\x81\x8a"
@@ -155,8 +155,8 @@ class RbpdfTest < Test::Unit::TestCase
       'ng.png'                    => 9.42
     }
 
-    pdf = RBPDF.new
     images.each {|image, h|
+      pdf = RBPDF.new
       pdf.add_page
       img_file = File.join(File.dirname(__FILE__), image)
       htmlcontent = '<img src="'+ img_file + '"/>'
@@ -169,6 +169,59 @@ class RbpdfTest < Test::Unit::TestCase
 
       assert_equal '[' + image + ']:' + x_org.to_s, '[' + image + ']:' + x.to_s
       assert_equal '[' + image + ']:' + (y_org + h).round(2).to_s, '[' + image + ']:' + y.round(2).to_s
+    }
+  end
+
+  test "HTML Image vertically align image in line test without RMagick or MiniMagick" do
+    return if Object.const_defined?(:Magick) or Object.const_defined?(:MiniMagick)
+
+    image_sizes = [
+      {'width' => 10,  'height' => 20, 'cell' => false},
+      {'width' => 100, 'height' => 100, 'cell' => false},
+      {'width' => 100, 'height' => 100, 'cell' => true},
+      {'width' => 500, 'height' => 100, 'cell' => false},
+      # writeHTML() : !@rtl and (@x + imgw > @w - @r_margin - cellmargin), !@rtl and (@x == @l_margin + cellmargin) case
+      {'width' => 600, 'height' => 10, 'cell' => false},
+      {'width' => 600, 'height' => 10, 'cell' => true},
+      {'width' => 600, 'height' => 13, 'cell' => false},
+      # writeHTML() : !@rtl and (@x + imgw > @w - @r_margin - cellmargin), !@rtl and (@x != @l_margin + cellmargin) case
+      {'width' => 600, 'height' => 10, 'cell' => false, 'l_margin' => 1.0},
+      {'width' => 600, 'height' => 10, 'cell' => true, 'l_margin' => 1.0},
+    ]
+
+    img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit.png')
+    image_sizes.each {|size|
+      pdf = RBPDF.new
+      pdf.add_page
+      htmlcontent = "<body><img src='#{img_file}' width='#{size['width']}' height='#{size['height']}'/></body>"
+
+      unless size['l_margin'].nil?
+        pdf.set_left_margin(size['l_margin'])
+        x_org = size['l_margin']
+      else
+        x_org = pdf.get_x
+      end
+      y_org = pdf.get_y
+
+      imgw = pdf.getHTMLUnitToUnits(size['width'])
+      imgh = pdf.getHTMLUnitToUnits(size['height'])
+      pdf.write_html(htmlcontent, true, 0, true, size['cell'])
+      x = pdf.get_x
+      y = pdf.get_y
+      w = pdf.get_page_width
+      l_margin = pdf.instance_variable_get("@l_margin")
+      r_margin = pdf.instance_variable_get("@r_margin")
+      lasth = pdf.get_font_size * pdf.get_cell_height_ratio
+      if x + imgw > w - r_margin
+        result = lasth
+        result += lasth unless size['l_margin'].nil?
+      else
+        result = lasth + imgh - pdf.get_font_size_pt / pdf.get_scale_factor
+      end
+
+      test_name = "[ width: #{size['width']} height: #{size['height']} cell: #{size['cell']} l_margin: #{size['l_margin']}]:"
+      assert_equal test_name + x_org.to_s, test_name + x.to_s
+      assert_equal test_name + (y_org + result).round(2).to_s, test_name + y.round(2).to_s
     }
   end
 end
