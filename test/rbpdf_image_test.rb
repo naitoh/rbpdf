@@ -224,4 +224,30 @@ class RbpdfTest < Test::Unit::TestCase
       assert_equal test_name + (y_org + result).round(2).to_s, test_name + y.round(2).to_s
     }
   end
+
+  test "HTML Image vertically align image in line and shift the annotations and links test without RMagick or MiniMagick" do
+    return if Object.const_defined?(:Magick) or Object.const_defined?(:MiniMagick)
+
+    img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit.png')
+    width = 300
+    height = 600
+    pdf = RBPDF.new
+    pdf.add_page
+    htmlcontent = "<body><img src='#{img_file}' width='#{width}' height='#{height}'/><img src='#{img_file}' width='#{width}' height='#{height}'/></body>"
+    x_org = pdf.get_x
+    y_org = pdf.get_y
+    imgh = pdf.getHTMLUnitToUnits(height)
+
+    opt = {'Subtype'=>'Text', 'Name' => 'Comment', 'T' => 'title example', 'Subj' => 'example', 'C' => [255, 255, 0]}
+    pdf.annotation('', '', 20, 30, 'Text annotation', opt)
+
+    pdf.write_html(htmlcontent, true, 0, true, false)
+    x = pdf.get_x
+    y = pdf.get_y
+    lasth = pdf.get_font_size * pdf.get_cell_height_ratio
+    result = lasth + imgh - pdf.get_font_size_pt / pdf.get_scale_factor
+
+    assert_equal x_org.to_s, x.to_s
+    assert_equal (y_org + result).round(2), y.round(2)
+  end
 end
