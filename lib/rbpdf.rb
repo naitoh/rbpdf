@@ -7244,11 +7244,18 @@ protected
     out << ' /BaseFont /' + fontname + ''
     out << ' /Name /F' + font['i'].to_s
     out << ' /Encoding /' + font['enc']
-    out << ' /ToUnicode /Identity-H'
-    out << ' /DescendantFonts [' + (@n + 1).to_s + ' 0 R]'
+    out << " /ToUnicode #{@n + 1} 0 R"
+    out << " /DescendantFonts [#{@n + 2} 0 R]"
     out << ' >>'
     out << ' endobj'
     out(out)
+
+    # ToUnicode Object
+    newobj()
+    filter = @compress ? '/Filter /FlateDecode ' : ''
+    stream = @compress ? Zlib::Deflate.deflate(@@cmap_identity_h) : @@cmap_identity_h
+    stream = getrawstream(stream)
+    out("<<#{filter}/Length #{stream.length}>> stream\n#{stream}\nendstream\nendobj")
 
     # CIDFontType2
     # A CIDFont whose glyph descriptions are based on TrueType font technology
@@ -8080,18 +8087,27 @@ protected
   end
 
   #
+  # get raw output stream.
+  # @param string :s string to output.
+  # @param int :n object reference for encryption mode
+  # @access protected
+  #
+  def getrawstream(s, n=0)
+    if n <= 0
+      # default to current object
+      n = @n
+    end
+    encrypt_data(n, s)
+  end
+
+  #
   # Format output stream
   # @param string :s string to output.
   # @param int :n object reference for encryption mode
   # @access protected
   #
   def getstream(s, n=0)
-    if n <= 0
-      # default to current object
-      n = @n
-    end
-    s = encrypt_data(n, s)
-    return "stream\n" + s + "\nendstream"
+    "stream\n" + getrawstream(s, n=0) + "\nendstream"
   end
 
   #
