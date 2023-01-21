@@ -7244,6 +7244,7 @@ protected
     out << ' /BaseFont /' + fontname + ''
     out << ' /Name /F' + font['i'].to_s
     out << ' /Encoding /' + font['enc']
+    out << ' /ToUnicode /Identity-H'
     out << ' /DescendantFonts [' + (@n + 1).to_s + ' 0 R]'
     out << ' >>'
     out << ' endobj'
