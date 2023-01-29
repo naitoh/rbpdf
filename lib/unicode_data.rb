@@ -18326,6 +18326,35 @@ module Unicode_data
 382=>158   # zcaron2
 }
 
+#
+# ToUnicode map for Identity-H
+#   CMapType : 1 = Convert to CID, 2 = Convert to Unicode
+#
+@@cmap_identity_h = <<-CMap
+/CIDInit /ProcSet findresource begin
+12 dict begin
+begincmap
+/CMapName /Adobe-Identity-UCS def
+/CMapType 2 def
+/CIDSystemInfo <<
+  /Registry (Adobe)
+  /Ordering (UCS)
+  /Supplement 0
+>> def
+/WMode 0 def
+1 begincodespacerange
+<0000> <FFFF>
+endcodespacerange
+
+1 beginbfrange
+<0000> <ffff> <0000>
+endbfrange
+endcmap
+CMapName currentdict /CMap defineresource pop
+end
+end
+CMap
+
 end
 
 #============================================================+
