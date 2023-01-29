@@ -79,5 +79,7 @@ class RbpdfTest < Test::Unit::TestCase
 
     assert_not_equal 0, content.length
     assert_equal '%PDF-1.7', content[0]
+
+    File.open("example#{data}.pdf", mode = "w"){|f| f.write(contents) } if ENV['OUTPUT']
   end
 end

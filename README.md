@@ -59,6 +59,16 @@ RBPDF Japanese Example of simple use in .html.erb:
 %><%==@pdf.output()%>
 ```
 
+PDF example output
+```
+$ OUTPUT=true bundle exec rake test TEST=test/rbpdf_examples_test.rb
+$ ls -1 *.pdf
+example001.pdf
+example002.pdf
+example003.pdf
+:
+```
+
 See the following files for sample of useage:
 
 test_unicode.rbpdf
