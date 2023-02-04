@@ -1,4 +1,4 @@
-# Copyright (c) 2011-2017 NAITOH Jun
+# Copyright (c) 2011-2023 NAITOH Jun
 # Released under the MIT license
 # http://www.opensource.org/licenses/MIT
 
@@ -17,9 +17,7 @@ class RbpdfTest < Test::Unit::TestCase
 
   data(images)
   test "image getimagesize test" do |data|
-    if data[:use_magick] and (!Object.const_defined?(:Magick) and !Object.const_defined?(:MiniMagick))
-      return
-    end
+    return if data[:use_magick] and !Object.const_defined?(:Magick) and !Object.const_defined?(:MiniMagick)
 
     pdf = RBPDF.new
     pdf.add_page
@@ -43,7 +41,8 @@ class RbpdfTest < Test::Unit::TestCase
 
   data(images)
   test "imageToPNG delete test" do |data|
-    return unless Object.const_defined?(:Magick)
+    return unless Object.const_defined?(:Magick) or Object.const_defined?(:MiniMagick)
+
     pdf = RBPDF.new
     pdf.add_page
     img_file = File.join(File.dirname(__FILE__), data[:file])
@@ -60,6 +59,7 @@ class RbpdfTest < Test::Unit::TestCase
 
   test "Magick::ImageList delete GIF alpha channel test" do
     return unless Object.const_defined?(:Magick)
+
     pdf = RBPDF.new
     pdf.add_page
     img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit_alpha.gif')
@@ -73,7 +73,7 @@ class RbpdfTest < Test::Unit::TestCase
   end
 
   test "image_alpha_mask DeviceGray test" do
-    return unless Object.const_defined?(:Magick)
+    return unless Object.const_defined?(:Magick) or Object.const_defined?(:MiniMagick)
 
     pdf = RBPDF.new
     pdf.add_page
@@ -100,7 +100,7 @@ class RbpdfTest < Test::Unit::TestCase
 
   data(images)
   test "ImagePngAlpha test" do |data|
-    return unless Object.const_defined?(:Magick)
+    return unless Object.const_defined?(:Magick) or Object.const_defined?(:MiniMagick)
 
     pdf = RBPDF.new
     pdf.add_page
@@ -121,9 +121,7 @@ class RbpdfTest < Test::Unit::TestCase
 
   data(images)
   test "Image test" do |data|
-    if data[:use_magick] and !Object.const_defined?(:Magick)
-      return
-    end
+    return if data[:use_magick] and !Object.const_defined?(:Magick) and !Object.const_defined?(:MiniMagick)
 
     pdf = RBPDF.new
     pdf.add_page
@@ -134,7 +132,7 @@ class RbpdfTest < Test::Unit::TestCase
   end
 
   test "HTML Image test" do
-    return unless Object.const_defined?(:Magick)
+    return unless Object.const_defined?(:Magick) or Object.const_defined?(:MiniMagick)
 
     images = {
       'png_test_alpha.png'        => 40.11,
