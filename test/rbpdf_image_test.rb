@@ -138,6 +138,20 @@ class RbpdfTest < Test::Unit::TestCase
     assert_equal 1, result_img
   end
 
+  test "Image proc_image_file test" do
+    pdf = RBPDF.new
+    pdf.add_page
+    img_file = File.join(File.dirname(__FILE__), '..', 'logo_example.png')
+
+    result_img = pdf.send(:proc_image_file, img_file) do |f|
+      pdf.image(f, 50, 0, 0, '', '', '', '', false, 300, '', true)
+    end
+
+    no = pdf.get_num_pages
+    assert_equal 1, no
+    assert_equal 1, result_img
+  end
+
   test "HTML Image test without RMagick or MiniMagick" do
     return if Object.const_defined?(:Magick) or Object.const_defined?(:MiniMagick)
 
