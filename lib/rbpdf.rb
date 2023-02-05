@@ -12919,7 +12919,7 @@ public
           end
         end
         # text
-        @htmlvspace = 0
+        @htmlvspace = 0 unless dom[key]['value'].strip.length == 0
         if !@premode and isRTLTextDir()
           # reverse spaces order
           len1 = dom[key]['value'].length

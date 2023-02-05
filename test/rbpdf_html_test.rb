@@ -582,6 +582,29 @@ class RbpdfHtmlTest < Test::Unit::TestCase
     assert_equal 'a\\\\bc', pdf_text
   end
 
+  test "write_html <ol><li> tag test" do
+    pdf = MYPDF.new
+    pdf.set_print_header(false)
+    pdf.add_page()
+
+    htmlcontent = '<ol><li>text A</li><li>text B</li></ol>'
+    pdf.write_html(htmlcontent, true, 0, true, 0)
+    pdf_text = pdf.get_html_text(1)
+    assert_equal '1.text A2.text B', pdf_text
+  end
+
+  test "write_html <ol><li> tag with image tag test" do
+    pdf = MYPDF.new
+    pdf.set_print_header(false)
+    pdf.add_page()
+
+    img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit.png')
+    htmlcontent = "<ol><img src='#{img_file}' width='30' height='30' border='0' /><li>text A</li><li>text B</li></ol>"
+    pdf.write_html(htmlcontent, true, 0, true, 0)
+    pdf_text = pdf.get_html_text(1)
+    assert_equal ' 1.text A2.text B', pdf_text # A space is placed before the img tag.
+  end
+
   test "write_html Character Entities test" do
     pdf = MYPDF.new
     pdf.set_print_header(false)
