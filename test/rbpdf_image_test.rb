@@ -190,17 +190,15 @@ class RbpdfTest < Test::Unit::TestCase
     return if Object.const_defined?(:Magick) or Object.const_defined?(:MiniMagick)
 
     image_sizes = [
+      # writeHTML() : not !@rtl and (@x + imgw > @w - @r_margin - @c_margin) case
       {'width' => 10,  'height' => 20, 'cell' => false},
       {'width' => 100, 'height' => 100, 'cell' => false},
       {'width' => 100, 'height' => 100, 'cell' => true},
       {'width' => 500, 'height' => 100, 'cell' => false},
-      # writeHTML() : !@rtl and (@x + imgw > @w - @r_margin - cellmargin), !@rtl and (@x == @l_margin + cellmargin) case
+      # writeHTML() : !@rtl and (@x + imgw > @w - @r_margin - @c_margin) case
       {'width' => 600, 'height' => 10, 'cell' => false},
       {'width' => 600, 'height' => 10, 'cell' => true},
       {'width' => 600, 'height' => 13, 'cell' => false},
-      # writeHTML() : !@rtl and (@x + imgw > @w - @r_margin - cellmargin), !@rtl and (@x != @l_margin + cellmargin) case
-      {'width' => 600, 'height' => 10, 'cell' => false, 'l_margin' => 1.0},
-      {'width' => 600, 'height' => 10, 'cell' => true, 'l_margin' => 1.0},
     ]
 
     img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit.png')
@@ -209,12 +207,7 @@ class RbpdfTest < Test::Unit::TestCase
       pdf.add_page
       htmlcontent = "<body><img src='#{img_file}' width='#{size['width']}' height='#{size['height']}'/></body>"
 
-      unless size['l_margin'].nil?
-        pdf.set_left_margin(size['l_margin'])
-        x_org = size['l_margin']
-      else
-        x_org = pdf.get_x
-      end
+      x_org = pdf.get_x
       y_org = pdf.get_y
 
       imgw = pdf.getHTMLUnitToUnits(size['width'])
@@ -223,17 +216,15 @@ class RbpdfTest < Test::Unit::TestCase
       x = pdf.get_x
       y = pdf.get_y
       w = pdf.get_page_width
-      l_margin = pdf.instance_variable_get("@l_margin")
       r_margin = pdf.instance_variable_get("@r_margin")
       lasth = pdf.get_font_size * pdf.get_cell_height_ratio
       if x + imgw > w - r_margin
-        result = lasth
-        result += lasth unless size['l_margin'].nil?
+        result = lasth * 2
       else
         result = lasth + imgh - pdf.get_font_size_pt / pdf.get_scale_factor
       end
 
-      test_name = "[ width: #{size['width']} height: #{size['height']} cell: #{size['cell']} l_margin: #{size['l_margin']}]:"
+      test_name = "[ width: #{size['width']} height: #{size['height']} cell: #{size['cell']}]:"
       assert_equal test_name + x_org.to_s, test_name + x.to_s
       assert_equal test_name + (y_org + result).round(2).to_s, test_name + y.round(2).to_s
     }

@@ -12900,7 +12900,7 @@ public
             startlinepage = @page
           end
         end
-      elsif dom[key]['value'].strip.length > 0
+      elsif dom[key]['value'].length > 0
         # print list-item
         if !empty_string(@lispacer)
           SetFont(pfontname, pfontstyle, pfontsize)
