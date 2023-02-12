@@ -1,5 +1,5 @@
 # coding: utf-8
-# Copyright (c) 2011-2019 NAITOH Jun
+# Copyright (c) 2011-2023 NAITOH Jun
 # Released under the MIT license
 # http://www.opensource.org/licenses/MIT
 
@@ -23,7 +23,7 @@ Gem::Specification.new do |spec|
                        ["Rakefile", "rbpdf.gemspec", "Gemfile",
                         "CHANGELOG", "test_unicode.rbpdf", "README.md", "LICENSE.TXT", "MIT-LICENSE",
                         "utf8test.txt", "logo_example.png" ]
-  spec.rdoc_options  += [ '--exclude', 'lib/fonts/',
+  spec.rdoc_options  += [ '--exclude', 'lib/core/mini_magick.rb',
                           '--exclude', 'lib/htmlcolors.rb',
                           '--exclude', 'lib/unicode_data.rb' ]
 
