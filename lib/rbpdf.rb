@@ -12186,19 +12186,12 @@ public
           autolinebreak = false
           if dom[key]['width'] and (dom[key]['width'].to_i > 0)
             imgw = getHTMLUnitToUnits(dom[key]['width'], 1, 'px', false)
-            if cell
-              cellmargin = @c_margin
-            else
-              cellmargin = 0
-            end
-            if (@rtl and (@x - imgw < @l_margin + cellmargin)) or (!@rtl and (@x + imgw > @w - @r_margin - cellmargin))
-              # add automatic line break only if we can grow up the width
-              unless ((@rtl and (@x == @w - @r_margin - cellmargin)) or (!@rtl and (@x == @l_margin + cellmargin)))
-                autolinebreak = true
-                Ln('', cell)
-                # go back to evaluate this line break
-                key -= 1
-              end
+            if (@rtl and (@x - imgw < @l_margin + @c_margin)) or (!@rtl and (@x + imgw > @w - @r_margin - @c_margin))
+              # add automatic line break
+              autolinebreak = true
+              Ln('', cell)
+              # go back to evaluate this line break
+              key -= 1
             end
           end
           if !autolinebreak
@@ -12907,7 +12900,7 @@ public
             startlinepage = @page
           end
         end
-      elsif dom[key]['value'].strip.length > 0
+      elsif dom[key]['value'].length > 0
         # print list-item
         if !empty_string(@lispacer)
           SetFont(pfontname, pfontstyle, pfontsize)
@@ -12926,7 +12919,7 @@ public
           end
         end
         # text
-        @htmlvspace = 0
+        @htmlvspace = 0 unless dom[key]['value'].strip.length == 0
         if !@premode and isRTLTextDir()
           # reverse spaces order
           len1 = dom[key]['value'].length
