@@ -31,24 +31,12 @@ Gem::Specification.new do |spec|
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.require_paths = ["lib"]
 
-  if RUBY_VERSION == "1.8.7"
-    spec.add_runtime_dependency "htmlentities", "= 4.3.1"
-  else
-    spec.add_runtime_dependency "htmlentities"
-  end
+  spec.add_runtime_dependency "htmlentities"
   spec.add_runtime_dependency "rbpdf-font", "~> 1.19.0"
-  spec.required_ruby_version = '>= 1.8.7'
+  spec.required_ruby_version = '>= 2.3.0'
 
   spec.add_development_dependency "bundler"
-  if RUBY_VERSION <'1.9.3' # Ruby 1.8.7 or 1.9.2
-    spec.add_development_dependency "rake", "<= 10.5"
-  else
-    spec.add_development_dependency "rake"
-  end
-  if RUBY_VERSION <'1.9' # Ruby 1.8.7
-    spec.add_development_dependency "test-unit", "<= 3.1.5"
-  else
-    spec.add_development_dependency "test-unit", "~> 3.2"
-  end
+  spec.add_development_dependency "rake"
+  spec.add_development_dependency "test-unit"
   spec.add_development_dependency "webrick"
 end
