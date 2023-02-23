@@ -4808,7 +4808,7 @@ class RBPDF
   # [@param float :y] Ordinate of the upper-left corner.
   # [@param float :w] Width of the image in the page. If not specified or equal to zero, it is automatically calculated.
   # [@param float :h] Height of the image in the page. If not specified or equal to zero, it is automatically calculated.
-  # [@param string :type] Image format. Possible values are (case insensitive): JPG, JPEG, PNG. If not specified, the type is inferred from the file extension.
+  # [@param string :type] Image format. Possible values are (case insensitive): JPG, JPEG, PNG, GIF. If not specified, the type is inferred from the file extension.
   # [@param mixed :link] URL or identifier returned by AddLink().
   # [@param string :align]
   #   Indicates the alignment of the pointer next to image insertion relative to image height. The value can be:
@@ -5333,13 +5333,13 @@ class RBPDF
   protected :image_alpha_mask
 
   #
-  # Extract info from a PNG image with alpha channel using the GD library.
+  # Extract info from a PNG image with alpha channel using the RMagick/MiniMagick library.
   # [@param string :file] Name of the file containing the image.
   # [@param float :x] Abscissa of the upper-left corner.
   # [@param float :y] Ordinate of the upper-left corner.
   # [@param float :w] Width of the image in the page. If not specified or equal to zero, it is automatically calculated.
   # [@param float :h] Height of the image in the page. If not specified or equal to zero, it is automatically calculated.
-  # [@param string :type] Image format. Possible values are (case insensitive): JPEG and PNG (whitout GD library) and all images supported by GD: GD, GD2, GD2PART, GIF, JPEG, PNG, BMP, XBM, XPM;. If not specified, the type is inferred from the file extension.
+  # [@param string :type] Possible values are (case insensitive): JPEG and PNG (without RMagick/MiniMagick library) and PNG(with alpha channel) and JPEG and GIF supported by RMagick/MiniMagick. If not specified, the type is inferred from the file extension.
   # [@param mixed :link] URL or identifier returned by AddLink().
   # [@param string :align]
   #   Indicates the alignment of the pointer next to image insertion relative to image height. The value can be:
@@ -5347,7 +5347,7 @@ class RBPDF
   #   * M: middle-right for LTR or middle-left for RTL
   #   * B: bottom-right for LTR or bottom-left for RTL
   #   * N: next line
-  # [@param boolean :resize] If true resize (reduce) the image to fit :w and :h (requires GD library).
+  # [@param boolean :resize] If true resize (reduce) the image to fit :w and :h (requires RMagick/MiniMagick library).
   # [@param int :dpi] dot-per-inch resolution used on resize
   # [@param string :palign]
   #   Allows to center or align the image on the current line. Possible values are:
