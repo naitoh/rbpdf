@@ -4974,11 +4974,12 @@ class RBPDF
 
       info = false
       if !resize
-        if (type == 'jpeg')
+        case type
+        when 'jpeg'
           info=parsejpeg(file)
-        elsif (type == 'png')
-          info=parsepng(file);
-        elsif (type == 'gif')
+        when 'png'
+          info=parsepng(file)
+        when 'gif'
           tmpFile = imageToPNG(file)
           if tmpFile != false
             info=parsepng(tmpFile.path)
@@ -4992,6 +4993,7 @@ class RBPDF
           end
           info=send(mtd, file);
         end
+
         if info == 'pngalpha' and ismask == false and (Object.const_defined?(:MiniMagick) or Object.const_defined?(:Magick))
           info = ImagePngAlpha(file, x, y, w, h, 'PNG', link, align, resize, dpi, palign)
           if false != info
