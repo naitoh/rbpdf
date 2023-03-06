@@ -1,3 +1,4 @@
+# coding: ASCII-8BIT
 # The MIT License
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -55,6 +56,7 @@ module Rbpdf
     
     width = image.columns
     height = image.rows
+    out['mime'] = image.mime_type
     out[0] = width
     out[1] = height
     
@@ -67,13 +69,15 @@ module Rbpdf
       out[2] = "JPEG"
     when "image/png"
       out[2] = "PNG"
-    when " 	image/vnd.wap.wbmp"
+    when "image/webp", "image/x-webp"
+      out[2] = "WEBP"
+      out['mime'] = "image/webp"
+    when "image/vnd.wap.wbmp"
       out[2] = "WBMP"
     when "image/x-xpixmap"
       out[2] = "XPM"
     end
     out[3] = "height=\"#{height}\" width=\"#{width}\""
-    out['mime'] = image.mime_type
     
     # This needs work to cover more situations
     # I can't see how to just list the number of channels with ImageMagick / rmagick

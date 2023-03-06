@@ -24,12 +24,14 @@ PDF_HEADER_LOGO="#{PUBLIC}/logo_rbpdf_8bit.png"
 PDF_EXAMPLE_LOGO="#{PUBLIC}/logo_example.png"
 PDF_IMAGE_DEMO_PNG="#{PUBLIC}/image_demo.png"
 PDF_IMAGE_DEMO_JPG="#{PUBLIC}/image_demo.jpg"
+PDF_IMAGE_DEMO_WEBP="#{PUBLIC}/image_demo.webp"
 PDF_UTF8TEST_TXT="#{PUBLIC}/utf8test.txt"
 PDF_TABLE_DATA_DEMO_TXT="#{PUBLIC}/table_data_demo.txt"
 PDF_TIGER_AI="#{PUBLIC}/tiger.ai"
 PDF_PNG_TEST_ALPHA_PNG="#{PUBLIC}/png_test_alpha.png"
 PDF_PNG_TEST_MSK_ALPHA_PNG="#{PUBLIC}/png_test_msk_alpha.png"
 PDF_PNG_TEST_NON_ALPHA_PNG="#{PUBLIC}/png_test_non_alpha.png"
+PDF_WEBP_TEST_ALPHA_PNG="#{PUBLIC}/webp_test_alpha.webp"
 
 if !defined? send_data
   def send_data(data, options = {}) 

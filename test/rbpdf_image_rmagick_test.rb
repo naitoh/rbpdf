@@ -1,3 +1,4 @@
+# coding: ASCII-8BIT
 # Copyright (c) 2011-2023 NAITOH Jun
 # Released under the MIT license
 # http://www.opensource.org/licenses/MIT
@@ -8,6 +9,7 @@ class RbpdfTest < Test::Unit::TestCase
   images = {
     'PNG'                => {:file => 'logo_rbpdf_8bit.png',       :type => 'PNG',  :mime => 'image/png',  :use_magick => false},
     'PNG monotone'       => {:file => 'logo_rbpdf_mono_rgb.png',   :type => 'PNG',  :mime => 'image/png',  :use_magick => false},
+    'WEBP'               => {:file => 'logo_rbpdf_8bit.webp',      :type => 'WEBP', :mime => 'image/webp', :use_magick => true, :channels => 3, :bits => 8},
     'GIF'                => {:file => 'logo_rbpdf_8bit.gif',       :type => 'GIF',  :mime => 'image/gif',  :use_magick => true, :channels => 3, :bits => 8},
     'GIF alpha'          => {:file => 'logo_rbpdf_8bit_alpha.gif', :type => 'GIF',  :mime => 'image/gif',  :use_magick => true, :channels => 3, :bits => 8},
     'JPEG RGB'           => {:file => 'logo_rbpdf_8bit.jpg',       :type => 'JPEG', :mime => 'image/jpeg', :use_magick => true, :channels => 3, :bits => 8},
@@ -35,6 +37,7 @@ class RbpdfTest < Test::Unit::TestCase
 
   images = {
     'PNG alpha'          => {:file => 'png_test_alpha.png',        :cs => 'DeviceRGB'},
+    'WebP alpha'         => {:file => 'webp_test_alpha.webp',      :cs => 'DeviceRGB'},
     'GIF'                => {:file => 'logo_rbpdf_8bit.gif',       :cs => 'Indexed'},
     'GIF alpha'          => {:file => 'logo_rbpdf_8bit_alpha.gif', :cs => 'Indexed'},
   }
@@ -60,8 +63,6 @@ class RbpdfTest < Test::Unit::TestCase
   test "Magick::ImageList delete GIF alpha channel test" do
     return unless Object.const_defined?(:Magick)
 
-    pdf = RBPDF.new
-    pdf.add_page
     img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit_alpha.gif')
 
     img = Magick::ImageList.new(img_file)
@@ -80,6 +81,7 @@ class RbpdfTest < Test::Unit::TestCase
     img_file = File.join(File.dirname(__FILE__), 'png_test_alpha.png')
 
     tempfile = pdf.send(:image_alpha_mask, img_file)
+    assert_not_equal false,      tempfile
 
     info = pdf.send(:parsepng, tempfile.path)
 
@@ -95,6 +97,8 @@ class RbpdfTest < Test::Unit::TestCase
 
   images = {
     'PNG alpha'          => {:file => 'png_test_alpha.png',        :info => true},
+    #'GIF alpha'          => {:file => 'logo_rbpdf_8bit_alpha.gif', :info => true},
+    'WebP alpha'         => {:file => 'webp_test_alpha.webp',      :info => true},
     #'PNG alpha Error'    => {:file => 'png_test_alpha.png',        :info => false, :png_alpha_error => true}, # no use
   }
 
@@ -107,13 +111,15 @@ class RbpdfTest < Test::Unit::TestCase
     img_file = File.join(File.dirname(__FILE__), data[:file])
     #pdf.singleton_class.send(:define_method, :parsepng){|*args| {:cs => 'Indexed'}} if data[:png_alpha_error] # no use
     info = pdf.send(:ImagePngAlpha, img_file, 10, 10, 100, '', 'PNG', 'https://rubygems.org/gems/rbpdf')
-    assert_equal data[:info], info
+    assert_equal "#{data[:file]} #{data[:info]}", "#{data[:file]} #{info}"
   end
 
   images = {
     'PNG'                => {:file => 'logo_rbpdf_8bit.png',       :info => 1,    :use_magick => false},
     'PNG alpha'          => {:file => 'png_test_alpha.png',        :info => true, :use_magick => true},
     #'PNG alpha Error'    => {:file => 'png_test_alpha.png',        :info => 1,    :use_magick => true, :png_alpha_error => true}, # no use
+    'WebP'               => {:file => 'logo_rbpdf_8bit.webp',      :info => 1,    :use_magick => true},
+    'WebP alpha'         => {:file => 'webp_test_alpha.webp',      :info => true, :use_magick => true},
     'GIF'                => {:file => 'logo_rbpdf_8bit.gif',       :info => 1,    :use_magick => true},
     'GIF alpha'          => {:file => 'logo_rbpdf_8bit_alpha.gif', :info => 1,    :use_magick => true},
     'JPEG'               => {:file => 'logo_rbpdf_8bit.jpg',       :info => 1,    :use_magick => true},
@@ -128,7 +134,7 @@ class RbpdfTest < Test::Unit::TestCase
     img_file = File.join(File.dirname(__FILE__), data[:file])
     #pdf.singleton_class.send(:define_method, :parsepng){|*args| {:cs => 'Indexed'}} if data[:png_alpha_error] # no use
     info = pdf.image(img_file, 10, 10, 100, '', '', 'https://rubygems.org/gems/rbpdf', '', false, 300)
-    assert_equal data[:info], info
+    assert_equal "#{data[:file]} #{data[:info]}", "#{data[:file]} #{info}"
   end
 
   test "HTML Image test" do
@@ -138,7 +144,9 @@ class RbpdfTest < Test::Unit::TestCase
       'png_test_alpha.png'        => 40.11,
       'png_test_msk_alpha.png'    => 40.11,
       'png_test_non_alpha.png'    => 40.11,
+      'webp_test_alpha.webp'      => 40.11,
       'logo_rbpdf_8bit.png'       => 36.58,
+      'logo_rbpdf_8bit.webp'      => 36.58,
       'logo_rbpdf_8bit.gif'       => 36.58,
       'logo_rbpdf_8bit_alpha.gif' => 36.58,
       'logo_rbpdf_8bit.jpg'       => 36.58,

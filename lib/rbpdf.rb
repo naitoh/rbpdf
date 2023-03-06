@@ -4790,7 +4790,7 @@ class RBPDF
   # * explicit width and height (expressed in user unit)
   # * one explicit dimension, the other being calculated automatically in order to keep the original proportions
   # * no explicit dimension, in which case the image is put at 72 dpi
-  # Supported formats are PNG images whitout RMagick/MiniMagick library and JPEG and GIF images supported by RMagick/MiniMagick.
+  # Supported formats are PNG images whitout RMagick/MiniMagick library and JPEG and GIF and WebP images supported by RMagick/MiniMagick.
   # For JPEG, all flavors are allowed:
   # * gray scales
   # * true colors (24 bits)
@@ -4808,7 +4808,7 @@ class RBPDF
   # [@param float :y] Ordinate of the upper-left corner.
   # [@param float :w] Width of the image in the page. If not specified or equal to zero, it is automatically calculated.
   # [@param float :h] Height of the image in the page. If not specified or equal to zero, it is automatically calculated.
-  # [@param string :type] Image format. Possible values are (case insensitive): JPG, JPEG, PNG. If not specified, the type is inferred from the file extension.
+  # [@param string :type] Image format. Possible values are (case insensitive): JPG, JPEG, PNG, GIF, WebP. If not specified, the type is inferred from the file extension.
   # [@param mixed :link] URL or identifier returned by AddLink().
   # [@param string :align]
   #   Indicates the alignment of the pointer next to image insertion relative to image height. The value can be:
@@ -4974,11 +4974,18 @@ class RBPDF
 
       info = false
       if !resize
-        if (type == 'jpeg')
+        case type
+        when 'jpeg'
           info=parsejpeg(file)
-        elsif (type == 'png')
-          info=parsepng(file);
-        elsif (type == 'gif')
+        when 'png'
+          info=parsepng(file)
+        when 'webp'
+          tmpFile = imageToPNG(file, false)
+          if tmpFile != false
+            info=parsepng(tmpFile.path)
+            tmpFile.close(true)
+          end
+        when 'gif'
           tmpFile = imageToPNG(file)
           if tmpFile != false
             info=parsepng(tmpFile.path)
@@ -4992,6 +4999,7 @@ class RBPDF
           end
           info=send(mtd, file);
         end
+
         if info == 'pngalpha' and ismask == false and (Object.const_defined?(:MiniMagick) or Object.const_defined?(:Magick))
           info = ImagePngAlpha(file, x, y, w, h, 'PNG', link, align, resize, dpi, palign)
           if false != info
@@ -5156,29 +5164,33 @@ class RBPDF
   end
   protected :parsejpeg
 
-  def imageToPNG(file)
+  def imageToPNG(file, delete_alpha=true)
     if Object.const_defined?(:MiniMagick)
       # MiniMagick library
 
       img = MiniMagick::Image.open(file)
-      img.format 'png' # convert to PNG from gif
-      if ['rgba', 'srgba', 'graya'].include?(img["%[channels]"].downcase)
-        img.combine_options do |mogrify|
-            mogrify.alpha 'off'
-        end
+      img.format 'png'
+      if delete_alpha
         if ['rgba', 'srgba', 'graya'].include?(img["%[channels]"].downcase)
-          return false
+          img.combine_options do |mogrify|
+              mogrify.alpha 'off'
+          end
+          if ['rgba', 'srgba', 'graya'].include?(img["%[channels]"].downcase)
+            return false
+          end
         end
       end
     elsif Object.const_defined?(:Magick)
       # RMagick library
 
       img = Magick::ImageList.new(file)
-      img.format = 'PNG'       # convert to PNG from gif
-      if img.alpha?
-        img.alpha Magick::DeactivateAlphaChannel   # PNG alpha channel delete
+      img.format = 'png'
+      if delete_alpha
         if img.alpha?
-          return false
+          img.alpha Magick::DeactivateAlphaChannel # PNG alpha channel delete
+          if img.alpha?
+            return false
+          end
         end
       end
     else
@@ -5314,6 +5326,7 @@ class RBPDF
       # RMagick library
 
       img = Magick::ImageList.new(file)
+      img.format = 'png'
       if img.alpha?
         img.alpha Magick::ExtractAlphaChannel   # PNG alpha channel Mask
       else
@@ -5333,13 +5346,13 @@ class RBPDF
   protected :image_alpha_mask
 
   #
-  # Extract info from a PNG image with alpha channel using the GD library.
+  # Extract info from a PNG image with alpha channel using the RMagick/MiniMagick library.
   # [@param string :file] Name of the file containing the image.
   # [@param float :x] Abscissa of the upper-left corner.
   # [@param float :y] Ordinate of the upper-left corner.
   # [@param float :w] Width of the image in the page. If not specified or equal to zero, it is automatically calculated.
   # [@param float :h] Height of the image in the page. If not specified or equal to zero, it is automatically calculated.
-  # [@param string :type] Image format. Possible values are (case insensitive): JPEG and PNG (whitout GD library) and all images supported by GD: GD, GD2, GD2PART, GIF, JPEG, PNG, BMP, XBM, XPM;. If not specified, the type is inferred from the file extension.
+  # [@param string :type] Possible values are (case insensitive): JPEG and PNG (without RMagick/MiniMagick library) and PNG(with alpha channel) and JPEG and GIF and WebP supported by RMagick/MiniMagick. If not specified, the type is inferred from the file extension.
   # [@param mixed :link] URL or identifier returned by AddLink().
   # [@param string :align]
   #   Indicates the alignment of the pointer next to image insertion relative to image height. The value can be:
@@ -5347,7 +5360,7 @@ class RBPDF
   #   * M: middle-right for LTR or middle-left for RTL
   #   * B: bottom-right for LTR or bottom-left for RTL
   #   * N: next line
-  # [@param boolean :resize] If true resize (reduce) the image to fit :w and :h (requires GD library).
+  # [@param boolean :resize] If true resize (reduce) the image to fit :w and :h (requires RMagick/MiniMagick library).
   # [@param int :dpi] dot-per-inch resolution used on resize
   # [@param string :palign]
   #   Allows to center or align the image on the current line. Possible values are:
