@@ -5187,7 +5187,12 @@ class RBPDF
       img.format = 'png'
       if delete_alpha
         if img.alpha?
-          img.alpha Magick::DeactivateAlphaChannel # PNG alpha channel delete
+          # PNG alpha channel delete
+          if Magick.const_defined?(:OffAlphaChannel) # RMagick 5.2.0 and later
+            img.alpha Magick::OffAlphaChannel
+          else # RMagick 5.1.0 and before for ImageMagick 6.x
+            img.alpha Magick::DeactivateAlphaChannel
+          end
           if img.alpha?
             return false
           end

@@ -60,17 +60,51 @@ class RbpdfTest < Test::Unit::TestCase
     assert_equal     data[:cs],  info['cs']
   end
 
-  test "Magick::ImageList delete GIF alpha channel test" do
+  images = {
+    'PNG alpha'          => {:file => 'png_test_alpha.png',        :cs => 'DeviceRGB'},
+    'WebP alpha'         => {:file => 'webp_test_alpha.webp',      :cs => 'DeviceRGB'},
+    'GIF alpha'          => {:file => 'logo_rbpdf_8bit_alpha.gif', :cs => 'Indexed'},
+  }
+
+  data(images)
+  test "Magick::ImageList delete alpha channel test" do |data|
     return unless Object.const_defined?(:Magick)
 
-    img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit_alpha.gif')
-
+    img_file = File.join(File.dirname(__FILE__), data[:file])
     img = Magick::ImageList.new(img_file)
-    img.format = 'PNG'       # convert to PNG from gif
+    img.format = 'PNG' unless File::extname(data[:file]) == '.png' # convert to PNG
+
     assert_equal true,   img.alpha?
 
-    img.alpha Magick::DeactivateAlphaChannel   # PNG alpha channel delete
+    # PNG alpha channel delete
+    if Magick.const_defined?(:OffAlphaChannel) # RMagick 5.2.0 and later
+      img.alpha Magick::OffAlphaChannel
+    else # RMagick 5.1.0 and before for ImageMagick 6.x
+      img.alpha Magick::DeactivateAlphaChannel
+    end
     assert_equal false,   img.alpha?
+
+    tmpFile = Tempfile.new(['', '_' + File::basename(img_file) + '.png'])
+    tmpFile.binmode
+    tmpFile.print img.to_blob
+    tmpFile.fsync
+
+    img = Magick::ImageList.new(tmpFile.path)
+    assert_equal false,   img.alpha?
+
+    f=open(tmpFile,'rb');
+    #Check signature
+    assert_equal 137.chr + 'PNG' + 13.chr + 10.chr + 26.chr + 10.chr, f.read(8)
+    f.read(4);
+    assert_equal 'IHDR',                                              f.read(4)
+    f.read(4) # w
+    f.read(4) # h
+    f.read(1) # bpc
+    case data[:cs]
+    when 'DeviceRGB'; ct = 2
+    when 'Indexed';   ct = 3
+    end
+    assert_equal ct,                                                  f.read(1).unpack('C')[0] # ct
   end
 
   test "image_alpha_mask DeviceGray test" do
