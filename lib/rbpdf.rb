@@ -4986,7 +4986,7 @@ class RBPDF
             tmpFile.close(true)
           end
         when 'gif'
-          tmpFile = imageToPNG(file)
+          tmpFile = imageToPNG(file, false)
           if tmpFile != false
             info=parsepng(tmpFile.path)
             tmpFile.close(true)
@@ -5285,12 +5285,13 @@ class RBPDF
         t = f.read(n)
         case ct
         when 0 # DeviceGray
-          trns = t[1].unpack('C')[0]
+          trns = [t[1].unpack('C')[0]]
         when 2 # DeviceRGB
-          trns = t[[1].unpack('C')[0], t[3].unpack('C')[0], t[5].unpack('C')[0]]
+          trns = [t[1].unpack('C')[0], t[3].unpack('C')[0], t[5].unpack('C')[0]]
         else # Indexed
-          if t.include?(0.chr)
-            trns = ['1']
+          trns = []
+          n.times do |i|
+            trns << t[i].unpack('C')[0]
           end
         end
         f.read(4)
@@ -7465,7 +7466,7 @@ protected
         trns='';
         count_info = info['trns'].length
         count_info.times do |i|
-          trns << info['trns'][i] + ' ' + info['trns'][i] + ' ';
+          trns << info['trns'][i].to_s + ' ' + info['trns'][i].to_s + ' '
         end
         out << ' /Mask [' + trns + ']'
       end

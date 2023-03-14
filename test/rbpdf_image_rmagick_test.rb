@@ -107,12 +107,18 @@ class RbpdfTest < Test::Unit::TestCase
     assert_equal ct,                                                  f.read(1).unpack('C')[0] # ct
   end
 
-  test "image_alpha_mask DeviceGray test" do
+  images = {
+    'PNG alpha'          => {:file => 'png_test_alpha.png',        :cs => 'DeviceRGB'},
+    'WebP alpha'         => {:file => 'webp_test_alpha.webp',      :cs => 'DeviceRGB'},
+    'GIF alpha'          => {:file => 'logo_rbpdf_8bit_alpha.gif', :cs => 'Indexed'},
+  }
+
+  test "image_alpha_mask DeviceGray test" do |data|
     return unless Object.const_defined?(:Magick) or Object.const_defined?(:MiniMagick)
 
     pdf = RBPDF.new
     pdf.add_page
-    img_file = File.join(File.dirname(__FILE__), 'png_test_alpha.png')
+    img_file = File.join(File.dirname(__FILE__),  data[:file])
 
     tempfile = pdf.send(:image_alpha_mask, img_file)
     assert_not_equal false,      tempfile
@@ -128,10 +134,9 @@ class RbpdfTest < Test::Unit::TestCase
     assert_equal 1, imgmask
   end
 
-
   images = {
     'PNG alpha'          => {:file => 'png_test_alpha.png',        :info => true},
-    #'GIF alpha'          => {:file => 'logo_rbpdf_8bit_alpha.gif', :info => true},
+    'GIF alpha'          => {:file => 'gif_test_alpha.gif',        :info => true},
     'WebP alpha'         => {:file => 'webp_test_alpha.webp',      :info => true},
     #'PNG alpha Error'    => {:file => 'png_test_alpha.png',        :info => false, :png_alpha_error => true}, # no use
   }

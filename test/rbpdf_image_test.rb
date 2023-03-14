@@ -1,3 +1,4 @@
+# coding: ASCII-8BIT
 # Copyright (c) 2011-2017 NAITOH Jun
 # Released under the MIT license
 # http://www.opensource.org/licenses/MIT
@@ -150,6 +151,35 @@ class RbpdfTest < Test::Unit::TestCase
     no = pdf.get_num_pages
     assert_equal 1, no
     assert_equal 1, result_img
+  end
+
+  images = {
+    'DeviceGray'           => {:cs => 0, :file => 'png_test_msk_alpha.png'},
+    'DeviceRGB'            => {:cs => 2, :file => 'logo_rbpdf_8bit.png'},
+    'Indexed'              => {:cs => 3, :file => 'gif_test_non_alpha.png'},
+    'Indexed transparency' => {:cs => 3, :file => 'gif_test_alpha.png',  :trns => [0]},
+  }
+  data(images)
+  test "Image parsepng test" do |data|
+    pdf = RBPDF.new
+    pdf.add_page
+    img_file = File.join(File.dirname(__FILE__), data[:file])
+    info = pdf.send(:parsepng, img_file)
+    if data[:cs] == 4 or data[:cs] == 6
+      assert_equal "#{data[:file]} pngalpha", "#{data[:file]} #{info}"
+    else
+      assert_not_equal "#{data[:file]} pngalpha", "#{data[:file]} #{info}"
+      assert_equal "#{data[:file]} 8", "#{data[:file]} #{info['bpc']}"
+      case data[:cs]
+      when 0
+        assert_equal "#{data[:file]} DeviceGray", "#{data[:file]} #{info['cs']}"
+      when 2
+        assert_equal "#{data[:file]} DeviceRGB", "#{data[:file]} #{info['cs']}"
+      when 3
+        assert_equal "#{data[:file]} Indexed", "#{data[:file]} #{info['cs']}"
+      end
+      assert_equal "#{data[:file]} #{data[:trns]}", "#{data[:file]} #{info['trns']}"
+    end
   end
 
   test "HTML Image test without RMagick or MiniMagick" do
