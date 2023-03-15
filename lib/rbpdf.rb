@@ -5216,45 +5216,45 @@ class RBPDF
   # [@access protected]
   #
   def parsepng(file)
-    f=open(file,'rb');
-    #Check signature
-    if (f.read(8)!=137.chr + 'PNG' + 13.chr + 10.chr + 26.chr + 10.chr)
-      Error('Not a PNG file: ' + file);
+    f = open(file,'rb')
+    # Check signature
+    if f.read(8) != 137.chr + 'PNG' + 13.chr + 10.chr + 26.chr + 10.chr
+      Error('Not a PNG file: ' + file)
     end
-    #Read header chunk
-    f.read(4);
-    if (f.read(4)!='IHDR')
-      Error('Incorrect PNG file: ' + file);
+    # Read header chunk
+    f.read(4)
+    if f.read(4) != 'IHDR'
+      Error('Incorrect PNG file: ' + file)
     end
-    w=freadint(f);
-    h=freadint(f);
-    bpc=f.read(1).unpack('C')[0]
-
-    ct=f.read(1).unpack('C')[0]
-    if (ct==0)
-      colspace='DeviceGray';
-    elsif (ct==2)
-      colspace='DeviceRGB';
-    elsif (ct==3)
-      colspace='Indexed';
+    w = freadint(f)
+    h = freadint(f)
+    bpc = f.read(1).unpack('C')[0]
+    ct = f.read(1).unpack('C')[0]
+    case ct
+    when 0
+      colspace = 'DeviceGray'
+    when 2
+      colspace = 'DeviceRGB'
+    when 3
+      colspace = 'Indexed'
     else
       if Object.const_defined?(:MiniMagick) or Object.const_defined?(:Magick)
         # alpha channel
         return 'pngalpha'
       else
-        Error('No RMagick/MiniMagick : Alpha channel not supported: ' + file);
+        Error('No RMagick/MiniMagick : Alpha channel not supported: ' + file)
       end
     end
-    if (f.read(1).unpack('C')[0] != 0)
+    if f.read(1).unpack('C')[0] != 0
       # Error('Unknown compression method: ' + file)
       return false
     end
-    if (f.read(1).unpack('C')[0]!=0)
+    if f.read(1).unpack('C')[0] != 0
       # Error('Unknown filter method: ' + file)
       return false
     end
 
-    if (bpc>8)
+    if bpc > 8
       if Object.const_defined?(:MiniMagick) or Object.const_defined?(:Magick)
         return false
       else
@@ -5262,48 +5262,49 @@ class RBPDF
       end
     end
 
-    if (f.read(1).unpack('C')[0]!=0)
+    if f.read(1).unpack('C')[0] != 0
       # Error('Interlacing not supported: ' + file)
       return false
     end
-    f.read(4);
-    parms='/DecodeParms <</Predictor 15 /Colors ' + (ct==2 ? 3 : 1).to_s + ' /BitsPerComponent ' + bpc.to_s + ' /Columns ' + w.to_s + '>>';
-    #Scan chunks looking for palette, transparency and image data
-    pal='';
-    trns='';
-    data='';
+    f.read(4)
+    parms='/DecodeParms <</Predictor 15 /Colors ' + (ct == 2 ? 3 : 1).to_s + ' /BitsPerComponent ' + bpc.to_s + ' /Columns ' + w.to_s + '>>'
+    # Scan chunks looking for palette, transparency and image data
+    pal = ''
+    trns = ''
+    data = ''
     begin
-      n=freadint(f);
-      type=f.read(4);
-      if (type=='PLTE')
-        #Read palette
-        pal=f.read( n);
-        f.read(4);
-      elsif (type=='tRNS')
-        #Read transparency info
-        t=f.read( n);
-        if (ct==0)
+      n = freadint(f)
+      type = f.read(4)
+      case type
+      when 'PLTE'
+        # Read palette
+        pal = f.read(n)
+        f.read(4)
+      when 'tRNS'
+        # Read transparency info
+        t = f.read(n)
+        case ct
+        when 0 # DeviceGray
           trns = t[1].unpack('C')[0]
-        elsif (ct==2)
+        when 2 # DeviceRGB
           trns = t[[1].unpack('C')[0], t[3].unpack('C')[0], t[5].unpack('C')[0]]
-        else
-          pos=t.include?(0.chr);
-          if (pos!=false)
+        else # Indexed
+          if t.include?(0.chr)
             trns = ['1']
           end
         end
-        f.read(4);
-      elsif (type=='IDAT')
-        #Read image data block
-        data<<f.read( n);
-        f.read(4);
-      elsif (type=='IEND')
-        break;
+        f.read(4)
+      when 'IDAT'
+        # Read image data block
+        data << f.read(n)
+        f.read(4)
+      when 'IEND'
+        break
       else
-        f.read( n+4);
+        f.read(n + 4)
       end
     end while(n)
-    if (colspace=='Indexed' and pal.empty?)
+    if (colspace == 'Indexed' and pal.empty?)
       # Error('Missing palette in ' + file)
       return false
     end
