@@ -70,7 +70,10 @@ class Example042Controller < ApplicationController
 
     pdf.image(PDF_PNG_TEST_ALPHA_PNG, 50, 50, 100, '', '', 'https://github.com/naitoh/rbpdf', '', false, 300)
 
-    pdf.image(PDF_WEBP_TEST_ALPHA_PNG, 50, 90, 100, '', '', 'https://github.com/naitoh/rbpdf', '', false, 300)
+    pdf.image(PDF_WEBP_TEST_ALPHA_PNG, 50, 80, 100, '', '', 'https://github.com/naitoh/rbpdf', '', false, 300)
+
+    pdf.image(PDF_GIF_TEST_ALPHA_GIF, 50, 110, 100, '', '', 'https://github.com/naitoh/rbpdf', '', false, 300)
+
 
     # --- Method (B) ------------------------------------------
     # provide image + separate 8-bit mask
@@ -80,6 +83,13 @@ class Example042Controller < ApplicationController
 
     # embed image, masked with previously embedded mask
     pdf.image(PDF_PNG_TEST_NON_ALPHA_PNG, 50, 140, 100, '', '', 'https://github.com/naitoh/rbpdf', '', false, 300, '', false, mask)
+
+
+    # first embed mask image (w, h, x and y will be ignored, the image will be scaled to the target image's size)
+    mask = pdf.image(PDF_GIF_TEST_MSK_ALPHA_PNG, 50, 170, 100, '', '', '', '', false, 300, '', true)
+
+    # embed image, masked with previously embedded mask
+    pdf.image(PDF_GIF_TEST_NON_ALPHA_PNG, 50, 170, 100, '', '', 'https://github.com/naitoh/rbpdf', '', false, 300, '', false, mask)
   rescue => err
     logger.error "pdf: Image: error: #{err.message}"
   end
