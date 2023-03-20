@@ -81,7 +81,7 @@ module Rbpdf
     
     # This needs work to cover more situations
     # I can't see how to just list the number of channels with ImageMagick / mini_magick
-    case image["%[channels]"].downcase
+    case image["%[channels]"].downcase.split.first
     when 'cmyk'
       out['channels'] = 4
     when 'rgb', 'rgba', 'srgb', 'srgba'  # Mac OS X : sRGB

@@ -5171,11 +5171,11 @@ class RBPDF
       img = MiniMagick::Image.open(file)
       img.format 'png'
       if delete_alpha
-        if ['rgba', 'srgba', 'graya'].include?(img["%[channels]"].downcase)
+        if ['rgba', 'srgba', 'graya'].include?(img["%[channels]"].downcase.split.first)
           img.combine_options do |mogrify|
               mogrify.alpha 'off'
           end
-          if ['rgba', 'srgba', 'graya'].include?(img["%[channels]"].downcase)
+          if ['rgba', 'srgba', 'graya'].include?(img["%[channels]"].downcase.split.first)
             return false
           end
         end
@@ -5321,7 +5321,7 @@ class RBPDF
 
       img = MiniMagick::Image.open(file)
       img.format('png')
-      if ['rgba', 'srgba', 'graya'].include?(img["%[channels]"].downcase)
+      if ['rgba', 'srgba', 'graya'].include?(img["%[channels]"].downcase.split.first)
         img.combine_options do |mogrify|
           mogrify.channel 'matte'
           mogrify.separate '+matte'
