@@ -89,7 +89,7 @@ require 'net/http'
 #
 
 
-PDF_PRODUCER = 'RBPDF 5.2.000'
+PDF_PRODUCER = "RBPDF #{Rbpdf::VERSION}"
 
 # == This is a Ruby class for generating PDF files on-the-fly without requiring external extensions.
 # * This class is a Ruby port of the TCPDF class by Nicola Asuni (http://www.tcpdf.org).

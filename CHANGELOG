@@ -1,16 +1,24 @@
+1.21.1 2023-03-20
+       - Changed version description of PDF PRODUCER. (#83)
+       - fix isValidCSSSelectorForTag method. (#82)
+       - Improved compatibility with ImageMagick 7.1.1-0 and later when using mini_magick. (#81)
+       - Fixed parsepng method to support transparent GIF and PNG tRNS transparency. (#80)
+       - ImageMagick7 support in RMagick 5.2.0. (#79)
+       - Add support WebP image. (#77)
+
 1.21.0 2023-02-13
-       - Support for Ruby 3.0.0, 3.1.0, 3.2.0. (Drop support for Ruby 2.2 and earlier.) #66
-       - Support Rails 6 and Rails 7. (Drop support for Rails 3.x, 4.x) #66, #72
-       - Fix RMagick 5.0 compatible. #66
-       - Infinite loop has been resolved. #68, #74
-       - Fixed a bug that caused the x position to shift when an <img> tag was behind a <li> tag in HTML. #74
-       - fix: Incorrect characters when copying out of a generated PDF with Unicode fonts. #71
-       - Suppresses output for Circle(), Ellipse(), PieSector(), and PieSectorXY() when the radius is 0. #67
-       - Don't change an object while iterating over it #59 (by thegcat)
-       - fix : bidi bug #56 (by ahorek)
-       - Avoid rdoc stack level too deep (SystemStackError) in gem install. #76
-       - PDF example output option OUTPUT=true added #70
-       - Make the image file path acquisition process extensible #58 (by yui-har)
+       - Support for Ruby 3.0.0, 3.1.0, 3.2.0. (Drop support for Ruby 2.2 and earlier.) (#66)
+       - Support Rails 6 and Rails 7. (Drop support for Rails 3.x, 4.x) (#66, #72)
+       - Fix RMagick 5.0 compatible. (#66)
+       - Infinite loop has been resolved. (#68, #74)
+       - Fixed a bug that caused the x position to shift when an <img> tag was behind a <li> tag in HTML. (#74)
+       - fix: Incorrect characters when copying out of a generated PDF with Unicode fonts. (#71)
+       - Suppresses output for Circle(), Ellipse(), PieSector(), and PieSectorXY() when the radius is 0. (#67)
+       - Don't change an object while iterating over it (#59) (by thegcat)
+       - fix : bidi bug (#56) (by ahorek)
+       - Avoid rdoc stack level too deep (SystemStackError) in gem install. (#76)
+       - PDF example output option OUTPUT=true added (#70)
+       - Make the image file path acquisition process extensible (#58) (by yui-har)
 
 1.20.1 2019-08-21
        - fix license warning. (by pavel)
