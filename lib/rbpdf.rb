@@ -435,6 +435,84 @@ class RBPDF
     @pdfunit ||= 'mm'
     @tocpage ||= false
 
+    @rasterize_vector_images = false
+    @svgdir = ''
+    @svgunit = 'px'
+    @svggradients = {}
+    @svggradientid = 0
+    @svgdefsmode = false
+    @svgdefs = {}
+    @svgclipmode = false
+    @svgclippaths = {}
+    @svgclipid = 0
+    @svgtext = +''
+    @svginheritprop = ['clip-rule', 'color', 'color-interpolation', 'color-interpolation-filters', 'color-profile', 'color-rendering', 'cursor', 'direction', 'fill', 'fill-opacity', 'fill-rule', 'font', 'font-family', 'font-size', 'font-size-adjust', 'font-stretch', 'font-style', 'font-variant', 'font-weight', 'glyph-orientation-horizontal', 'glyph-orientation-vertical', 'image-rendering', 'kerning', 'letter-spacing', 'marker', 'marker-end', 'marker-mid', 'marker-start', 'pointer-events', 'shape-rendering', 'stroke', 'stroke-dasharray', 'stroke-dashoffset', 'stroke-linecap', 'stroke-linejoin', 'stroke-miterlimit', 'stroke-opacity', 'stroke-width', 'text-anchor', 'text-rendering', 'visibility', 'word-spacing', 'writing-mode']
+    @svgstyles = [{
+			'alignment-baseline' => 'auto',
+			'baseline-shift' => 'baseline',
+			'clip' => 'auto',
+			'clip-path' => 'none',
+			'clip-rule' => 'nonzero',
+			'color' => 'black',
+			'color-interpolation' => 'sRGB',
+			'color-interpolation-filters' => 'linearRGB',
+			'color-profile' => 'auto',
+			'color-rendering' => 'auto',
+			'cursor' => 'auto',
+			'direction' => 'ltr',
+			'display' => 'inline',
+			'dominant-baseline' => 'auto',
+			'enable-background' => 'accumulate',
+			'fill' => 'black',
+			'fill-opacity' => 1,
+			'fill-rule' => 'nonzero',
+			'filter' => 'none',
+			'flood-color' => 'black',
+			'flood-opacity' => 1,
+			'font' => '',
+			'font-family' => 'helvetica',
+			'font-size' => 'medium',
+			'font-size-adjust' => 'none',
+			'font-stretch' => 'normal',
+			'font-style' => 'normal',
+			'font-variant' => 'normal',
+			'font-weight' => 'normal',
+			'glyph-orientation-horizontal' => '0deg',
+			'glyph-orientation-vertical' => 'auto',
+			'image-rendering' => 'auto',
+			'kerning' => 'auto',
+			'letter-spacing' => 'normal',
+			'lighting-color' => 'white',
+			'marker' => '',
+			'marker-end' => 'none',
+			'marker-mid' => 'none',
+			'marker-start' => 'none',
+			'mask' => 'none',
+			'opacity' => 1,
+			'overflow' => 'auto',
+			'pointer-events' => 'visiblePainted',
+			'shape-rendering' => 'auto',
+			'stop-color' => 'black',
+			'stop-opacity' => 1,
+			'stroke' => 'none',
+			'stroke-dasharray' => 'none',
+			'stroke-dashoffset' => 0,
+			'stroke-linecap' => 'butt',
+			'stroke-linejoin' => 'miter',
+			'stroke-miterlimit' => 4,
+			'stroke-opacity' => 1,
+			'stroke-width' => 1,
+			'text-anchor' => 'start',
+			'text-decoration' => 'none',
+			'text-rendering' => 'auto',
+			'unicode-bidi' => 'normal',
+			'visibility' => 'visible',
+			'word-spacing' => 'normal',
+			'writing-mode' => 'lr-tb',
+			'text-color' => 'black',
+			'transfmatrix' => [1, 0, 0, 1, 0, 0]
+    }]
+
     #######################
 
     #Some checks
@@ -14746,7 +14824,6 @@ public
         tag['attribute']['src'].gsub!(/%([0-9a-fA-F]{2})/){$1.hex.chr}
 
         img_name = tag['attribute']['src']
-        type = getImageFileType(tag['attribute']['src'])
         tag['attribute']['src'] = get_image_filename(tag['attribute']['src'])
         if tag['width'].nil?
           tag['width'] = 0
@@ -14821,7 +14898,12 @@ public
 
         result_img =
           proc_image_file(tag['attribute']['src']) do |img_file|
-            Image(img_file, xpos, @y, iw, ih, '', imglink, align, false, 300, '', false, false, border, false, false, true)
+            type = getImageFileType(tag['attribute']['src'])
+            if type == 'svg'
+              image_svg(img_file, xpos, @y, iw, ih, imglink, align, '', border, true)
+            else
+              image(img_file, xpos, @y, iw, ih, '', imglink, align, false, 300, '', false, false, border, false, false, true)
+            end
           end
 
         if result_img or ih != 0
@@ -16964,8 +17046,1356 @@ public
   protected :getPathPaintOperator
 
   # -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
-  # SVG METHODS (not implement, yet.)
+  # SVG METHODS
   # -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+  require 'rexml/parsers/pullparser'
+  #
+  # Embedd a Scalable Vector Graphics (SVG) image.
+  # NOTE: SVG standard is not yet fully implemented, use the setRasterizeVectorImages() method to enable/disable rasterization of SVG images using ImageMagick library.
+  # [@param string :file] Name of the SVG file.
+  # [@param float :x] Abscissa of the upper-left corner.
+  # [@param float :y] Ordinate of the upper-left corner.
+  # [@param float :w] Width of the image in the page. If not specified or equal to zero, it is automatically calculated.
+  # [@param float :h] Height of the image in the page. If not specified or equal to zero, it is automatically calculated.
+  # [@param mixed :link] URL or identifier returned by AddLink().
+  # [@param string :align] Indicates the alignment of the pointer next to image insertion relative to image height. The value can be:<ul><li>T: top-right for LTR or top-left for RTL</li><li>M: middle-right for LTR or middle-left for RTL</li><li>B: bottom-right for LTR or bottom-left for RTL</li><li>N: next line</li></ul>
+  # [@param string :palign] Allows to center or align the image on the current line. Possible values are:<ul><li>L : left align</li><li>C : center</li><li>R : right align</li><li>'' : empty string : left for LTR or right for RTL</li></ul>
+  # [@param mixed :border] Indicates if borders must be drawn around the image. The value can be either a number:<ul><li>0: no border (default)</li><li>1: frame</li></ul>or a string containing some or all of the following characters (in any order):<ul><li>L: left</li><li>T: top</li><li>R: right</li><li>B: bottom</li></ul>
+  # [@param boolean :fitonpage] if true the image is resized to not exceed page dimensions.
+  # [@since 5.0.000 (2010-05-02)]
+  # [@access public]
+  #
+  def image_svg(file, x='', y='', w=0, h=0, link='', align='', palign='', border=0, fitonpage=false)
+    error("SVG file not found: #{file}") unless File.exist?(file)
+
+    if @rasterize_vector_images
+      # convert SVG to raster image using GD or ImageMagick libraries
+      return Image(file, x, y, w, h, 'SVG', link, align, true, 300, palign, false, false, border, false, false, false)
+    end
+
+    @svgdir = File.dirname(file)
+    svgdata = ''
+    open(file,'rb') do |f|
+      svgdata = f.read()
+    end
+    x = @x if x == ''
+    y = @y if y == ''
+    k = @k
+    ox = 0
+    oy = 0
+    ow = w
+    oh = h
+    aspect_ratio_align = 'xMidYMid'
+    aspect_ratio_ms = 'meet'
+    # get original image width and height
+    regs = svgdata.scan(/<svg([^\>]*)>/mi)
+    if !regs[0][0].nil? && !regs[0][0].empty?
+      tmp = regs[0][0].scan(/[\s]+x[\s]*=[\s]*"([^"]*)"/mi)
+      if tmp[0] && !tmp[0].empty?
+        ox = getHTMLUnitToUnits(tmp[0][0], 0, @svgunit, false)
+      end
+      tmp = regs[0][0].scan(/[\s]+y[\s]*=[\s]*"([^"]*)"/mi)
+      if tmp[0] && !tmp[0].empty?
+        oy = getHTMLUnitToUnits(tmp[0][0], 0, @svgunit, false)
+      end
+      tmp = regs[0][0].scan(/[\s]+width[\s]*=[\s]*"([^"]*)"/mi)
+      if tmp[0] && !tmp[0].empty?
+        ow = getHTMLUnitToUnits(tmp[0][0], 1, @svgunit, false)
+      end
+      tmp = regs[0][0].scan(/[\s]+height[\s]*=[\s]*"([^"]*)"/mi)
+      if tmp[0] && !tmp[0].empty?
+        oh = getHTMLUnitToUnits(tmp[0][0], 1, @svgunit, false)
+      end
+      view_box = []
+      tmp = regs[0][0].scan(/[\s]+viewBox[\s]*=[\s]*"[\s]*([0-9\.\-]+)[\s]+([0-9\.\-]+)[\s]+([0-9\.]+)[\s]+([0-9\.]+)[\s]*"/mi)
+      if tmp[0] && !tmp[0].empty?
+        if tmp[0].size == 4
+          tmp[0].each_with_index {|val, key|
+            view_box[key] = getHTMLUnitToUnits(val, 0, @svgunit, false)
+          }
+          ox = view_box[0]
+          oy = view_box[1]
+        end
+        # get aspect ratio
+        tmp = regs[0][0].scan(/[\s]+preserveAspectRatio[\s]*=[\s]*"([^"]*)"/mi)
+        if tmp[0] && !tmp[0].empty?
+          aspect_ratio = tmp[0][0].split(/[\s]+/mi)
+          case aspect_ratio.size
+          when 3
+            aspect_ratio_align = aspect_ratio[1]
+            aspect_ratio_ms = aspect_ratio[2]
+          when 2
+            aspect_ratio_align = aspect_ratio[0]
+            aspect_ratio_ms = aspect_ratio[1]
+          when 1
+            aspect_ratio_align = aspect_ratio[0]
+            aspect_ratio_ms = 'meet'
+          end
+        end
+      end
+    end
+    # calculate image width and height on document
+    if (w <= 0) && (h <= 0)
+      # convert image size to document unit
+      w = ow
+      h = oh
+    elsif w <= 0
+      w = h * ow / oh
+    elsif h <= 0
+      h = w * oh / ow
+    end
+    # Check whether we need a new page first as this does not fit
+    prev_x = @x
+    if checkPageBreak(h, y)
+      y = @y
+      if @rtl
+        x += (prev_x - @x)
+      else
+        x += (@x - prev_x)
+      end
+    end
+    # resize image to be contained on a single page
+    if fitonpage
+      ratio_wh = w / h
+      if (y + h) > @page_break_trigger
+        h = @page_break_trigger - y
+        w = h * ratio_wh
+      end
+      if !@rtl && ((x + w) > (@w - @r_margin))
+        w = @w - @r_margin - x
+        h = w / ratio_wh
+      elsif @rtl && ((x - w) < (@l_margin))
+        w = x - @l_margin
+        h = w / ratio_wh
+      end
+    end
+    # set alignment
+    @img_rb_y = y + h
+    # set alignment
+    if @rtl
+      case palign
+      when 'L'
+        ximg = @l_margin
+      when 'C'
+        ximg = (@w + @l_margin - @r_margin - w) / 2
+      when 'R'
+        ximg = @w - @r_margin - w
+      else
+        ximg = x - w
+      end
+      @img_rb_x = ximg
+    else
+      case palign
+      when 'L'
+        ximg = @l_margin
+      when 'C'
+        ximg = (@w + @l_margin - @r_margin - w) / 2
+      when 'R'
+        ximg = @w - @r_margin - w
+      else
+        ximg = x
+      end
+      @img_rb_x = ximg + w
+    end
+    # store current graphic vars
+    gvars = getGraphicVars()
+    # store SVG position and scale factors
+    svgoffset_x = (ximg - ox) * @k
+    svgoffset_y = -(y - oy) * @k
+    if (view_box[2]&.> 0) && (view_box[3]&.> 0)
+      ow = view_box[2]
+      oh = view_box[3]
+    end
+    svgscale_x = w / ow
+    svgscale_y = h / oh
+    # scaling and alignment
+    if aspect_ratio_align != 'none'
+      # store current scaling values
+      svgscale_old_x = svgscale_x
+      svgscale_old_y = svgscale_y
+      # force uniform scaling
+      if aspect_ratio_ms == 'slice'
+        # the entire viewport is covered by the viewBox
+        if svgscale_x > svgscale_y
+          svgscale_y = svgscale_x
+        elsif svgscale_x < svgscale_y
+          svgscale_x = svgscale_y
+        end
+      else # meet
+        # the entire viewBox is visible within the viewport
+        if svgscale_x < svgscale_y
+          svgscale_y = svgscale_x
+        elsif svgscale_x > svgscale_y
+          svgscale_x = svgscale_y
+        end
+      end
+      # correct X alignment
+      case aspect_ratio_align[1, 3]
+      when 'Min'
+        # do nothing
+      when 'Max'
+        svgoffset_x += ((w * @k) - (ow * @k * svgscale_x))
+      else # 'Mid'
+        svgoffset_x += (((w * @k) - (ow * @k * svgscale_x)) / 2)
+      end
+      # correct Y alignment
+      case aspect_ratio_align[5..-1]
+      when 'Min'
+        # do nothing
+      when 'Max'
+        svgoffset_y -= ((h * @k) - (oh * @k * svgscale_y))
+      else # 'Mid'
+        svgoffset_y -= (((h * @k) - (oh * @k * svgscale_y)) / 2)
+      end
+    end
+    # save the current graphic state
+    out("q#{@epsmarker}")
+    # set initial clipping mask
+    rect(x, y, w, h, 'CNZ', {}, {})
+    # scale and translate
+    e = ox * @k * (1 - svgscale_x)
+    f = (@h - oy) * @k * (1 - svgscale_y)
+    out(sprintf('%.3f %.3f %.3f %.3f %.3f %.3f cm', svgscale_x, 0, 0, svgscale_y, e + svgoffset_x, f + svgoffset_y))
+
+    open(file,'rb') do |f|
+      parser = REXML::Parsers::PullParser.new(f)
+      while parser.has_next?
+        res = parser.pull
+        case res.event_type
+        when :start_element # sets the element handler method
+          name = res[0]
+          attribs = res[1]
+          startSVGElementHandler(name, attribs)
+        when :end_element
+          name = res[0]
+          endSVGElementHandler(name)
+        when :cdata # sets the character data handler method
+          data = res[0]
+          segSVGContentHandler(data)
+        when :text # sets the character data handler method
+          data = res[1]
+          segSVGContentHandler(data)
+        end
+      end
+    end
+
+    # start parsing an XML document
+    #if !xml_parse(@parser, svgdata)
+    #  error_message = sprintf("SVG Error: %s at line %d", xml_error_string(xml_get_error_code(@parser)), xml_get_current_line_number(@parser))
+    #  error(error_message)
+    #end
+
+    # restore previous graphic state
+    out("#{@epsmarker}Q")
+    # restore  graphic vars
+    setGraphicVars(gvars)
+    unless border == 0
+      bx = x
+      by = y
+      @x = ximg
+      if @rtl
+        @x += w
+      end
+      @y = y
+      cell(w, h, '', border, 0, '', 0, '', 0)
+      @x = bx
+      @y = by
+    end
+    if link
+      link(ximg, y, w, h, link, 0)
+    end
+    # set pointer to align the successive text/objects
+    case align
+    when 'T'
+      @y = y
+      @x = @img_rb_x
+    when 'M'
+      @y = y + round(h/2)
+      @x = @img_rb_x
+    when 'B'
+      @y = @img_rb_y
+      @x = @img_rb_x
+    when 'N'
+      set_y(@img_rb_y)
+    end
+    @endlinex = @img_rb_x
+  end
+
+protected
+
+  #
+  # Get the tranformation matrix from SVG transform attribute
+  # [@param string :transformation]
+  # [@return array of transformations]
+  # [@since 5.0.000 (2010-05-02)]
+  # [@access protected]
+  #
+  def getSVGTransformMatrix(attribute)
+    # identity matrix
+    tm = [1, 0, 0, 1, 0, 0]
+    continue = true
+    while continue
+      continue = false
+      # matrix
+      if attribute =~ /matrix\(([a-z0-9\-\.]+)[\,\s]+([a-z0-9\-\.]+)[\,\s]+([a-z0-9\-\.]+)[\,\s]+([a-z0-9\-\.]+)[\,\s]+([a-z0-9\-\.]+)[\,\s]+([a-z0-9\-\.]+)\)/mi
+        a = Regexp.last_match[1].to_f
+        b = Regexp.last_match[2].to_f
+        c = Regexp.last_match[3].to_f
+        d = Regexp.last_match[4].to_f
+        e = Regexp.last_match[5].to_f
+        f = Regexp.last_match[6].to_f
+        attribute = attribute.gsub(Regexp.last_match[0], '')
+        continue = true
+        tm = getTransformationMatrixProduct(tm, [a, b, c, d, e, f])
+      end
+      # translate x
+      if attribute =~ /translate\(([-a-z0-9.]+)\)/mi
+        attribute = attribute.gsub(Regexp.last_match[0], "translate(#{Regexp.last_match[1]},0)")
+        continue = true
+      end
+      # translate x,y
+      if attribute =~ /translate\(([-a-z0-9.]+)[,\s]+([-a-z0-9.]+)\)/mi
+        e = Regexp.last_match[1].to_f
+        f = Regexp.last_match[2].to_f
+        attribute = attribute.gsub(Regexp.last_match[0], '')
+        continue = true
+        tm = getTransformationMatrixProduct(tm, [1, 0, 0, 1, e, f])
+      end
+      # scale x
+      if attribute =~ /scale\(([-a-z0-9.]+)\)/mi
+        attribute = attribute.gsub(Regexp.last_match[0], "scale(#{Regexp.last_match[1]},#{Regexp.last_match[1]})")
+        continue = true
+      end
+      # scale x,y
+      if attribute =~ /scale\(([-a-z0-9.]+)[,\s]+([-a-z0-9.]+)\)/mi
+        a = Regexp.last_match[1].to_f
+        if Regexp.last_match[2] && (Regexp.last_match[2].strip.size > 0)
+          d = Regexp.last_match[2].to_f
+        else
+          d = a
+        end
+        attribute = attribute.gsub(Regexp.last_match[0], '')
+        continue = true
+        tm = getTransformationMatrixProduct(tm, [a, 0, 0, d, 0, 0])
+      end
+      # rotate ang
+      if attribute =~ /rotate\(([-a-z0-9.]+)\)/mi
+        attribute = attribute.gsub(Regexp.last_match[0], "rotate(#{Regexp.last_match[1]},0,0)")
+        continue = true
+      end
+      # rotate ang,x,y
+      if attribute =~ /rotate\(([-0-9.]+)[,\s]+([-a-z0-9.]+)[,\s]+([-a-z0-9.]+)\)/mi
+        ang = Regexp.last_match[1].to_f * ::Math::PI / 180 # deg2rad
+        a = ::Math::cos(ang)
+        b = ::Math::sin(ang)
+        c = -b
+        d = a
+        x = Regexp.last_match[2].to_f
+        y = Regexp.last_match[3].to_f
+        e = (x * (1 - a)) - (y * c)
+        f = (y * (1 - d)) - (x * b)
+        attribute = attribute.gsub(Regexp.last_match[0], '')
+        continue = true
+        tm = getTransformationMatrixProduct(tm, [a, b, c, d, e, f])
+      end
+      # skewX
+      if attribute =~ /skewX\(([-0-9.]+)\)/mi
+        c = ::Math::tan(Regexp.last_match[1].to_f * ::Math::PI / 180 ) # deg2rad
+        attribute = attribute.gsub(Regexp.last_match[0], '')
+        continue = true
+        tm = getTransformationMatrixProduct(tm, [1, 0, c, 1, 0, 0])
+      end
+      # skewY
+      if attribute =~ /skewY\(([-0-9.]+)\)/mi
+        b = ::Math::tan(Regexp.last_match[1].to_f * ::Math::PI / 180 ) # deg2rad
+        attribute = attribute.gsub(Regexp.last_match[0], '')
+        continue = true
+        tm = getTransformationMatrixProduct(tm, [1, b, 0, 1, 0, 0])
+      end
+    end
+    tm
+  end
+
+  #
+  # Get the product of two SVG tranformation matrices
+  # [@param array :ta] first SVG tranformation matrix
+  # [@param array :tb] second SVG tranformation matrix
+  # [@return transformation array]
+  # [@since 5.0.000 (2010-05-02)]
+  # [@access protected]
+  #
+  def getTransformationMatrixProduct(ta, tb)
+    tm = []
+    tm[0] = (ta[0] * tb[0]) + (ta[2] * tb[1])
+    tm[1] = (ta[1] * tb[0]) + (ta[3] * tb[1])
+    tm[2] = (ta[0] * tb[2]) + (ta[2] * tb[3])
+    tm[3] = (ta[1] * tb[2]) + (ta[3] * tb[3])
+    tm[4] = (ta[0] * tb[4]) + (ta[2] * tb[5]) + ta[4]
+    tm[5] = (ta[1] * tb[4]) + (ta[3] * tb[5]) + ta[5]
+    tm
+  end
+
+  #
+  # Convert SVG transformation matrix to PDF.
+  # [@param array :tm] original SVG transformation matrix
+  # [@return array] transformation matrix
+  # [@access protected]
+  # [@since 5.0.000 (2010-05-02)]
+  #
+  def convertSVGtMatrix(tm)
+    a = tm[0]
+    b = -tm[1]
+    c = -tm[2]
+    d = tm[3]
+    e = getHTMLUnitToUnits(tm[4], 1, @svgunit, false) * @k
+    f = -getHTMLUnitToUnits(tm[5], 1, @svgunit, false) * @k
+    x = 0
+    y = @h * @k
+    e = (x * (1 - a)) - (y * c) + e
+    f = (y * (1 - d)) - (x * b) + f
+    [a, b, c, d, e, f]
+  end
+
+  #
+  # Apply SVG graphic transformation matrix.
+  # [@param array :tm] original SVG transformation matrix
+  # [@access protected]
+  # [@since 5.0.000 (2010-05-02)]
+  #
+  def svg_transform(tm)
+    transform(convertSVGtMatrix(tm))
+  end
+
+  #
+  # Apply the requested SVG styles (*** TO BE COMPLETED ***)
+  # [@param array :svgstyle] array of SVG styles to apply
+  # [@param array :prevsvgstyle] array of previous SVG style
+  # [@param int :x] X origin of the bounding box
+  # [@param int :y] Y origin of the bounding box
+  # [@param int :w] width of the bounding box
+  # [@param int :h] height of the bounding box
+  # [@param string :clip_function] clip function
+  # [@param array :clip_params] array of parameters for clipping function
+  # [@return object style]
+  # [@since 5.0.000 (2010-05-02)]
+  # [@access protected]
+  #
+  def setSVGStyles(svgstyle, prevsvgstyle, x=0, y=0, w=1, h=1, clip_function='', clip_params=[])
+    objstyle = +''
+    return objstyle if svgstyle['opacity'].nil?
+
+    # clip-path
+    if svgstyle['clip-path'] =~ /url\([\s]*\#([^\)]*)\)/mi
+      clip_path = @svgclippaths[Regexp.last_match[1]]
+      clip_path.each{ |cp| startSVGElementHandler(cp['name'], cp['attribs'], true) }
+    end
+    #setAlpha(1); # reset alpha
+    # opacity
+    setAlpha(svgstyle['opacity']) if svgstyle['opacity'] != 1
+
+    # color
+    fill_color = convert_html_color_to_dec_array(svgstyle['color'])
+    set_fill_color_array(fill_color)
+    # text color
+    text_color = convert_html_color_to_dec_array(svgstyle['text-color'])
+    set_text_color_array(text_color)
+    # clip
+    if svgstyle['clip'] =~ /rect\(([a-z0-9\-\.]*)[\s]*([a-z0-9\-\.]*)[\s]*([a-z0-9\-\.]*)[\s]*([a-z0-9\-\.]*)\)/mi
+      top = Regexp.last_match[1] ? getHTMLUnitToUnits(Regexp.last_match[1], 0, @svgunit, false) : 0
+      right = Regexp.last_match[2] ? getHTMLUnitToUnits(Regexp.last_match[2], 0, @svgunit, false) : 0
+      bottom = Regexp.last_match[3] ? getHTMLUnitToUnits(Regexp.last_match[3], 0, @svgunit, false) : 0
+      left = Regexp.last_match[4] ? getHTMLUnitToUnits(Regexp.last_match[4], 0, @svgunit, false) : 0
+      cx = x + left
+      cy = y + top
+      cw = w - left - right
+      ch = h - top - bottom
+      if svgstyle['clip-rule'] == 'evenodd'
+        clip_rule = 'CNZ'
+      else
+        clip_rule = 'CEO'
+      end
+      rect(cx, cy, cw, ch, clip_rule, {}, {})
+    end
+    # fill
+    if svgstyle['fill'] =~ /url\([\s]*\#([^\)]*)\)/mi
+      # gradient
+      gradient = @svggradients[Regexp.last_match[1]]
+      if gradient['xref']
+        # reference to another gradient definition
+        newgradient = @svggradients[gradient['xref']].dup
+        newgradient['coords'] = gradient['coords']
+        newgradient['mode'] = gradient['mode']
+        newgradient['gradientUnits'] = gradient['gradientUnits']
+        if gradient['gradientTransform']
+          newgradient['gradientTransform'] = gradient['gradientTransform']
+        end
+        gradient = newgradient
+      end
+      #save current Graphic State
+      out('q')
+      #set clipping area
+      if !clip_function.empty? && self.respond_to?(clip_function, true)
+        bbox = self.send(clip_function, *clip_params)
+        if bbox.is_a?(Array) && (bbox.size == 4)
+          x, y, w, h = bbox
+        end
+      end
+      if gradient['mode'] == 'measure'
+        if gradient['gradientTransform'] && !gradient['gradientTransform'].empty?
+          gtm = gradient['gradientTransform']
+          # apply transformation matrix
+          xa = (gtm[0] * gradient['coords'][0]) + (gtm[2] * gradient['coords'][1]) + gtm[4]
+          ya = (gtm[1] * gradient['coords'][0]) + (gtm[3] * gradient['coords'][1]) + gtm[5]
+          xb = (gtm[0] * gradient['coords'][2]) + (gtm[2] * gradient['coords'][3]) + gtm[4]
+          yb = (gtm[1] * gradient['coords'][2]) + (gtm[3] * gradient['coords'][3]) + gtm[5]
+          if gradient['coords'][4]
+            gradient['coords'][4] = ::Math.sqrt(((gtm[0] * gradient['coords'][4]) ** 2) + ((gtm[1] * gradient['coords'][4]) ** 2))
+          end
+          gradient['coords'][0] = xa
+          gradient['coords'][1] = ya
+          gradient['coords'][2] = xb
+          gradient['coords'][3] = yb
+        end
+        # convert SVG coordinates to user units
+        gradient['coords'][0] = getHTMLUnitToUnits(gradient['coords'][0], 0, @svgunit, false)
+        gradient['coords'][1] = getHTMLUnitToUnits(gradient['coords'][1], 0, @svgunit, false)
+        gradient['coords'][2] = getHTMLUnitToUnits(gradient['coords'][2], 0, @svgunit, false)
+        gradient['coords'][3] = getHTMLUnitToUnits(gradient['coords'][3], 0, @svgunit, false)
+        if gradient['coords'][4]
+          gradient['coords'][4] = getHTMLUnitToUnits(gradient['coords'][4], 0, @svgunit, false)
+        end
+        # shift units
+        if gradient['gradientUnits'] == 'objectBoundingBox'
+          # convert to SVG coordinate system
+          gradient['coords'][0] += x
+          gradient['coords'][1] += y
+          gradient['coords'][2] += x
+          gradient['coords'][3] += y
+        end
+        # calculate percentages
+        gradient['coords'][0] = (gradient['coords'][0] - x) / w
+        gradient['coords'][1] = (gradient['coords'][1] - y) / h
+        gradient['coords'][2] = (gradient['coords'][2] - x) / w
+        gradient['coords'][3] = (gradient['coords'][3] - y) / h
+        if gradient['coords'][4]
+          gradient['coords'][4] /= w
+        end
+        # fix values
+        gradient['coords'].each_with_index do |val, key|
+          if val < 0
+            gradient['coords'][key] = 0
+          elsif val > 1
+            gradient['coords'][key] = 1
+          end
+        end
+        if (gradient['type'] == 2) && (gradient['coords'][0] == gradient['coords'][2]) && (gradient['coords'][1] == gradient['coords'][3])
+          # single color (no shading)
+          gradient['coords'][0] = 1
+          gradient['coords'][1] = 0
+          gradient['coords'][2] = 0.999
+          gradient['coords'][3] = 0
+        end
+      end
+      # swap Y coordinates
+      tmp = gradient['coords'][1]
+      gradient['coords'][1] = gradient['coords'][3]
+      gradient['coords'][3] = tmp
+      # set transformation map for gradient
+      if (gradient['type'] == 3) && (gradient['mode'] == 'measure')
+        # gradient is always circular
+        cy = @h - y - (gradient['coords'][1] * (w + h))
+        out(sprintf('%.3f 0 0 %.3f %.3f %.3f cm', w * @k, w * @k, x * @k, cy * @k))
+      else
+        out(sprintf('%.3f 0 0 %.3f %.3f %.3f cm', w * @k, h * @k, x * @k, (@h - (y + h)) * @k))
+      end
+
+      if gradient['stops'].size > 1
+        gradient(gradient['type'], gradient['coords'], gradient['stops'], [], false)
+      end
+    elsif svgstyle['fill'] != 'none'
+      fill_color = convert_html_color_to_dec_array(svgstyle['fill'])
+      setAlpha(svgstyle['fill-opacity']) if svgstyle['fill-opacity'] != 1
+
+      set_fill_color_array(fill_color)
+      if svgstyle['fill-rule'] == 'evenodd'
+        objstyle << 'F*'
+      else
+        objstyle << 'F'
+      end
+    end
+    # stroke
+    if svgstyle['stroke'] != 'none'
+      stroke_style = {
+        'color' => convert_html_color_to_dec_array(svgstyle['stroke']),
+        'width' => getHTMLUnitToUnits(svgstyle['stroke-width'], 0, @svgunit, false),
+        'cap' => svgstyle['stroke-linecap'],
+        'join' => svgstyle['stroke-linejoin']
+      }
+      if svgstyle['stroke-dasharray'] && !svgstyle['stroke-dasharray'].empty? && (svgstyle['stroke-dasharray'] != 'none')
+        stroke_style['dash'] = svgstyle['stroke-dasharray']
+      end
+      set_line_style(stroke_style)
+      objstyle << 'D'
+    end
+    # font
+    unless svgstyle['font'].empty?
+      if svgstyle['font'] =~ /font-family[\s]*:[\s]*([^\s;"]*)/mi
+        font_family = Regexp.last_match[1].strip
+      else
+        font_family = svgstyle['font-family']
+      end
+      if svgstyle['font'] =~ /font-size[\s]*:[\s]*([^\s;"]*)/mi
+        font_size = Regexp.last_match[1].strip
+      else
+        font_size = svgstyle['font-size']
+      end
+      if svgstyle['font'] =~ /font-style[\s]*:[\s]*([^\s;"]*)/mi
+        font_style = Regexp.last_match[1].strip
+      else
+        font_style = svgstyle['font-style']
+      end
+      if svgstyle['font'] =~ /font-weight[\s]*:[\s]*([^\s;"]*)/mi
+        font_weight = Regexp.last_match[1].strip
+      else
+        font_weight = svgstyle['font-weight']
+      end
+    else
+      font_family = svgstyle['font-family']
+      font_size = svgstyle['font-size']
+      font_style = svgstyle['font-style']
+      font_weight = svgstyle['font-weight']
+    end
+    font_size = getHTMLUnitToUnits(font_size, prevsvgstyle['font-size'], @svgunit, false) * @k
+    case font_style
+    when 'italic'
+      font_style = +'I'
+    when 'oblique'
+      font_style = +'I'
+    else # 'normal'
+      font_style = +''
+    end
+    case font_weight
+    when 'bold', 'bolder'
+      font_style << 'B'
+    end
+    case svgstyle['text-decoration']
+    when 'underline'
+      font_style << 'U'
+    when 'overline'
+      font_style << 'O'
+    when 'line-through'
+      font_style << 'D'
+    else # 'none'
+    end
+    set_font(font_family, font_style, font_size)
+    objstyle
+  end
+
+  #
+  # Draws an SVG path
+  # [@param string :d] attribute d of the path SVG element
+  # [@param string :style] Style of rendering. Possible values are:
+  # <ul>
+  #  <li>D or empty string: Draw (default).</li>
+  #  <li>F: Fill.</li>
+  #  <li>F*: Fill using the even-odd rule to determine which regions lie inside the clipping path.</li>
+  #  <li>DF or FD: Draw and fill.</li>
+  #  <li>DF* or FD*: Draw and fill using the even-odd rule to determine which regions lie inside the clipping path.</li>
+  #  <li>CNZ: Clipping mode (using the even-odd rule to determine which regions lie inside the clipping path).</li>
+  #  <li>CEO: Clipping mode (using the nonzero winding number rule to determine which regions lie inside the clipping path).</li>
+  # </ul>
+  # [@return array of container box] measures (x, y, w, h)
+  # [@since 5.0.000 (2010-05-02)]
+  # [@access protected]
+  #
+  def svg_path(d, style='')
+    # set fill/stroke style
+    op = getPathPaintOperator(style, '')
+    return if op.empty?
+
+    paths = d.scan(/([a-zA-Z])[\s]*([^a-zA-Z\"]*)/mi)
+    x = 0
+    y = 0
+    x1 = 0
+    y1 = 0
+    x2 = 0
+    y2 = 0
+    xmin = 2147483647
+    xmax = 0
+    ymin = 2147483647
+    ymax = 0
+    relcoord = false
+    # draw curve pieces
+    paths.each_with_index do |val, key|
+      # get curve type
+      cmd = val[0].strip
+      if cmd.downcase == cmd
+        # use relative coordinated instead of absolute
+        relcoord = true
+        xoffset = x
+        yoffset = y
+      else
+        relcoord = false
+        xoffset = 0
+        yoffset = 0
+      end
+      params = []
+      if val[1]
+        # get curve parameters
+        rawparams = val[1].strip.split(/[,\s]+/mi)
+        rawparams.each_with_index do |cp, ck|
+          params[ck] = getHTMLUnitToUnits(cp, 0, @svgunit, false)
+        end
+      end
+      case cmd.upcase
+      when 'M' # moveto
+        params.each_with_index do |cp, ck|
+          if (ck % 2) == 0
+            x = cp + xoffset
+          else
+            y = cp + yoffset
+            if ck == 1
+              outPoint(x, y)
+            else
+              outLine(x, y)
+            end
+            xmin = [xmin, x].min
+            ymin = [ymin, y].min
+            xmax = [xmax, x].max
+            ymax = [ymax, y].max
+            if relcoord
+              xoffset = x
+              yoffset = y
+            end
+          end
+        end
+      when 'L' # lineto
+        params.each_with_index do |cp, ck|
+          if (ck % 2) == 0
+            x = cp + xoffset
+          else
+            y = cp + yoffset
+            outLine(x, y)
+            xmin = [xmin, x].min
+            ymin = [ymin, y].min
+            xmax = [xmax, x].max
+            ymax = [ymax, y].max
+            if relcoord
+              xoffset = x
+              yoffset = y
+            end
+          end
+        end
+      when 'H' # horizontal lineto
+        params.each_with_index do |cp, ck|
+          x = cp + xoffset
+          outLine(x, y)
+          xmin = [xmin, x].min
+          xmax = [xmax, x].max
+          if relcoord
+            xoffset = x
+          end
+        end
+      when 'V' # vertical lineto
+        params.each_with_index do |cp, ck|
+          y = cp + yoffset
+          outLine(x, y)
+          ymin = [ymin, y].min
+          ymax = [ymax, y].max
+          if relcoord
+            yoffset = y
+          end
+        end
+      when 'C' # curveto
+        params.each_with_index do |cp, ck|
+          params[ck] = cp
+          if ((ck + 1) % 6) == 0
+            x1 = params[ck - 5] + xoffset
+            y1 = params[ck - 4] + yoffset
+            x2 = params[ck - 3] + xoffset
+            y2 = params[ck - 2] + yoffset
+            x = params[ck - 1] + xoffset
+            y = params[ck] + yoffset
+            outCurve(x1, y1, x2, y2, x, y)
+            xmin = [xmin, x, x1, x2].min
+            ymin = [ymin, y, y1, y2].min
+            xmax = [xmax, x, x1, x2].max
+            ymax = [ymax, y, y1, y2].max
+            if relcoord
+              xoffset = x
+              yoffset = y
+            end
+          end
+        end
+      when 'S' # shorthand/smooth curveto
+        params.each_with_index do |cp, ck|
+          params[ck] = cp
+          if ((ck + 1) % 4) == 0
+            if (key > 0) && ((paths[key - 1][0].upcase == 'C') || (paths[key - 1][0].upcase == 'S'))
+              x1 = (2 * x) - x2
+              y1 = (2 * y) - y2
+            else
+              x1 = x
+              y1 = y
+            end
+            x2 = params[ck - 3] + xoffset
+            y2 = params[ck - 2] + yoffset
+            x = params[ck - 1] + xoffset
+            y = params[ck] + yoffset
+            outCurve(x1, y1, x2, y2, x, y)
+            xmin = [xmin, x, x1, x2].min
+            ymin = [ymin, y, y1, y2].min
+            xmax = [xmax, x, x1, x2].max
+            ymax = [ymax, y, y1, y2].max
+            if relcoord
+              xoffset = x
+              yoffset = y
+            end
+          end
+        end
+      when 'Q' # quadratic B�zier curveto
+        params.each_with_index do |cp, ck|
+          params[ck] = cp
+          if ((ck + 1) % 4) == 0
+            # convert quadratic points to cubic points
+            x1 = params[ck - 3] + xoffset
+            y1 = params[ck - 2] + yoffset
+            xa = (x + (2 * x1)) / 3
+            ya = (y + (2 * y1)) / 3
+            x = params[ck - 1] + xoffset
+            y = params[ck] + yoffset
+            xb = (x + (2 * x1)) / 3
+            yb = (y + (2 * y1)) / 3
+            outCurve(xa, ya, xb, yb, x, y)
+            xmin = [xmin, x, xa, xb].min
+            ymin = [ymin, y, ya, yb].min
+            xmax = [xmax, x, xa, xb].max
+            ymax = [ymax, y, ya, yb].max
+            if relcoord
+              xoffset = x
+              yoffset = y
+            end
+          end
+        end
+      when 'T' # shorthand/smooth quadratic bezier curve
+        params.each_with_index do |cp, ck|
+          params[ck] = cp
+          if (ck % 2) != 0
+            if (key > 0) && ((paths[key - 1][0].upcase == 'Q') || (paths[key - 1][0].upcase == 'T'))
+              x1 = (2 * x) - x1
+              y1 = (2 * y) - y1
+            else
+              x1 = x
+              y1 = y
+            end
+            # convert quadratic points to cubic points
+            xa = (x + (2 * x1)) / 3
+            ya = (y + (2 * y1)) / 3
+            x = params[ck - 1] + xoffset
+            y = params[ck] + yoffset
+            xb = (x + (2 * x1)) / 3
+            yb = (y + (2 * y1)) / 3
+            outCurve(xa, ya, xb, yb, x, y)
+            xmin = [xmin, x, x1, x2].min
+            ymin = [ymin, y, y1, y2].min
+            xmax = [xmax, x, x1, x2].max
+            ymax = [ymax, y, y1, y2].max
+            if relcoord
+              xoffset = x
+              yoffset = y
+            end
+          end
+        end
+      when 'A' # elliptical arc
+        params.each_with_index do |cp, ck|
+          params[ck] = cp
+          if ((ck + 1) % 7) == 0
+            x0 = x
+            y0 = y
+            rx = params[ck - 6].abs
+            ry = params[ck - 5].abs
+            ang = -rawparams[ck - 4].to_f
+            angle = ang * ::Math::PI / 180 # deg2rad
+            fa = rawparams[ck - 3].to_i # large-arc-flag
+            fs = rawparams[ck - 2].to_i # sweep-flag
+            x = params[ck - 1] + xoffset
+            y = params[ck] + yoffset
+            cos_ang = ::Math::cos(angle)
+            sin_ang = ::Math::sin(angle)
+            a = (x0 - x) / 2
+            b = (y0 - y) / 2
+            xa = (a * cos_ang) - (b * sin_ang)
+            ya = (a * sin_ang) + (b * cos_ang)
+            rx2 = rx * rx
+            ry2 = ry * ry
+            xa2 = xa * xa
+            ya2 = ya * ya
+            delta = (xa2 / rx2) + (ya2 / ry2)
+            if delta > 1
+              rx *= ::Math.sqrt(delta)
+              ry *= ::Math.sqrt(delta)
+              rx2 = rx * rx
+              ry2 = ry * ry
+            end
+            numerator = (rx2 * ry2) - (rx2 * ya2) - (ry2 * xa2)
+            if numerator < 0
+              root = 0
+            else
+              root = ::Math.sqrt(numerator / ((rx2 * ya2) + (ry2 * xa2)))
+            end
+            if fa == fs
+              root *= -1
+            end
+            cax = root * ((rx * ya) / ry)
+            cay = -root * ((ry * xa) / rx)
+            # coordinates of ellipse center
+            cx = (cax * cos_ang) - (cay * sin_ang) + ((x0 + x) / 2)
+            cy = (cax * sin_ang) + (cay * cos_ang) + ((y0 + y) / 2)
+            # get angles
+            angs = getVectorsAngle(1, 0, ((xa - cax) / rx), ((cay - ya) / ry))
+            dang = getVectorsAngle(((xa - cax) / rx), ((ya - cay) / ry), ((-xa - cax) / rx), ((-ya - cay) / ry))
+            if (fs == 0) && (dang > 0)
+              dang -= (2 * ::Math::PI)
+            elsif (fs == 1) && (dang < 0)
+              dang += (2 * ::Math::PI)
+            end
+            angf = angs - dang
+            if (fs == 1) && (angs > angf)
+              tmp = angs
+              angs = angf
+              angf = tmp
+            end
+            angs = angs * 180 / Math::PI # rad2deg
+            angf = angf * 180 / Math::PI # rad2deg
+            pie = false
+            if (key + 1 < paths.size) && paths[key + 1][0] && (paths[key + 1][0].strip == 'z')
+              pie = true
+            end
+            outellipticalarc(cx, cy, rx, ry, ang, angs, angf, pie, 2)
+            outPoint(x, y)
+            xmin = [xmin, x].min
+            ymin = [ymin, y].min
+            xmax = [xmax, x].max
+            ymax = [ymax, y].max
+            if relcoord
+              xoffset = x
+              yoffset = y
+            end
+          end
+        end
+      when 'Z'
+        out('h')
+      end
+    end # end paths.each_with_index
+
+    out(op) unless op.empty?
+
+    [xmin, ymin, xmax - xmin, ymax - ymin]
+  end
+
+  #
+  # Returns the angle in radiants between two vectors
+  # [@param int :x1] X coordiante of first vector point
+  # [@param int :y1] Y coordiante of first vector point
+  # [@param int :x2] X coordiante of second vector point
+  # [@param int :y2] Y coordiante of second vector point
+  # [@since 5.0.000 (2010-05-04)]
+  # [@access protected]
+  #
+  def getVectorsAngle(x1, y1, x2, y2)
+    dprod = (x1 * x2) + (y1 * y2)
+    dist1 = ::Math.sqrt((x1 * x1) + (y1 * y1))
+    dist2 = ::Math.sqrt((x2 * x2) + (y2 * y2))
+    angle = ::Math.acos((dprod / (dist1 * dist2)).round(3))
+    if angle.nan?
+      angle = ::Math::PI
+    end
+    if ((x1 * y2) - (x2 * y1)) < 0
+      angle *= -1
+    end
+    angle
+  end
+
+  #
+  # Sets the opening SVG element handler function for the XML parser. (*** TO BE COMPLETED ***)
+  # [@param string :name] The first parameter, name, contains the name of the element for which this handler is called. If case-folding is in effect for this parser, the element name will be in uppercase letters.
+  # [@param array :attribs] The second parameter, attribs, contains an associative array with the element's attributes (if any). The keys of this array are the attribute names, the values are the attribute values. Attribute names are case-folded on the same criteria as element names. Attribute values are not case-folded. The original order of the attributes can be retrieved by walking through attribs the normal way, using each(). The first key in the array was the first attribute, and so on.
+  # [@param bool :clipping] The third parameter, set clipping mode.
+  # [@since 5.0.000 (2010-05-02)]
+  # [@access protected]
+  #
+  def startSVGElementHandler(name, attribs, clipping = false)
+    # check if we are in clip mode
+    if @svgclipmode
+      @svgclippaths[@svgclipid] << {'name' => name, 'attribs' => attribs}
+      return
+    end
+    if @svgdefsmode && !['clipPath', 'linearGradient', 'radialGradient', 'stop'].include?(name)
+      @svgdefs[attribs['id']] = {'name' => name, 'attribs' => attribs}
+      return
+    end
+
+    # get styling properties
+    prev_svgstyle = @svgstyles[@svgstyles.size - 1] # previous style
+    svgstyle = {} # current style
+    if attribs['style']
+      attribs['style'] = ';' + attribs['style']
+    end
+    prev_svgstyle.each do |key, val|
+      if attribs[key]
+        if attribs[key] == 'inherit'
+          svgstyle[key] = val
+        else
+          svgstyle[key] = attribs[key]
+        end
+      elsif attribs['style']
+        # CSS style syntax
+        if attribs['style'] =~ /[;"\s]#{key}\s*:\s*([^;"\s]*)/mi
+          if Regexp.last_match[1] == 'inherit'
+            svgstyle[key] = val
+          else
+            svgstyle[key] = Regexp.last_match[1]
+          end
+        else
+          # default value
+          svgstyle[key] = @svgstyles[0][key]
+        end
+      else
+        if @svginheritprop.include? key
+          # inherit previous value
+          svgstyle[key] = val
+        else
+          # default value
+          svgstyle[key] = @svgstyles[0][key]
+        end
+      end
+    end
+    # transformation matrix
+    tm = @svgstyles[@svgstyles.size - 1]['transfmatrix']
+    if attribs['transform'] && !attribs['transform'].empty?
+      tm = getTransformationMatrixProduct(tm, getSVGTransformMatrix(attribs['transform']))
+    end
+    svgstyle['transfmatrix'] = tm
+    # process tag
+    case name
+    when 'defs'
+      @svgdefsmode = true
+    when 'clipPath' # clipPath
+      @svgclipmode = true
+      @svgclipid = attribs['id']
+      @svgclippaths[@svgclipid] = []
+    when 'svg' # start of SVG object
+    when 'g' # group together related graphics elements
+      @svgstyles.push(svgstyle)
+      start_transform()
+      setSVGStyles(svgstyle, prev_svgstyle)
+    when 'linearGradient'
+      @svggradientid = attribs['id']
+      @svggradients[@svggradientid] = {}
+      @svggradients[@svggradientid]['type'] = 2
+      @svggradients[@svggradientid]['stops'] = []
+      if attribs['gradientUnits']
+        @svggradients[@svggradientid]['gradientUnits'] = attribs['gradientUnits']
+      else
+        @svggradients[@svggradientid]['gradientUnits'] = 'objectBoundingBox'
+      end
+      #attribs['spreadMethod']
+      x1 = attribs['x1'] ? attribs['x1'].to_f : 0
+      y1 = attribs['y1'] ? attribs['y1'].to_f : 0
+      x2 = attribs['x2'] ? attribs['x2'].to_f : 1
+      y2 = attribs['y2'] ? attribs['y2'].to_f : 0
+      if attribs['x1'] && (attribs['x1'][-1] != '%')
+        @svggradients[@svggradientid]['mode'] = 'measure'
+      else
+        @svggradients[@svggradientid]['mode'] = 'percentage'
+      end
+      if attribs['gradientTransform']
+        @svggradients[@svggradientid]['gradientTransform'] = getSVGTransformMatrix(attribs['gradientTransform'])
+      end
+      @svggradients[@svggradientid]['coords'] = [x1, y1, x2, y2]
+      if attribs['xlink:href'] && !attribs['xlink:href'].empty?
+        # gradient is defined on another place
+        @svggradients[@svggradientid]['xref'] = attribs['xlink:href'][1..-1]
+      end
+    when 'radialGradient'
+      @svggradientid = attribs['id']
+      @svggradients[@svggradientid] = {}
+      @svggradients[@svggradientid]['type'] = 3
+      @svggradients[@svggradientid]['stops'] = []
+      if attribs['gradientUnits']
+        @svggradients[@svggradientid]['gradientUnits'] = attribs['gradientUnits']
+      else
+        @svggradients[@svggradientid]['gradientUnits'] = 'objectBoundingBox'
+      end
+      #attribs['spreadMethod']
+      cx = attribs['cx'] ? attribs['cx'].to_f : 0.5
+      cy = attribs['cy'] ? attribs['cy'].to_f : 0.5
+      fx = attribs['fx'] ? attribs['fx'].to_f : cx
+      fy = attribs['fy'] ? attribs['fy'].to_f : cy
+      r = attribs['r'] ? attribs['r'].to_f : 0.5
+      if attribs['cx'] && (attribs['cx'][-1] != '%')
+        @svggradients[@svggradientid]['mode'] = 'measure'
+      else
+        @svggradients[@svggradientid]['mode'] = 'percentage'
+      end
+      if attribs['gradientTransform']
+        @svggradients[@svggradientid]['gradientTransform'] = getSVGTransformMatrix(attribs['gradientTransform'])
+      end
+      @svggradients[@svggradientid]['coords'] = [cx, cy, fx, fy, r]
+      if attribs['xlink:href'] && !attribs['xlink:href'].empty?
+        # gradient is defined on another place
+        @svggradients[@svggradientid]['xref'] = attribs['xlink:href'][1..-1]
+      end
+    when 'stop'
+      # gradient stops
+      if attribs['offset'][-1] == '%'
+        offset = attribs['offset'][0...-1].to_f / 100
+      else
+        offset = attribs['offset'].to_f
+        if offset > 1
+          offset /= 100
+        end
+      end
+      stop_color = svgstyle['stop-color'] ? convert_html_color_to_dec_array(svgstyle['stop-color']) : 'black'
+      opacity = svgstyle['stop-opacity'] ? svgstyle['stop-opacity'].to_f : 1
+      @svggradients[@svggradientid]['stops'] << {'offset' => offset, 'color' => stop_color, 'opacity' => opacity}
+    when 'path' # paths
+      d = attribs['d'].strip
+      if clipping
+        svg_transform(tm)
+        svg_path(d, 'CNZ')
+      else
+        start_transform()
+        svg_transform(tm)
+        obstyle = setSVGStyles(svgstyle, prev_svgstyle, 0, 0, 1, 1, 'svg_path', [d, 'CNZ'])
+        unless obstyle.empty?
+          svg_path(d, obstyle)
+        end
+        stop_transform()
+      end
+    # shapes
+    when 'rect'
+      x = attribs['x'] ? getHTMLUnitToUnits(attribs['x'], 0, @svgunit, false) : 0
+      y = attribs['y'] ? getHTMLUnitToUnits(attribs['y'], 0, @svgunit, false) : 0
+      w = attribs['width'] ? getHTMLUnitToUnits(attribs['width'], 0, @svgunit, false) : 0
+      h = attribs['height'] ? getHTMLUnitToUnits(attribs['height'], 0, @svgunit, false) : 0
+      rx = attribs['rx'] ? getHTMLUnitToUnits(attribs['rx'], 0, @svgunit, false) : 0
+      ry = attribs['ry'] ? getHTMLUnitToUnits(attribs['ry'], 0, @svgunit, false) : rx
+      # svgstyle['stroke']
+      # svgstyle['fill']
+      if clipping
+        svg_transform(tm)
+        rounded_rect_xy(x, y, w, h, rx, ry, '1111', 'CNZ')
+      else
+        start_transform()
+        svg_transform(tm)
+        obstyle = setSVGStyles(svgstyle, prev_svgstyle, x, y, w, h, 'rounded_rect_xy', [x, y, w, h, rx, ry, '1111', 'CNZ'])
+        unless obstyle.empty?
+          # obstyle = D
+          rounded_rect_xy(x, y, w, h, rx, ry, '1111', obstyle)
+        end
+        stop_transform()
+      end
+    when 'circle'
+      cx = attribs['cx'] ? getHTMLUnitToUnits(attribs['cx'], 0, @svgunit, false) : 0
+      cy = attribs['cy'] ? getHTMLUnitToUnits(attribs['cy'], 0, @svgunit, false) : 0
+      r = attribs['r'] ? getHTMLUnitToUnits(attribs['r'], 0, @svgunit, false) : 0
+      x = cx - r
+      y = cy - r
+      w = 2 * r
+      h = w
+      if clipping
+        svg_transform(tm)
+        circle(cx, cy, r, 0, 360, 'CNZ', nil, nil, 8)
+      else
+        start_transform()
+        svg_transform(tm)
+        obstyle = setSVGStyles(svgstyle, prev_svgstyle, x, y, w, h, 'circle', [cx, cy, r, 0, 360, 'CNZ'])
+        unless obstyle.empty?
+          circle(cx, cy, r, 0, 360, obstyle, nil, nil, 8)
+        end
+        stop_transform()
+      end
+    when 'ellipse'
+      cx = attribs['cx'] ? getHTMLUnitToUnits(attribs['cx'], 0, @svgunit, false) : 0
+      cy = attribs['cy'] ? getHTMLUnitToUnits(attribs['cy'], 0, @svgunit, false) : 0
+      rx = attribs['rx'] ? getHTMLUnitToUnits(attribs['rx'], 0, @svgunit, false) : 0
+      ry = attribs['ry'] ? getHTMLUnitToUnits(attribs['ry'], 0, @svgunit, false) : 0
+      x = cx - rx
+      y = cy - ry
+      w = 2 * rx
+      h = 2 * ry
+      if clipping
+        svg_transform(tm)
+        ellipse(cx, cy, rx, ry, 0, 0, 360, 'CNZ', nil, nil, 8)
+      else
+        start_transform()
+        svg_transform(tm)
+        obstyle = setSVGStyles(svgstyle, prev_svgstyle, x, y, w, h, 'ellipse', [cx, cy, rx, ry, 0, 0, 360, 'CNZ'])
+        unless obstyle.empty?
+          ellipse(cx, cy, rx, ry, 0, 0, 360, obstyle, nil, nil, 8)
+        end
+        stop_transform()
+      end
+    when 'line'
+      x1 = attribs['x1'] ? getHTMLUnitToUnits(attribs['x1'], 0, @svgunit, false) : 0
+      y1 = attribs['y1'] ? getHTMLUnitToUnits(attribs['y1'], 0, @svgunit, false) : 0
+      x2 = attribs['x2'] ? getHTMLUnitToUnits(attribs['x2'], 0, @svgunit, false) : 0
+      y2 = attribs['y2'] ? getHTMLUnitToUnits(attribs['y2'], 0, @svgunit, false) : 0
+      x = x1
+      y = y1
+      w = (x2 - x1).abs
+      h = (y2 - y1).abs
+      unless clipping
+        start_transform()
+        svg_transform(tm)
+        obstyle = setSVGStyles(svgstyle, prev_svgstyle, x, y, w, h, 'line', [x1, y1, x2, y2])
+        line(x1, y1, x2, y2)
+        stop_transform()
+      end
+    when 'polyline', 'polygon'
+      points = attribs['points'] ? attribs['points'] : '0 0'
+      points = points.strip
+      # note that point may use a complex syntax not covered here
+      points = points.split(/[\,\s]+/mi)
+      if points.size >= 4
+        p = []
+        xmin = 2147483647
+        xmax = 0
+        ymin = 2147483647
+        ymax = 0
+        points.each_with_index do |val, key|
+          p[key] = getHTMLUnitToUnits(val, 0, @svgunit, false)
+          if (key % 2) == 0
+            # X coordinate
+            xmin = [xmin, p[key]].min
+            xmax = [xmax, p[key]].max
+          else
+            # Y coordinate
+            ymin = [ymin, p[key]].min
+            ymax = [ymax, p[key]].max
+          end
+        end
+        x = xmin
+        y = ymin
+        w = xmax - xmin
+        h = ymax - ymin
+        if name == 'polyline'
+          start_transform()
+          svg_transform(tm)
+          obstyle = setSVGStyles(svgstyle, prev_svgstyle, x, y, w, h, 'poly_line', [p, 'CNZ'])
+          poly_line(p, 'D')
+          stop_transform()
+        else # polygon
+          if clipping
+            svg_transform(tm)
+            polygon(p, 'CNZ', nil, nil, true)
+          else
+            start_transform()
+            svg_transform(tm)
+            obstyle = setSVGStyles(svgstyle, prev_svgstyle, x, y, w, h, 'polygon', [p, 'CNZ'])
+            unless obstyle.empty?
+              polygon(p, obstyle, nil, nil, true)
+            end
+            stop_transform()
+          end
+        end
+      end
+    when 'image' # image
+      if attribs['xlink:href'] && !attribs['xlink:href'].empty?
+        x = attribs['x'] ? getHTMLUnitToUnits(attribs['x'], 0, @svgunit, false) : 0
+        y = attribs['y'] ? getHTMLUnitToUnits(attribs['y'], 0, @svgunit, false) : 0
+        w = attribs['width'] ? getHTMLUnitToUnits(attribs['width'], 0, @svgunit, false) : 0
+        h = attribs['height'] ? getHTMLUnitToUnits(attribs['height'], 0, @svgunit, false) : 0
+        img = attribs['xlink:href']
+        unless clipping
+          start_transform()
+          svg_transform(tm)
+          obstyle = setSVGStyles(svgstyle, prev_svgstyle, x, y, w, h)
+          # fix image path
+          if !empty_string(@svgdir) && ((img[0, 1] == '.') || (File.basename(img) == img))
+            # replace relative path with full server path
+            img = @svgdir + '/' + img
+          end
+          #if (img[0, 1] == '/') && (_SERVER['DOCUMENT_ROOT'] != '/')
+          #  findroot = strpos(img, _SERVER['DOCUMENT_ROOT'])
+          #  if (findroot === false) || (findroot > 1)
+          #    # replace relative path with full server path
+          #    img = _SERVER['DOCUMENT_ROOT'].img
+          #  end
+          #end
+          #img = urldecode(img)
+          img.gsub!(/%([0-9a-fA-F]{2})/){$1.hex.chr}
+
+          #testscrtype = parse_url(img)
+          #if testscrtype['query'].nil? || testscrtype['query'].empty?
+            # convert URL to server path
+          #  img = img.gsub(@@k_path_url, @@k_path_main)
+          #end
+          image(img, x, y, w, h)
+          stop_transform()
+        end
+      end
+    when 'text', 'tspan' # text
+      # only basic support - advanced features must be implemented
+      x = attribs['x'] ? getHTMLUnitToUnits(attribs['x'], 0, @svgunit, false) : 0
+      y = attribs['y'] ? getHTMLUnitToUnits(attribs['y'], 0, @svgunit, false) : 0
+      svgstyle['text-color'] = svgstyle['fill']
+      @svgtext = +''
+      start_transform()
+      svg_transform(tm)
+      obstyle = setSVGStyles(svgstyle, prev_svgstyle, x, y, 1, 1)
+      set_xy(x, y, true)
+    when 'use' # use
+      if attribs['xlink:href']
+        use = @svgdefs[attribs['xlink:href'][1..-1]]
+        if attribs['xlink:href']
+          attribs.delete('xlink:href')
+        end
+        if attribs['id']
+          attribs.delete('id')
+        end
+        attribs = use['attribs'].merge(attribs)
+        startSVGElementHandler(use['name'], use['attribs'])
+      end
+    end
+  end
+
+  #
+  # Sets the closing SVG element handler function for the XML parser.
+  # [@param string :name] The second parameter, name, contains the name of the element for which this handler is called. If case-folding is in effect for this parser, the element name will be in uppercase letters.
+  # [@since 5.0.000 (2010-05-02)]
+  # [@access protected]
+  #
+  def endSVGElementHandler(name)
+    case name
+    when 'defs'
+      @svgdefsmode = false
+    when 'clipPath' # clipPath
+      @svgclipmode = false
+    when 'g'
+      # ungroup: remove last style from array
+      @svgstyles.pop
+      stop_transform()
+    when 'text', 'tspan'
+      # print text
+      cell(0, 0, @svgtext.strip, 0, 0, '', 0, '', 0, false, 'L', 'T')
+      stop_transform()
+    end
+  end
+
+  #
+  # Sets the character data handler function for the XML parser.
+  # [@param string :data] The second parameter, data, contains the character data as a string.
+  # [@since 5.0.000 (2010-05-02)]
+  # [@access protected]
+  #
+  def segSVGContentHandler(data)
+    @svgtext << data
+  end
+
+  # --- END SVG METHODS -----------------------------
+
 end # END OF RBPDF CLASS
 
 #TODO 2007-05-25 (EJM) Level=0 -

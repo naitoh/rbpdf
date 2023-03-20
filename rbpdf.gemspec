@@ -33,6 +33,7 @@ Gem::Specification.new do |spec|
 
   spec.add_runtime_dependency "htmlentities"
   spec.add_runtime_dependency "rbpdf-font", "~> 1.19.0"
+  spec.add_runtime_dependency "rexml"
   spec.required_ruby_version = '>= 2.3.0'
 
   spec.add_development_dependency "bundler"
