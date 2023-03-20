@@ -104,6 +104,7 @@ class RbpdfCssTest < Test::Unit::TestCase
     valid = pdf.isValidCSSSelectorForTag(dom, 1, ' h1') # dom, key, css selector
     assert_equal true, valid
 
+    # class
     dom = pdf.getHtmlDomArray('<p class="first">abc</p>')
     assert_equal 4, dom.length
     valid = pdf.isValidCSSSelectorForTag(dom, 1, ' p.first') # dom, key, css selector
@@ -114,6 +115,7 @@ class RbpdfCssTest < Test::Unit::TestCase
     valid = pdf.isValidCSSSelectorForTag(dom, 3, ' p.first span') # dom, key, css selector
     assert_equal true, valid
 
+    # id
     dom = pdf.getHtmlDomArray('<p id="second">abc</p>')
     assert_equal 4, dom.length
     valid = pdf.isValidCSSSelectorForTag(dom, 1, ' p#second') # dom, key, css selector
@@ -122,6 +124,35 @@ class RbpdfCssTest < Test::Unit::TestCase
     dom = pdf.getHtmlDomArray('<p id="second">abc<span>def</span></p>')
     assert_equal 7, dom.length
     valid = pdf.isValidCSSSelectorForTag(dom, 3, ' p#second > span') # dom, key, css selector
+    assert_equal true, valid
+
+    # attribute
+    dom = pdf.getHtmlDomArray('<a href="#dummy">dummy link</a>')
+    assert_equal 4, dom.length
+    valid = pdf.isValidCSSSelectorForTag(dom, 1, ' a[href="#dummy"]') # dom, key, css selector
+    assert_equal true, valid
+    valid = pdf.isValidCSSSelectorForTag(dom, 1, ' a[href^="#"]') # dom, key, css selector
+    assert_equal true, valid
+
+    dom = pdf.getHtmlDomArray('<p class="red blue">abc</p>')
+    assert_equal 4, dom.length
+    valid = pdf.isValidCSSSelectorForTag(dom, 1, ' p[class~="red"]') # dom, key, css selector
+    assert_equal true, valid
+
+    dom = pdf.getHtmlDomArray('<a href="http://example.org">example.org link</a>')
+    assert_equal 4, dom.length
+    valid = pdf.isValidCSSSelectorForTag(dom, 1, ' a[href$=".org"]') # dom, key, css selector
+    assert_equal true, valid
+    valid = pdf.isValidCSSSelectorForTag(dom, 1, ' a[href*="example"]') # dom, key, css selector
+    assert_equal true, valid
+
+    dom = pdf.getHtmlDomArray('<div id="zh">zh</div>')
+    assert_equal 4, dom.length
+    valid = pdf.isValidCSSSelectorForTag(dom, 1, ' div[id|="zh"]') # dom, key, css selector
+    assert_equal true, valid
+    dom = pdf.getHtmlDomArray('<div id="zh-CN">zh-CN</div>')
+    assert_equal 4, dom.length
+    valid = pdf.isValidCSSSelectorForTag(dom, 1, ' div[id|="zh"]') # dom, key, css selector
     assert_equal true, valid
   end
 
