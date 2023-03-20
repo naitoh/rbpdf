@@ -11122,7 +11122,7 @@ protected
     operator = ''
     lasttag = ''
     attrib = ''
-    while selector_offset = selector.index(/([\>\+\~\s]{1})([a-zA-Z0-9\*]+)([^\>\+\~\s]*)/mi, selector_offset)
+    while selector_offset = selector.index(/([\>\+\~\s]{1})([a-zA-Z0-9\*]+)([^\>\+\s]*)/mi, selector_offset)
       offset = selector_offset
       selector_offset += $&.length
       operator = $1
@@ -11142,18 +11142,19 @@ protected
           when '['  # attribute
             attrmatch = attrib.scan(/\[([a-zA-Z0-9]*)[\s]*([\~\^\$\*\|\=]*)[\s]*["]?([^"\]]*)["]?\]/i)
             if !attrmatch.empty?
-              att = attrmatch[0].downcase
-              val = attrmatch[2]
+              att = attrmatch[0][0].downcase
+              val = attrmatch[0][2]
+
               if dom[key]['attribute'][att]
-                case attrmatch[1]
+                case attrmatch[0][1]
                 when '='
                   valid = true  if dom[key]['attribute'][att] == val
                 when '~='
                   valid = true  if dom[key]['attribute'][att].split(' ').include?(val)
                 when '^='
-                  valid = true  if val == substr(dom[key]['attribute'][att], 0, val.length)
+                  valid = true  if val == dom[key]['attribute'][att][0, val.length]
                 when '$='
-                  valid = true  if val == substr(dom[key]['attribute'][att], -val.length)
+                  valid = true  if val == dom[key]['attribute'][att][-val.length..-1]
                 when '*='
                   valid = true  if dom[key]['attribute'][att].index(val) != nil
                 when '|='
