@@ -27,6 +27,7 @@ class RbpdfTest < Test::Unit::TestCase
     '009 : Test Image'                                      => '009',
     '011 : Colored Table'                                   => '011',
     '012 : Graphic Functions'                               => '012',
+    '014 : Javascript and Forms'                            => '014',
     '015 : Bookmarks (Table of Content)'                    => '015',
     '017 : Two independent columns with MultiCell'          => '017',
     '018 : RTL document with Persian language'              => '018',

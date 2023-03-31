@@ -336,7 +336,9 @@ class RBPDF
 
     # --- javascript and form ---
     @javascript ||= ''
-    @js_objects ||= []
+    @js_objects ||= {}
+    @js_start_obj_id ||= 300000
+    @js_obj_id ||= 300000
 
     @dpi = 72.0
     @newpagegroup ||= []
@@ -394,6 +396,7 @@ class RBPDF
     @page_obj_id ||= []
     @embedded_start_obj_id ||= 100000
     @form_obj_id ||= []
+    @default_form_prop ||= {'lineWidth'=>1, 'borderStyle'=>'solid', 'fillColor'=>[255, 255, 255], 'strokeColor'=>[128, 128, 128]}
     @apxo_start_obj_id ||= 400000
     @apxo_obj_id ||= 400000
     @annotation_fonts ||= {}
@@ -6033,21 +6036,20 @@ protected
             annots << ' /FT /Btn'
             annots << ' /Ff 49152'
             annots << ' /Kids ['
+            defval = nil
             @radiobutton_groups[n][pl['txt']].each {|data|
-              annots << ' ' + data['kid'] + ' 0 R'
+              annots << " #{data['kid']} 0 R"
               if data['def'] != 'Off'
                 defval = data['def']
               end
             }
             annots << ' ]'
-            if defval
-              annots << ' /V /' + defval
-            end
+            annots << " /V /#{defval}" if defval
             annots << ' >>'
             @annot_obj_id += 1
             @offsets[@annot_obj_id] = @bufferlen
-            out(@annot_obj_id + ' 0 obj ' + annots + ' endobj')
-            @form_obj_id.push = @annot_obj_id
+            out("#{@annot_obj_id} 0 obj #{annots} endobj")
+            @form_obj_id << @annot_obj_id
             # store object id to be used on Parent entry of Kids
             @radiobutton_groups[n][pl['txt']] = @annot_obj_id
           end
@@ -6105,7 +6107,7 @@ protected
             else
               val = pl['opt']['f'].to_i
             end
-            annots << ' /F ' + val.to_i
+            annots << " /F #{val}"
           end
           # annots << ' /AP '
           # annots << ' /AS '
@@ -6114,24 +6116,23 @@ protected
           end
           if pl['opt']['ap']
             # appearance stream
-            annots << ' /AP << ' + pl['opt']['ap'] + ' >>'
             annots << ' /AP <<'
             if pl['opt']['ap'].is_a?(Hash)
               pl['opt']['ap'].each {|apmode, apdef|
                 # apmode can be: n = normal; r = rollover; d = down
                 annots << ' /' + apmode.upcase
-                if apdef.is_a?(Array)
+                if apdef.is_a?(Hash)
                   annots << ' <<'
                   apdef.each {|apstate, stream|
                     # reference to XObject that define the appearance for this mode-state
                     apsobjid = putAPXObject(c, d, stream)
-                    annots << ' /' + apstate + ' ' + apsobjid + ' 0 R'
+                    annots << " /#{apstate} #{apsobjid} 0 R"
                   }
                   annots << ' >>'
                 else
                   # reference to XObject that define the appearance for this mode
                   apsobjid = putAPXObject(c, d, apdef)
-                  annots << ' ' + apsobjid + ' 0 R'
+                  annots << " #{apsobjid} 0 R"
                 end
               }
             else
@@ -6143,7 +6144,7 @@ protected
             annots << ' /BS <<'
             annots << ' /Type /Border'
             if !pl['opt']['bs']['w'].nil?
-              annots << ' /W ' + pl['opt']['bs']['w'].to_i
+              annots << " /W #{pl['opt']['bs']['w']}"
             end
             bstyles = ['S', 'D', 'B', 'I', 'U']
             if !pl['opt']['bs']['s'].nil? and bstyles.include?(pl['opt']['bs']['s'])
@@ -6420,9 +6421,9 @@ protected
             end # end MK
 
             # --- Entries for field dictionaries ---
-            if @radiobutton_groups[n][pl['txt']]
+            if @radiobutton_groups[n] and @radiobutton_groups[n][pl['txt']]
               # set parent
-              annots << ' /Parent ' + @radiobutton_groups[n][pl['txt']] + ' 0 R'
+              annots << " /Parent #{@radiobutton_groups[n][pl['txt']]} 0 R"
             end
             if pl['opt']['t'] and pl['opt']['t'].is_a?(String)
               annots << ' /T ' + dataannobjstring(pl['opt']['t'])
@@ -6443,7 +6444,7 @@ protected
               else
                 flag = pl['opt']['ff'].to_i
               end
-              annots << ' /Ff ' + flag
+              annots << " /Ff #{flag}"
             end
             if pl['opt']['maxlen']
               annots << ' /MaxLen ' + pl['opt']['maxlen'].to_i.to_s
@@ -6529,9 +6530,9 @@ protected
           @offsets[@annot_obj_id] = @bufferlen
           out(@annot_obj_id.to_s + ' 0 obj ' + annots + ' endobj')
 
-          if formfield and ! @radiobutton_groups[n][pl['txt']]
+          if formfield and !(@radiobutton_groups[n] and @radiobutton_groups[n][pl['txt']])
             # store reference of form object
-            @form_obj_id.push = @annot_obj_id
+            @form_obj_id << @annot_obj_id
           end
         }
       end # end for each page
@@ -7163,7 +7164,7 @@ protected
         out(out)
       end
     end
-    @fontkeys.each do |k|
+    @fontkeys.each_with_index do |k, i|
       #Font objects
       setFontSubBuffer(k, 'n', @n + 1)
       font = getFontBuffer(k)
@@ -7181,7 +7182,7 @@ protected
         end
         if name.downcase == 'helvetica'
           # add default font for annotations
-          @annotation_fonts['helvetica'] = k
+          @annotation_fonts['helvetica'] = i
         end
         out << ' >> endobj'
         out(out)
@@ -7232,9 +7233,9 @@ protected
           Error('Unsupported font type: ' + type)
         end
         obj_id = self.send(mtd,font)
-        # store object ID for current font
-        @font_obj_ids[k] = obj_id
       end
+      # store object ID for current font
+      @font_obj_ids[k] = obj_id
     end
   end
 
@@ -7595,6 +7596,7 @@ protected
     putbookmarks()
     putEmbeddedFiles()
     putannotsobjs()
+    putjavascript()
     # encryption
 
     ### T.B.D ### TCPDF 5.0.000 ###
@@ -7653,11 +7655,11 @@ protected
     newobj()
     out = '<< /Type /Catalog'
     out << ' /Pages 1 0 R'
-    if (@zoom_mode=='fullpage')
+    if @zoom_mode == 'fullpage'
       out << ' /OpenAction [3 0 R /Fit]'
-    elsif (@zoom_mode=='fullwidth')
+    elsif @zoom_mode == 'fullwidth'
       out << ' /OpenAction [3 0 R /FitH null]'
-    elsif (@zoom_mode=='real')
+    elsif @zoom_mode == 'real'
       out << ' /OpenAction [3 0 R /XYZ null null 1]'
     elsif @zoom_mode.is_a?(Numeric)
       out << ' /OpenAction [3 0 R /XYZ null null ' + (@zoom_mode/100.0).to_s + ']'
@@ -7674,7 +7676,7 @@ protected
     end
     out << ' /Names <<'
     if !@javascript.empty? or !@js_objects.empty?
-      out << ' /JavaScript ' + @n_js + ' 0 R'
+      out << " /JavaScript #{@n_js} 0 R"
     end
     out << ' >>'
 
@@ -7687,9 +7689,44 @@ protected
     v = @n_ocg_view.to_s + ' 0 R'
     as = '<</Event /Print /OCGs [' + p + ' ' + v + '] /Category [/Print]>> <</Event /View /OCGs [' + p + ' ' + v + '] /Category [/View]>>'
     out << ' /OCProperties <</OCGs [' + p + ' ' + v + '] /D <</ON [' + p + '] /OFF [' + v + '] /AS [' + as + ']>>>>'
+    # AcroForm
+    if !@form_obj_id.empty? || (@sign && @signature_data['cert_type'])
+      out << ' /AcroForm<<'
+      objrefs = ''
+      if @sign && @signature_data['cert_type']
+          objrefs << "#{@sig_obj_id} 0 R"
+      end
+      @form_obj_id.each{|objid|
+        objrefs << " #{objid} 0 R"
+      }
+      out << " /Fields [#{objrefs}]"
+      out << ' /NeedAppearances ' + (@form_obj_id.empty? ? 'false' : 'true')
+      if @sign && @signature_data['cert_type']
+        out << ' /SigFlags 3'
+      end
 
-    ### T.B.D ### TCPDF 5.0.000 ###
-
+      #out << ' /CO '
+      unless @annotation_fonts.empty?
+        out << ' /DR <<'
+        out << ' /Font <<'
+        @annotation_fonts.each {|font, fontkey|
+          out << " /F#{fontkey + 1} #{@font_obj_ids[font]} 0 R"
+        }
+        out << ' >> >>'
+      end
+      out << " /DA (/F#{@fontkeys.index('helvetica') + 1} 0 Tf 0 g)"
+      out << ' /Q ' + (@rtl ? '2' : '0')
+      #out << ' /XFA '
+      out << ' >>'
+      # signatures
+      if @sign && @signature_data['cert_type']
+        if @signature_data['cert_type'] > 0
+          out << " /Perms<</DocMDP #{@sig_obj_id + 1} 0 R>>"
+        else
+          out << " /Perms<</UR3 #{@sig_obj_id + 1} 0 R>>"
+        end
+      end
+    end
     out << ' >> endobj'
     out(out)
   end
@@ -7830,6 +7867,20 @@ protected
     if @annot_obj_id > @annots_start_obj_id
       out((@annots_start_obj_id + 1).to_s + ' ' + (@annot_obj_id - @annots_start_obj_id).to_s)
       (@annots_start_obj_id + 1).upto(@annot_obj_id) do |i|
+        out(sprintf('%010d 00000 n ', @offsets[i]))
+      end
+    end
+    # Javascript Objects
+    if @js_obj_id > @js_start_obj_id
+      out((@js_start_obj_id + 1).to_s + ' ' + (@js_obj_id - @js_start_obj_id).to_s)
+      (@js_start_obj_id + 1).upto(@js_obj_id) do |i|
+        out(sprintf('%010d 00000 n ', @offsets[i]))
+      end
+    end
+    # Appearance streams XObjects
+    if @apxo_obj_id > @apxo_start_obj_id
+      out((@apxo_start_obj_id + 1).to_s + ' ' + (@apxo_obj_id - @apxo_start_obj_id).to_s)
+      (@apxo_start_obj_id + 1).upto(@apxo_obj_id) do |i|
         out(sprintf('%010d 00000 n ', @offsets[i]))
       end
     end
@@ -10370,7 +10421,831 @@ public
   protected :putbookmarks
 
   # --- JAVASCRIPT ------------------------------------------------------
+  #
+  # Adds a javascript
+  # [@param string :script] Javascript code
+  # [@access public]
+  # [@author Johannes G�ntert, Nicola Asuni]
+  # [@since 2.1.002 (2008-02-12)]
+  #
+  def IncludeJS(script)
+    @javascript << script
+  end
+
+  #
+  # Adds a javascript object and return object ID
+  # [@param string :script] Javascript code
+  # [@param boolean :onload] if true executes this object when opening the document
+  # [@return int] internal object ID
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-07)]
+  #
+  def addJavascriptObject(script, onload = false)
+    @js_obj_id += 1
+    @js_objects[@js_obj_id] = {'js' => script, 'onload' => onload}
+    @js_obj_id
+  end
+
+  #
+  # Create a javascript PDF string.
+  # [@access protected]
+  # [@author Johannes G�ntert, Nicola Asuni]
+  # [@since 2.1.002 (2008-02-12)]
+  #
+  def putjavascript()
+    return if @javascript.empty? && @js_objects.empty?
+
+    if @javascript.index 'this.addField'
+      # @setUserRights() unless @ur
+
+      # the following two lines are used to avoid form fields duplication after saving
+      # The addField method only works on Acrobat Writer, unless the document is signed with Adobe private key (UR3)
+      jsa = sprintf("ftcpdfdocsaved=this.addField('%s','%s',%d,[%.2f,%.2f,%.2f,%.2f]);", 'tcpdfdocsaved', 'text', 0, 0, 1, 0, 1)
+      jsb = "getField('tcpdfdocsaved').value='saved';"
+      @javascript = "#{jsa}\n#{@javascript}\n#{jsb}"
+    end
+    @n_js = newobj()
+    out = ' << /Names ['
+    unless @javascript.empty?
+      out << " (EmbeddedJS) #{@n + 1} 0 R"
+    end
+    unless @js_objects.empty?
+      @js_objects.each{|key, val|
+        out << " (JS#{key}) #{key} 0 R" if val['onload']
+      }
+    end
+    out << ' ] >> endobj'
+    out(out)
+    # default Javascript object
+    unless @javascript.empty?
+      newobj()
+      out = '<< /S /JavaScript'
+      out << " /JS #{textstring(@javascript)}"
+      out << ' >> endobj'
+      out(out)
+    end
+    # additional Javascript objects
+    unless @js_objects.empty?
+      @js_objects.each {|key, val|
+        @offsets[key] = @bufferlen
+        out = "#{key} 0 obj\n << /S /JavaScript /JS #{textstring(val['js'])} >> endobj"
+        out(out)
+      }
+    end
+  end
+
+  #
+  # Convert color to javascript color.
+  # [@param string :color] color name or #RRGGBB
+  # [@access protected}
+  # [@author Denis Van Nuffelen, Nicola Asuni]
+  # [@since 2.1.002 (2008-02-12)]
+  #
+  def JScolor(color)
+    aColors = ['transparent', 'black', 'white', 'red', 'green', 'blue', 'cyan', 'magenta', 'yellow', 'dkGray', 'gray', 'ltGray']
+    if color[0] == '#'
+      return sprintf("['RGB',%.3f,%.3f,%.3f]", color[1, 2].to_i(16) / 255, color[3, 2].to_i(16) / 255, color[5, 2].to_i(16) / 255)
+    end
+
+    unless aColors.include? color
+      Error('Invalid color: ' + color)
+    end
+    'color.' + color
+  end
+  protected :JScolor
+
+  #
+  # Adds a javascript form field.
+  # [@param string :type] field type
+  # [@param string :name] field name
+  # [@param int :x] horizontal position
+  # [@param int :y] vertical position
+  # [@param int :w] width
+  # [@param int :h] height
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@access protected]
+  # [@author Denis Van Nuffelen, Nicola Asuni]
+  # [@since 2.1.002 (2008-02-12)]
+  #
+  def addfield(type, name, x, y, w, h, prop)
+    x = x - w if @rtl
+
+    # the followind avoid fields duplication after saving the document
+    @javascript << "if(getField('tcpdfdocsaved').value != 'saved') {"
+    k = @k
+    @javascript << "f#{name}=this.addField('#{name}','#{type}',#{PageNo() - 1},[#{sprintf("%.2f,%.2f,%.2f,%.2f", x * k, (@h - y) * k + 1, (x + w) * k, (@h - y - h) * k + 1)}]);\n"
+    @javascript << "f#{name}.textSize=#{@font_size_pt};\n"
+    prop.each {|k, v|
+      val = k[-5..-1] == 'Color' ? JScolor(v) : "'#{v}'"
+      @javascript << "f#{name}.#{k}=#{val};\n"
+    }
+    if @rtl
+      @x -= w
+    else
+      @x += w
+    end
+    @javascript << '}'
+  end
+  protected :addfield
+
   # --- FORM FIELDS -----------------------------------------------------
+
+  #
+  # Convert JavaScript form fields properties array to Annotation Properties array.
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@return array of annotation properties]
+  # [@access protected]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-06)]
+  #
+  def getAnnotOptFromJSProp(prop)
+    # the annotation options area already defined
+    return prop['aopt'] if prop['aopt'].is_a?(Array)
+
+    opt = {} # value to be returned
+    # alignment: Controls how the text is laid out within the text field.
+    if prop['alignment']
+      opt['q'] = case prop['alignment']
+                 when 'left'; 0
+                 when 'center'; 1
+                 when 'right'; 2
+                 else @rtl ? 2 : 0
+                 end
+    end
+    # lineWidth: Specifies the thickness of the border when stroking the perimeter of a field's rectangle.
+    if prop['lineWidth']
+      linewidth = prop['lineWidth'].to_i
+    else
+      linewidth = 1
+    end
+    # borderStyle: The border style for a field.
+    case prop['borderStyle']
+    when 'border.d', 'dashed'
+      opt['border'] = [0, 0, linewidth, [3, 2]]
+      opt['bs'] = {'w'=>linewidth, 's'=>'D', 'd'=>[3, 2]}
+    when 'border.b', 'beveled'
+      opt['border'] = [0, 0, linewidth]
+      opt['bs'] = {'w'=>linewidth, 's'=>'B'}
+    when 'border.i', 'inset'
+      opt['border'] = [0, 0, linewidth]
+      opt['bs'] = {'w'=>linewidth, 's'=>'I'}
+    when 'border.u', 'underline'
+      opt['border'] = [0, 0, linewidth]
+      opt['bs'] = {'w'=>linewidth, 's'=>'U'}
+    else # 'border.s', 'solid'
+      opt['border'] = [0, 0, linewidth]
+      opt['bs'] = {'w'=>linewidth, 's'=>'S'}
+    end
+
+    opt['border'] = prop['border'] if prop['border'].is_a?(Array)
+    opt['mk'] ||= {}
+    opt['mk']['if'] ||= {}
+    opt['mk']['if']['a'] = [0.5, 0.5]
+    # buttonAlignX: Controls how space is distributed from the left of the button face with respect to the icon.
+    opt['mk']['if']['a'][0] = prop['buttonAlignX'] if prop['buttonAlignX']
+    # buttonAlignY: Controls how unused space is distributed from the bottom of the button face with respect to the icon.
+    opt['mk']['if']['a'][1] = prop['buttonAlignY'] if prop['buttonAlignY']
+    # buttonFitBounds: If true, the extent to which the icon may be scaled is set to the bounds of the button field.
+    opt['mk']['if']['fb'] = true if prop['buttonFitBounds'] && (prop['buttonFitBounds'] == 'true')
+    # buttonScaleHow: Controls how the icon is scaled (if necessary) to fit inside the button face.
+    case prop['buttonScaleHow']
+    when 'scaleHow.proportional'; opt['mk']['if']['s'] = 'P'
+    when 'scaleHow.anamorphic';   opt['mk']['if']['s'] = 'A'
+    end
+    # buttonScaleWhen: Controls when an icon is scaled to fit inside the button face.
+    case prop['buttonScaleWhen']
+    when 'scaleWhen.always';   opt['mk']['if']['sw'] = 'A'
+    when 'scaleWhen.never';    opt['mk']['if']['sw'] = 'N'
+    when 'scaleWhen.tooBig';   opt['mk']['if']['sw'] = 'B'
+    when 'scaleWhen.tooSmall'; opt['mk']['if']['sw'] = 'S'
+    end
+    # buttonPosition: Controls how the text and the icon of the button are positioned with respect to each other within the button face.
+    case prop['buttonPosition']
+    when 0, 'position.textOnly';  opt['mk']['tp'] = 0
+    when 1, 'position.iconOnly';  opt['mk']['tp'] = 1
+    when 2, 'position.iconTextV'; opt['mk']['tp'] = 2
+    when 3, 'position.textIconV'; opt['mk']['tp'] = 3
+    when 4, 'position.iconTextH'; opt['mk']['tp'] = 4
+    when 5, 'position.textIconH'; opt['mk']['tp'] = 5
+    when 6, 'position.overlay';   opt['mk']['tp'] = 6
+    end
+    # fillColor: Specifies the background color for a field.
+    if prop['fillColor']
+      if prop['fillColor'].is_a? Array
+        opt['mk']['bg'] = prop['fillColor']
+      else
+        opt['mk']['bg'] = convertHTMLColorToDec(prop['fillColor'])
+      end
+    end
+    # strokeColor: Specifies the stroke color for a field that is used to stroke the rectangle of the field with a line as large as the line width.
+    if prop['strokeColor']
+      if prop['strokeColor'].is_a? Array
+        opt['mk']['bc'] = prop['strokeColor']
+      else
+        opt['mk']['bc'] = convertHTMLColorToDec(prop['strokeColor'])
+      end
+    end
+    # rotation: The rotation of a widget in counterclockwise increments.
+    opt['mk']['r'] = prop['rotation'] if prop['rotation']
+    # charLimit: Limits the number of characters that a user can type into a text field.
+    opt['maxlen'] = prop['charLimit'].to_i if prop['charLimit']
+
+    ff ||= 0
+    # readonly: The read-only characteristic of a field. If a field is read-only, the user can see the field but cannot change it.
+    ff |= 1 << 0 if prop['readonly'] == 'true'
+    # required: Specifies whether a field requires a value.
+    ff |= 1 << 1 if prop['required'] == 'true'
+    # multiline: Controls how text is wrapped within the field.
+    ff |= 1 << 12 if prop['multiline'] == 'true'
+    # password: Specifies whether the field should display asterisks when data is entered in the field.
+    ff |= 1 << 13 if prop['password'] == 'true'
+    # NoToggleToOff: If set, exactly one radio button shall be selected at all times; selecting the currently selected button has no effect.
+    ff |= 1 << 14 if prop['NoToggleToOff'] == 'true'
+    # Radio: If set, the field is a set of radio buttons.
+    ff |= 1 << 15 if prop['Radio'] == 'true'
+    # Pushbutton: If set, the field is a pushbutton that does not retain a permanent value.
+    ff |= 1 << 16 if prop['Pushbutton'] == 'true'
+    # Combo: If set, the field is a combo box; if clear, the field is a list box.
+    ff |= 1 << 17 if prop['Combo'] == 'true'
+    # editable: Controls whether a combo box is editable.
+    ff |= 1 << 18 if prop['editable'] == 'true'
+    # Sort: If set, the field's option items shall be sorted alphabetically.
+    ff |= 1 << 19 if prop['Sort'] == 'true'
+    # fileSelect: If true, sets the file-select flag in the Options tab of the text field (Field is Used for File Selection).
+    ff |= 1 << 20 if prop['fileSelect'] == 'true'
+    # multipleSelection: If true, indicates that a list box allows a multiple selection of items.
+    ff |= 1 << 21 if prop['multipleSelection'] == 'true'
+    # doNotSpellCheck: If true, spell checking is not performed on this editable text field.
+    ff |= 1 << 22 if prop['doNotSpellCheck'] == 'true'
+    # doNotScroll: If true, the text field does not scroll and the user, therefore, is limited by the rectangular region designed for the field.
+    ff |= 1 << 23 if prop['doNotScroll'] == 'true'
+    # comb: If set to true, the field background is drawn as series of boxes (one for each character in the value of the field) and each character of the content is drawn within those boxes. The number of boxes drawn is determined from the charLimit property. It applies only to text fields. The setter will also raise if any of the following field properties are also set multiline, password, and fileSelect. A side-effect of setting this property is that the doNotScroll property is also set.
+    ff |= 1 << 24 if prop['comb'] == 'true'
+    # radiosInUnison: If false, even if a group of radio buttons have the same name and export value, they behave in a mutually exclusive fashion, like HTML radio buttons.
+    ff |= 1 << 25 if prop['radiosInUnison'] == 'true'
+    # richText: If true, the field allows rich text formatting.
+    ff |= 1 << 25 if prop['richText'] == 'true'
+    # commitOnSelChange: Controls whether a field value is committed after a selection change.
+    ff |= 1 << 26 if prop['commitOnSelChange'] == 'true'
+    opt['ff'] = ff
+
+    # defaultValue: The default value of a field - that is, the value that the field is set to when the form is reset.
+    opt['dv'] = prop['defaultValue'] if prop['defaultValue']
+    f = 1 << 2 # default value for annotation flags
+    # readonly: The read-only characteristic of a field. If a field is read-only, the user can see the field but cannot change it.
+    if prop['readonly'] == 'true'
+      f |= 1 << 6
+    end
+    # display: Controls whether the field is hidden or visible on screen and in print.
+    case prop['display']
+    when 'display.visible'
+      #
+    when 'display.hidden'
+      f |= 1 << 1
+    when 'display.noPrint'
+      f &= ~(1 << 2)
+    when 'display.noView'
+      f |= 1 << 5
+    end
+    opt['f'] = f
+
+    # currentValueIndices: Reads and writes single or multiple values of a list box or combo box.
+    opt['i'] = prop['currentValueIndices'] if prop['currentValueIndices'].is_a?(Array)
+    # value: The value of the field data that the user has entered.
+    if prop['value']
+      if prop['value'].is_a?(Array)
+        opt['opt'] = []
+        prop['value'].each_with_index {|v, i|
+          # exportValues: An array of strings representing the export values for the field.
+          if prop['exportValues'] && prop['exportValues'][i]
+            opt['opt'][i] = [prop['exportValues'][i], v]
+          else
+            opt['opt'][i] = v
+          end
+        }
+      else
+        opt['v'] = prop['value']
+      end
+    end
+    # richValue: This property specifies the text contents and formatting of a rich text field.
+    opt['rv'] = prop['richValue'] if prop['richValue']
+    # submitName: If nonempty, used during form submission instead of name. Only applicable if submitting in HTML format (that is, URL-encoded).
+    opt['tm'] = prop['submitName'] if prop['submitName']
+    # name: Fully qualified field name.
+    opt['t'] = prop['name'] if prop['name']
+    # userName: The user name (short description string) of the field.
+    opt['tu'] = prop['userName'] if prop['userName']
+    # highlight: Defines how a button reacts when a user clicks it.
+    case prop['highlight']
+    when 'none',    'highlight.n'; opt['h'] = 'N'
+    when 'invert',  'highlight.i'; opt['h'] = 'i'
+    when 'push',    'highlight.p'; opt['h'] = 'P'
+    when 'outline', 'highlight.o'; opt['h'] = 'O'
+    end
+    # Unsupported options:
+    # - calcOrderIndex: Changes the calculation order of fields in the document.
+    # - delay: Delays the redrawing of a field's appearance.
+    # - defaultStyle: This property defines the default style attributes for the form field.
+    # - style: Allows the user to set the glyph style of a check box or radio button.
+    # - textColor, textFont, textSize
+    opt
+  end
+  protected :getAnnotOptFromJSProp
+
+  #
+  # Set default properties for form fields.
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-06)]
+  #
+  def setFormDefaultProp(prop = [])
+    @default_form_prop = prop
+  end
+  alias_method :set_form_default_prop, :setFormDefaultProp
+
+  #
+  # Return the default properties for form fields.
+  # [@return array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-06)]
+  #
+  def getFormDefaultProp()
+    @default_form_prop
+  end
+  alias_method :get_form_default_prop, :getFormDefaultProp
+
+  #
+  # Creates a text field
+  # [@param string :name] field name
+  # [@param float :w] Width of the rectangle
+  # [@param float :h] Height of the rectangle
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@param array :opt] annotation parameters. Possible values are described on official PDF32000_2008 reference.
+  # [@param float :x] Abscissa of the upper-left corner of the rectangle
+  # [@param float :y] Ordinate of the upper-left corner of the rectangle
+  # [@param boolean :js] if true put the field using JavaScript (requires Acrobat Writer to be rendered).
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-07)]
+  #
+  def TextField(name, w, h, prop = {}, opt = {}, x = '', y = '', js = false)
+    x = @x if x == ''
+    y = @y if y == ''
+
+    if js
+      addfield('text', name, x, y, w, h, prop)
+      return
+    end
+    # get default style
+    prop = getFormDefaultProp.merge prop
+    # get annotation data
+    popt = getAnnotOptFromJSProp(prop)
+    # set default appearance stream
+    font = @font_family
+    fontkey = @fontkeys.index font
+    unless @annotation_fonts.include? fontkey
+      @annotation_fonts[font] = fontkey
+    end
+    fontstyle = sprintf("/F%d %.2f Tf %s", fontkey + 1, @font_size_pt, @text_color)
+    popt['da'] = fontstyle
+    popt['ap'] = {}
+    popt['ap']['n'] = "q BT #{fontstyle} ET Q"
+    # merge options
+    opt = popt.merge opt
+    # remove some conflicting options
+    opt.delete :bs
+    # set remaining annotation data
+    opt['Subtype'] = 'Widget'
+    opt['ft'] = 'Tx'
+    opt['t'] = name
+    #
+    # Additional annotation's parameters (check _putannotsobj() method):
+    # opt['f']
+    # opt['ap']
+    # opt['as']
+    # opt['bs']
+    # opt['be']
+    # opt['c']
+    # opt['border']
+    # opt['h']
+    # opt['mk']
+    # opt['mk']['r']
+    # opt['mk']['bc']
+    # opt['mk']['bg']
+    # opt['mk']['ca']
+    # opt['mk']['rc']
+    # opt['mk']['ac']
+    # opt['mk']['i']
+    # opt['mk']['ri']
+    # opt['mk']['ix']
+    # opt['mk']['if']
+    # opt['mk']['if']['sw']
+    # opt['mk']['if']['s']
+    # opt['mk']['if']['a']
+    # opt['mk']['if']['fb']
+    # opt['mk']['tp']
+    # opt['tu']
+    # opt['tm']
+    # opt['ff']
+    # opt['v']
+    # opt['dv']
+    # opt['a']
+    # opt['aa']
+    # opt['q']
+    Annotation(x, y, w, h, name, opt, 0)
+    if @rtl
+      @x -= w
+    else
+      @x += w
+    end
+  end
+  alias_method :text_field, :TextField
+
+  #
+  # Creates a RadioButton field
+  # [@param string :name] field name
+  # [@param int :w] width
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@param array :opt] annotation parameters. Possible values are described on official PDF32000_2008 reference.
+  # [@param string :onvalue] value to be returned if selected.
+  # [@param boolean :checked] define the initial state.
+  # [@param float :x] Abscissa of the upper-left corner of the rectangle
+  # [@param float :y] Ordinate of the upper-left corner of the rectangle
+  # [@param boolean :js] if true put the field using JavaScript (requires Acrobat Writer to be rendered).
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-07)]
+  #
+  def RadioButton(name, w, prop = {}, opt = {}, onvalue = 'On', checked = false, x = '', y = '', js = false)
+    x = @x if x == ''
+    y = @y if y == ''
+
+    if js
+      addfield('radiobutton', name, x, y, w, w, prop)
+      return
+    end
+
+    onvalue = 'On' if empty_string(onvalue)
+    defval = checked ? onvalue : 'Off'
+    # set data for parent group
+    @radiobutton_groups[@page] ||= {}
+    unless @radiobutton_groups[@page][name]
+      @radiobutton_groups[@page][name] = []
+      @annot_obj_id += 1
+      @radio_groups << @annot_obj_id
+    end
+    # save object ID to be added on Kids entry on parent object
+    @radiobutton_groups[@page][name] << {'kid' => @annot_obj_id + 1, 'def' => defval}
+    # get default style
+    prop = getFormDefaultProp.merge prop
+    prop['NoToggleToOff'] = 'true'
+    prop['Radio'] = 'true'
+    prop['borderStyle'] = 'inset'
+    # get annotation data
+    popt = getAnnotOptFromJSProp(prop)
+    # set additional default values
+    font = 'zapfdingbats'
+    AddFont(font)
+    fontkey = @fontkeys.index font
+    unless @annotation_fonts.include? fontkey
+      @annotation_fonts[font] = fontkey
+    end
+    fontstyle = sprintf('/F%d %.2f Tf %s', fontkey + 1, @font_size_pt, @text_color)
+    popt['da'] = fontstyle
+    popt['ap'] = {}
+    popt['ap']['n'] = {}
+    popt['ap']['n'][onvalue] = "q BT #{fontstyle} 0 0 Td (8) Tj ET Q"
+    popt['ap']['n']['Off'] = "q BT #{fontstyle} 0 0 Td (8) Tj ET Q"
+    popt['mk'] ||= {}
+    popt['mk']['ca'] = '(l)'
+    # merge options
+    opt = popt.merge opt
+    # set remaining annotation data
+    opt['Subtype'] = 'Widget'
+    opt['ft'] = 'Btn'
+    if checked
+      opt['v'] = ["/#{onvalue}"]
+      opt['as'] = onvalue
+    else
+      opt['as'] = 'Off'
+    end
+    Annotation(x, y, w, w, name, opt, 0)
+    if @rtl
+      @x -= w
+    else
+      @x += w
+    end
+  end
+  alias_method :radio_button, :RadioButton
+
+  #
+  # Creates a List-box field
+  # [@param string :name] field name
+  # [@param int :w] width
+  # [@param int :h] height
+  # [@param array :values] array containing the list of values.
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@param array :opt] annotation parameters. Possible values are described on official PDF32000_2008 reference.
+  # [@param float :x] Abscissa of the upper-left corner of the rectangle
+  # [@param float :y] Ordinate of the upper-left corner of the rectangle
+  # [@param boolean :js] if true put the field using JavaScript (requires Acrobat Writer to be rendered).
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-07)]
+  #
+  def ListBox(name, w, h, values, prop = {}, opt = {}, x = '', y = '', js = false)
+    x = @x if x == ''
+    y = @y if y == ''
+
+    if js
+      addfield('listbox', name, x, y, w, h, prop)
+      s = ''
+      values.each {|v|
+        if v.is_a?(Array)
+          s << "['#{v[0]}','#{v[1]}'],"
+        else
+          s << "'#{v}',"
+        end
+      }
+      @javascript << "f#{name}.setItems([#{s[0...-1]}]);\n"
+      return
+    end
+    # get default style
+    prop = getFormDefaultProp.merge prop
+    # get annotation data
+    popt = getAnnotOptFromJSProp(prop)
+    # set additional default values
+    font = @font_family
+    fontkey = @fontkeys.index font
+    unless @annotation_fonts.include? fontkey
+      @annotation_fonts[font] = fontkey
+    end
+    fontstyle = sprintf('/F%d %.2f Tf %s', fontkey + 1, @font_size_pt, @text_color)
+    popt['da'] = fontstyle
+    popt['ap'] = {}
+    popt['ap']['n'] = "q BT #{fontstyle} ET Q"
+    # merge options
+    opt = popt.merge opt
+    # set remaining annotation data
+    opt['Subtype'] = 'Widget'
+    opt['ft'] = 'Ch'
+    opt['t'] = name
+    opt['opt'] = values
+    Annotation(x, y, w, h, name, opt, 0)
+    if @rtl
+      @x -= w
+    else
+      @x += w
+    end
+  end
+  alias_method :list_box, :ListBox
+
+  #
+  # Creates a Combo-box field
+  # [@param string :name] field name
+  # [@param int :w] width
+  # [@param int :h] height
+  # [@param array :values] array containing the list of values.
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@param array :opt] annotation parameters. Possible values are described on official PDF32000_2008 reference.
+  # [@param float :x] Abscissa of the upper-left corner of the rectangle
+  # [@param float :y] Ordinate of the upper-left corner of the rectangle
+  # [@param boolean :js] if true put the field using JavaScript (requires Acrobat Writer to be rendered).
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-07)]
+  #
+  def ComboBox(name, w, h, values, prop = {}, opt = {}, x = '', y = '', js = false)
+    x = @x if x == ''
+    y = @y if y == ''
+
+    if js
+      addfield('combobox', name, x, y, w, h, prop)
+      s = ''
+      values.each {|v|
+        if v.is_a?(Array)
+          s << "['#{v[0]}','#{v[1]}'],"
+        else
+          s << "'#{v}',"
+        end
+      }
+      @javascript << "f#{name}.setItems([#{s[0...-1]}]);\n"
+      return
+    end
+    # get default style
+    prop = getFormDefaultProp.merge prop
+    prop['Combo'] = 'true'
+    # get annotation data
+    popt = getAnnotOptFromJSProp(prop)
+    # set additional default options
+    font = @font_family
+    fontkey = @fontkeys.index font
+    unless @annotation_fonts.include? fontkey
+      @annotation_fonts[font] = fontkey
+    end
+    fontstyle = sprintf('/F%d %.2f Tf %s', fontkey + 1, @font_size_pt, @text_color)
+    popt['da'] = fontstyle
+    popt['ap'] = {}
+    popt['ap']['n'] = "q BT #{fontstyle} ET Q"
+    # merge options
+    opt = popt.merge opt
+    # set remaining annotation data
+    opt['Subtype'] = 'Widget'
+    opt['ft'] = 'Ch'
+    opt['t'] = name
+    opt['opt'] = values
+    Annotation(x, y, w, h, name, opt, 0)
+    if @rtl
+      @x -= w
+    else
+      @x += w
+    end
+  end
+  alias_method :combo_box, :ComboBox
+
+  #
+  # Creates a CheckBox field
+  # [@param string :name] field name
+  # [@param int :w] width
+  # [@param boolean :checked] define the initial state.
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@param array :opt] annotation parameters. Possible values are described on official PDF32000_2008 reference.
+  # [@param string :onvalue] value to be returned if selected.
+  # [@param float :x] Abscissa of the upper-left corner of the rectangle
+  # [@param float :y] Ordinate of the upper-left corner of the rectangle
+  # [@param boolean :js] if true put the field using JavaScript (requires Acrobat Writer to be rendered).
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-07)]
+  #
+  def CheckBox(name, w, checked=false, prop = {}, opt = {}, onvalue = 'Yes', x = '', y = '', js = false)
+    x = @x if x == ''
+    y = @y if y == ''
+
+    if js
+      addfield('checkbox', name, x, y, w, w, prop)
+      return
+    end
+
+    prop['value'] ||= ['Yes']
+    # get default style
+    prop = getFormDefaultProp.merge prop
+    prop['borderStyle'] = 'inset'
+    # get annotation data
+    popt = getAnnotOptFromJSProp(prop)
+    # set additional default options
+    font = 'zapfdingbats'
+    AddFont(font)
+    fontkey = @fontkeys.index font
+    unless @annotation_fonts.include? fontkey
+      @annotation_fonts[font] = fontkey
+    end
+    fontstyle = sprintf('/F%d %.2f Tf %s', fontkey + 1, @font_size_pt, @text_color)
+    popt['da'] = fontstyle
+    popt['ap'] = {}
+    popt['ap']['n'] = {}
+    popt['ap']['n']['Yes'] = "q BT #{fontstyle} 0 0 Td (8) Tj ET Q"
+    popt['ap']['n']['Off'] = "q BT #{fontstyle} 0 0 Td (8) Tj ET Q"
+    # merge options
+    opt = popt.merge opt
+    # set remaining annotation data
+    opt['Subtype'] = 'Widget'
+    opt['ft'] = 'Btn'
+    opt['t'] = name
+    opt['opt'] = [onvalue]
+    if checked
+      opt['v'] = ['/Yes']
+      opt['as'] = 'Yes'
+    else
+      opt['v'] = ['/Off']
+      opt['as'] = 'Off'
+    end
+    Annotation(x, y, w, w, name, opt, 0)
+    if @rtl
+      @x -= w
+    else
+      @x += w
+    end
+  end
+  alias_method :check_box, :CheckBox
+
+  #
+  # Creates a button field
+  # [@param string :name] field name
+  # [@param int :w] width
+  # [@param int :h] height
+  # [@param string :caption] caption.
+  # [@param mixed :action] action triggered by pressing the button. Use a string to specify a javascript action. Use an array to specify a form action options as on section 12.7.5 of PDF32000_2008.
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@param array :opt] annotation parameters. Possible values are described on official PDF32000_2008 reference.
+  # [@param float :x] Abscissa of the upper-left corner of the rectangle
+  # [@param float :y] Ordinate of the upper-left corner of the rectangle
+  # [@param boolean :js] if true put the field using JavaScript (requires Acrobat Writer to be rendered).
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-07)]
+  #
+  def Button(name, w, h, caption, action, prop = {}, opt = {}, x = '', y = '', js = false)
+    x = @x if x == ''
+    y = @y if y == ''
+
+    if js
+      addfield('button', name, x, y, w, h, prop)
+      @javascript << "f#{name}.buttonSetCaption('#{caption}');\n"
+      @javascript << "f#{name}.setAction('MouseUp','#{action}');\n"
+      @javascript << "f#{name}.highlight='push';\n"
+      @javascript << "f#{name}.print=false;\n"
+      return
+    end
+    # get default style
+    prop = getFormDefaultProp.merge prop
+    prop['Pushbutton'] = 'true'
+    prop['highlight'] = 'push'
+    prop['display'] = 'display.noPrint'
+    # get annotation data
+    popt = getAnnotOptFromJSProp(prop)
+    # set additional default options
+    popt['mk'] ||= {}
+    popt['mk']['ca'] = textstring(caption)
+    popt['mk']['rc'] = textstring(caption)
+    popt['mk']['ac'] = textstring(caption)
+    font = @font_family
+    fontkey = @fontkeys.index font
+    unless @annotation_fonts.include? fontkey
+      @annotation_fonts[font] = fontkey
+    end
+    fontstyle = sprintf('/F%d %.2f Tf %s', fontkey + 1, @font_size_pt, @text_color)
+    popt['da'] = fontstyle
+    popt['ap'] = {}
+    popt['ap']['n'] = "q BT #{fontstyle} ET Q"
+    # merge options
+    opt = popt.merge opt
+    # set remaining annotation data
+    opt['Subtype'] = 'Widget'
+    opt['ft'] = 'Btn'
+    opt['t'] = caption
+    opt['v'] = name
+    unless action.empty?
+      if action.is_a?(Hash)
+        # form action options as on section 12.7.5 of PDF32000_2008.
+        opt['aa'] = '/D <<'
+        bmode = ['SubmitForm', 'ResetForm', 'ImportData']
+        action.each {|key, val|
+          if (key == 'S') && bmode.include?(val)
+            opt['aa'] << " /S /#{val}"
+          elsif (key == 'F') && !val.empty?
+            opt['aa'] << " /F #{datastring(val)}"
+          elsif (key == 'Fields') && val.is_a?(Array) && !val.empty?
+            opt['aa'] << ' /Fields ['
+            val.each {|field|
+              opt['aa'] << " #{textstring(field)}"
+            }
+            opt['aa'] << ']'
+          elsif key == 'Flags'
+            ff = 0
+            if val.is_a?(Array)
+              val.each {|flag|
+                case flag
+                when 'Include/Exclude';      ff |= 1 << 0
+                when 'IncludeNoValueFields'; ff |= 1 << 1
+                when 'ExportFormat';         ff |= 1 << 2
+                when 'GetMethod';            ff |= 1 << 3
+                when 'SubmitCoordinates';    ff |= 1 << 4
+                when 'XFDF';                 ff |= 1 << 5
+                when 'IncludeAppendSaves';   ff |= 1 << 6
+                when 'IncludeAnnotations';   ff |= 1 << 7
+                when 'SubmitPDF';            ff |= 1 << 8
+                when 'CanonicalFormat';      ff |= 1 << 9
+                when 'ExclNonUserAnnots';    ff |= 1 << 10
+                when 'ExclFKey';             ff |= 1 << 11
+                when 'EmbedForm';            ff |= 1 << 13
+                end
+              }
+            else
+              ff = val.to_i
+            end
+            opt['aa'] << " /Flags #{ff}"
+          end
+        }
+        opt['aa'] << ' >>'
+      else
+        # Javascript action or raw action command
+        js_obj_id = addJavascriptObject(action)
+        opt['aa'] = "/D #{js_obj_id} 0 R"
+      end
+    end
+    Annotation(x, y, w, h, name, opt, 0)
+    if @rtl
+      @x -= w
+    else
+      @x += w
+    end
+  end
+  alias_method :button, :Button
+
   # --- END FORMS FIELDS ------------------------------------------------
 
   #
@@ -14672,18 +15547,17 @@ public
     #global jfrompage, jtopage
     #jfrompage = frompage
     #jtopage = topage
-    #@javascript = preg_replace_callback('/this\.addField\(\'([^\']*)\',\'([^\']*)\',([0-9]+)/',
-    #create_function('$matches', 'global $jfrompage, $jtopage;
-    #  pagenum = matches[3].to_i + 1
-    #  if (pagenum >= jtopage) and (pagenum < jfrompage)
-    #    newpage = pagenum + 1
-    #  elsif pagenum == jfrompage
-    #    newpage = jtopage
-    #  else
-    #    newpage = pagenum
-    #  end
-    #  newpage -= 1
-    #  return "this.addField(\'".$matches[1]."\',\'".$matches[2]."\',".$newpage."";'), $tmpjavascript);
+    #tmpjavascript =~ /this\.addField\(\'([^\']*)\',\'([^\']*)\',([0-9]+)/
+    #pagenum = $3.to_i + 1
+    #if (pagenum >= jtopage) && (pagenum < jfrompage)
+    #  newpage = pagenum + 1
+    #elsif pagenum == jfrompage
+    #  newpage = jtopage
+    #else
+    #  newpage = pagenum
+    #end
+    #newpage -= 1
+    #@javascript = "this.addField(\'" + $1 + "\',\'" + $2 + "\'," + newpage + ""
 
     # return to last page
     lastPage(true)
