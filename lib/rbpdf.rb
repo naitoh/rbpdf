@@ -234,7 +234,7 @@ class RBPDF
   # This is the class constructor.
   # It allows to set up the page format, the orientation and
   # the measure unit used in all the methods (except for the font sizes).
-  # @since 1.0
+  # [@since 1.0]
   # [@param string :orientation]
   #   page orientation. Possible values are (case insensitive):
   #   * P or Portrait (default)
@@ -6205,7 +6205,7 @@ protected
             if !pl['opt']['t'].nil? and pl['opt']['t'].is_a?(String)
               annots << ' /T ' + textannobjstring(pl['opt']['t'])
             end
-            # annots .= ' /Popup '
+            # annots << ' /Popup '
             if !pl['opt']['ca'].nil?
               annots << ' /CA ' + sprintf("%.4f", pl['opt']['ca'].to_f)
             end
@@ -8108,9 +8108,9 @@ protected
 
   #
   # get raw output stream.
-  # @param string :s string to output.
-  # @param int :n object reference for encryption mode
-  # @access protected
+  # [@param string :s] string to output.
+  # [@param int :n] object reference for encryption mode
+  # [@access protected]
   #
   def getrawstream(s, n=0)
     if n <= 0
@@ -8122,9 +8122,9 @@ protected
 
   #
   # Format output stream
-  # @param string :s string to output.
-  # @param int :n object reference for encryption mode
-  # @access protected
+  # [@param string :s] string to output.
+  # [@param int :n] object reference for encryption mode
+  # [@access protected]
   #
   def getstream(s, n=0)
     "stream\n" + getrawstream(s, n=0) + "\nendstream"
