@@ -12253,7 +12253,39 @@ protected
       html = html_a + html_b + html[(pos + 6)..-1]
       offset = (html_a + html_b).length
     end
+
+    offset = 0
+    while (offset < html.length) && (pos = html.index('</textarea>', offset))
+      html_a = html[0, offset]
+      html_b = html[offset, pos - offset + 11]
+      while html_b =~ %r@<textarea([^\>]*)>(.*?)\n(.*?)</textarea>@mi
+        # preserve newlines on <textarea> tag
+        html_b.gsub!(%r@<textarea([^\>]*)>(.*?)\n(.*?)</textarea>@mi, "<textarea\\1>\\2<TBR>\\3</textarea>")
+        html_b.gsub!(%r@<textarea([^\>]*)>(.*?)[\"](.*?)</textarea>@mi, "<textarea\\1>\\2''\\3</textarea>")
+      end
+      html = html_a + html_b + html[(pos + 11)..-1]
+      offset = html_a.length + html_b.length
+    end
+    html.gsub!(/([\s]*)<option/mi, "<option")
+    html.gsub!(%r@</option>([\s]*)@mi, "</option>")
+    offset = 0
+    while (offset < html.length) && (pos = html.index('</option>', offset))
+      html_a = html[0, offset]
+      html_b = html[offset, pos - offset + 9]
+      while html_b =~ %r@<option([^\>]*)>(.*?)</option>@mi
+        html_b.gsub!(%r@<option([\s]+)value=\"([^\"]*)\"([^\>]*)>(.*?)</option>@mi, "\\2\t\\4\r")
+        html_b.gsub!(%r@<option([^\>]*)>(.*?)</option>@mi, "\\2\r")
+      end
+      html = html_a + html_b + html[(pos + 9)..-1]
+      offset = html_a.length + html_b.length
+    end
+    html.gsub!(/<select([^\>]*)>/mi, "<select\\1 opt=\"")
+    html.gsub!(%r@([\s]+)</select>@mi, "\" />")
     html.gsub!(/[\n]/, " ")
+
+    # restore textarea newlines
+    html.gsub!('<TBR>', "\n")
+
     # remove extra spaces from code
     html.gsub!(/[\s]+<\/(table|tr|td|th|ul|ol|li|dl|dt|dd)>/, '</\\1>')
     html.gsub!(/[\s]+<(tr|td|th|ul|ol|li|dl|dt|dd|br)/, '<\\1')
@@ -12264,6 +12296,8 @@ protected
     html.gsub!(/[\s]*<img/, ' <img')
     html.gsub!(/<img([^\>]*)>/xi, '<img\\1><span><marker style="font-size:0"/></span>')
     html.gsub!(/<xre/, '<pre') # restore pre tag
+    html.gsub!(/<textarea([^\>]*)>/xi, '<textarea\\1 value="')
+    html.gsub!(/<\/textarea>/, '" />')
 
     # trim string
     html.gsub!(/^[\s]+/, '')
@@ -12395,7 +12429,7 @@ protected
           # *** opening html tag
           dom[key]['opening'] = true
           dom[key]['parent'] = level[-1]
-          if element[-1, 1] == '/' or (dom[key]['value'] =~ /(br|img|hr)/)
+          if element[-1, 1] == '/' or (dom[key]['value'] =~ /(br|img|hr|input)/)
             # self-closing tag
             dom[key]['self'] = true
           else
@@ -12857,8 +12891,9 @@ public
   def sanitize_html(html)
     # Escape '<' character for not tag case.
     html = html.gsub(%r{(<+)([^/a-zA-Z])}){CGI.escapeHTML($1) + $2}.gsub(%r{</([^a-zA-Z])}){'&lt;/' +  $1}
-
-    html = "%s" % sanitize(html, :tags=> %w(a b blockquote body br dd del div dl dt em font h1 h2 h3 h4 h5 h6 hr i img li ol p pre small span strong sub sup table td th thead tr tt u ins ul), :attributes => %w(cellspacing cellpadding bgcolor color value width height src size colspan rowspan style align border face href name dir class id nobr stroke strokecolor fill nested tablehead))
+    "%s" % sanitize(html,
+            :tags=> %w(a b blockquote body br dd del div dl dt em font form h1 h2 h3 h4 h5 h6 hr i img input label li ol option p pre select small span strong sub sup table td textarea th thead tr tt u ins ul),
+            :attributes => %w(cellspacing cellpadding bgcolor color value width height src size colspan rowspan style align border face href name dir class id nobr stroke strokecolor fill nested tablehead cols rows type action enctype method maxlength onclick multiple checked disabled))
   end
   protected :sanitize_html
 
@@ -14369,6 +14404,166 @@ public
       SetXY(GetX(), GetY() + ((0.3 * @font_size_pt) / @k))
     when 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'
       addHTMLVertSpace(hbz, hb, cell, firstorlast)
+
+    # Form fields (since 4.8.000 - 2009-09-07)
+    when 'form'
+      if tag['attribute']['action']
+        @form_action = tag['attribute']['action']
+      else
+        @form_action = @@k_path_url + request&.base_url.to_s
+      end
+      if tag['attribute']['enctype']
+        @form_enctype = tag['attribute']['enctype']
+      else
+        @form_enctype = 'application/x-www-form-urlencoded'
+      end
+      if tag['attribute']['method']
+        @form_mode = tag['attribute']['method']
+      else
+        @form_mode = 'post'
+      end
+    when 'input'
+      if tag['attribute']['name'] && !empty_string(tag['attribute']['name'])
+        name = tag['attribute']['name']
+        prop = {}
+        opt = {}
+        if tag['attribute']['value'] && !empty_string(tag['attribute']['value'])
+          value = tag['attribute']['value']
+        end
+        if tag['attribute']['maxlength'] && !empty_string(tag['attribute']['maxlength'])
+          opt['maxlen'] = tag['attribute']['maxlength'].to_i
+        end
+        h = @font_size * @cell_height_ratio
+        if tag['attribute']['size'] && !empty_string(tag['attribute']['size'])
+          w = tag['attribute']['size'].to_i * GetStringWidth(32.chr) * 2
+        else
+          w = h
+        end
+        if tag['attribute'].key? 'disabled'
+          prop['readonly'] = 'true'
+        end
+        if tag['attribute'].key? 'checked'
+          checked = true
+        else
+          checked = false
+        end
+
+        case tag['attribute']['type']
+        when 'text'
+          opt['v'] = value if value
+          TextField(name, w, h, prop, opt, '', '', false)
+        when 'password'
+          opt['v'] = value if value
+          prop['password'] = 'true'
+          TextField(name, w, h, prop, opt, '', '', false)
+        when 'checkbox'
+          CheckBox(name, w, checked, prop, opt, value, '', '', false)
+        when 'radio'
+          RadioButton(name, w, prop, opt, value, checked, '', '', false)
+        when 'submit'
+          w = GetStringWidth(value) * 1.5
+          h *= 1.6
+          prop = {'lineWidth'=>1, 'borderStyle'=>'beveled', 'fillColor'=>[196, 196, 196], 'strokeColor'=>[255, 255, 255]}
+          action = {}
+          action['S'] = 'SubmitForm'
+          action['F'] = @form_action
+          action['Flags'] = ['ExportFormat'] unless @form_enctype == 'FDF'
+          action['Flags'] = ['GetMethod'] if @form_mode == 'get'
+          Button(name, w, h, value, action, prop, opt, '', '', false)
+        when 'reset'
+          w = GetStringWidth(value) * 1.5
+          h *= 1.6
+          prop = {'lineWidth'=>1, 'borderStyle'=>'beveled', 'fillColor'=>[196, 196, 196], 'strokeColor'=>[255, 255, 255]}
+          Button(name, w, h, value, {'S'=>'ResetForm'}, prop, opt, '', '', false)
+        when 'file'
+          prop['fileSelect'] = 'true'
+          TextField(name, w, h, prop, opt, '', '', false)
+          value ||= '*'
+          w = GetStringWidth(value) * 2
+          h *= 1.2
+          prop = {'lineWidth'=>1, 'borderStyle'=>'beveled', 'fillColor'=>[196, 196, 196], 'strokeColor'=>[255, 255, 255]}
+          jsaction = "var f=this.getField('#{name}'); f.browseForFileToSubmit();"
+          Button('FB_' + name, w, h, value, jsaction, prop, opt, '', '', false)
+        when 'hidden'
+          opt['v'] = value if value
+          opt['f'] = ['invisible', 'hidden']
+          TextField(name, 0, 0, prop, opt, '', '', false)
+        when 'image'
+          # THIS TYPE MUST BE FIXED
+          if tag['attribute']['src'] && !empty_string(tag['attribute']['src'])
+            img = tag['attribute']['src']
+            value = 'img'
+            #opt['mk'] = {'i'=>img, 'tp'=>1, 'if'=>{'sw'=>'A', 's'=>'A', 'fb'=>false}}
+            if tag['attribute']['onclick'] && !tag['attribute']['onclick'].empty?
+              jsaction = tag['attribute']['onclick']
+            else
+              jsaction = ''
+            end
+            Button(name, w, h, value, jsaction, prop, opt, '', '', false)
+          end
+        when 'button'
+          w = GetStringWidth(value) * 1.5
+          h *= 1.6
+          prop = {'lineWidth'=>1, 'borderStyle'=>'beveled', 'fillColor'=>[196, 196, 196], 'strokeColor'=>[255, 255, 255]}
+          if tag['attribute']['onclick'] && !tag['attribute']['onclick'].empty?
+            jsaction = tag['attribute']['onclick']
+          else
+            jsaction = ''
+          end
+          Button(name, w, h, value, jsaction, prop, opt, '', '', false)
+        end
+      end
+    when 'textarea'
+      if tag['attribute']['name'] && !empty_string(tag['attribute']['name'])
+        prop = {}
+        opt = {}
+        name = tag['attribute']['name']
+        if tag['attribute']['value'] && !empty_string(tag['attribute']['value'])
+          opt['v'] = tag['attribute']['value']
+        end
+        if tag['attribute']['cols'] && !empty_string(tag['attribute']['cols'])
+          w = tag['attribute']['cols'].to_i * GetStringWidth(32.chr) * 2
+        else
+          w = 40
+        end
+        if tag['attribute']['rows'] && !empty_string(tag['attribute']['rows'])
+          h = tag['attribute']['rows'].to_i * @font_size * @cell_height_ratio
+        else
+          h = 10
+        end
+        prop['multiline'] = 'true'
+        TextField(name, w, h, prop, opt, '', '', false)
+      end
+    when 'select'
+      if tag['attribute']['name'] && !empty_string(tag['attribute']['name']) && tag['attribute']['opt'] && !empty_string(tag['attribute']['opt'])
+        h = @font_size * @cell_height_ratio
+        if tag['attribute']['size'] && !empty_string(tag['attribute']['size'])
+          h *= (tag['attribute']['size'].to_i + 1)
+        end
+        prop = {}
+        opt = {}
+        name = tag['attribute']['name']
+        w = 0
+        options = tag['attribute']['opt'].split("\r")
+        values = []
+        options.each {|val|
+          if val.index("\t")
+            opts = val.split("\t")
+            values << opts
+            w = [w, GetStringWidth(opts[1])].max
+          else
+            values << val
+            w = [w, GetStringWidth(val)].max
+          end
+        }
+        w *= 2
+        if tag['attribute'].key? 'multiple'
+          prop['multipleSelection'] = 'true'
+          ListBox(name, w, h, values, prop, opt, '', '', false)
+        else
+          ComboBox(name, w, h, values, prop, opt, '', '', false)
+        end
+      end
     end
 
     if dom[key]['self'] and dom[key]['attribute']['pagebreakafter']
@@ -14754,6 +14949,9 @@ public
       addHTMLVertSpace(0, 0, cell, firstorlast)
     when 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'
       addHTMLVertSpace(hbz, hb, cell, firstorlast)
+    when 'form' # Form fields (since 4.8.000 - 2009-09-07)
+      @form_action = ''
+      @form_enctype = 'application/x-www-form-urlencoded'
     end
 
     if dom[(dom[key]['parent'])]['attribute']['pagebreakafter']

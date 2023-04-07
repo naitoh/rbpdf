@@ -56,6 +56,7 @@ class RbpdfTest < Test::Unit::TestCase
     '047 : Transactions'                                    => '047',
     '048 : HTML tables and table headers'                   => '048',
 #    '051 : Full page background'                            => '051',
+    '054 : XHTML Form'                                      => '054',
     '055 : Display all characters available on core fonts.' => '055',
     '057 : Cell vertical alignments'                        => '057',
     '059 : Table Of Content using HTML templates.'          => '059',
