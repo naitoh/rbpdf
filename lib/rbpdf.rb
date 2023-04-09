@@ -12455,7 +12455,7 @@ protected
             dom[key]['text-indent'] = dom[parentkey]['text-indent']
           end
           # get attributes
-          attr_array = element.scan(/([^=\s]*)[\s]*=[\s]*"([^"]*)"/)
+          attr_array = element.scan(/([^=\s]+)[\s]*(?:=[\s]*"([^"]*)")*/)[1..-1]
           dom[key]['attribute'] = {} # reset attribute array
           attr_array.each do |name, value|
             dom[key]['attribute'][name.downcase] = value
