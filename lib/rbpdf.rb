@@ -13569,317 +13569,318 @@ public
     end
     # Closing tag
     case (tag['value'])
-      when 'tr'
-        table_el = dom[(dom[key]['parent'])]['parent']
-        if parent['endy'].nil?
-          dom[(dom[key]['parent'])]['endy'] = @y
-          parent['endy'] = @y
-        end
-        if parent['endpage'].nil?
-          dom[(dom[key]['parent'])]['endpage'] = @page
-          parent['endpage'] = @page
-        end
-        # update row-spanned cells
-        if !dom[table_el]['rowspans'].nil?
-          dom[table_el]['rowspans'].each_with_index { |trwsp, k|
-            dom[table_el]['rowspans'][k]['rowspan'] -= 1
-            if dom[table_el]['rowspans'][k]['rowspan'] == 0
-              if dom[table_el]['rowspans'][k]['endpage'] == parent['endpage']
-                dom[(dom[key]['parent'])]['endy'] = [dom[table_el]['rowspans'][k]['endy'], parent['endy']].max
-              elsif dom[table_el]['rowspans'][k]['endpage'] > parent['endpage']
-                dom[(dom[key]['parent'])]['endy'] = dom[table_el]['rowspans'][k]['endy']
-                dom[(dom[key]['parent'])]['endpage'] = dom[table_el]['rowspans'][k]['endpage']
-              end
-            end
-          }
-          # report new endy and endpage to the rowspanned cells
-          dom[table_el]['rowspans'].each_with_index { |trwsp, k|
-            if dom[table_el]['rowspans'][k]['rowspan'] == 0
-              dom[table_el]['rowspans'][k]['endpage'] = [dom[table_el]['rowspans'][k]['endpage'], dom[(dom[key]['parent'])]['endpage']].max
-              dom[(dom[key]['parent'])]['endpage'] = dom[table_el]['rowspans'][k]['endpage']
-              dom[table_el]['rowspans'][k]['endy'] = [dom[table_el]['rowspans'][k]['endy'], dom[(dom[key]['parent'])]['endy']].max
+    when 'tr'
+      table_el = dom[(dom[key]['parent'])]['parent']
+      if parent['endy'].nil?
+        dom[(dom[key]['parent'])]['endy'] = @y
+        parent['endy'] = @y
+      end
+      if parent['endpage'].nil?
+        dom[(dom[key]['parent'])]['endpage'] = @page
+        parent['endpage'] = @page
+      end
+      # update row-spanned cells
+      if !dom[table_el]['rowspans'].nil?
+        dom[table_el]['rowspans'].each_with_index { |trwsp, k|
+          dom[table_el]['rowspans'][k]['rowspan'] -= 1
+          if dom[table_el]['rowspans'][k]['rowspan'] == 0
+            if dom[table_el]['rowspans'][k]['endpage'] == parent['endpage']
+              dom[(dom[key]['parent'])]['endy'] = [dom[table_el]['rowspans'][k]['endy'], parent['endy']].max
+            elsif dom[table_el]['rowspans'][k]['endpage'] > parent['endpage']
               dom[(dom[key]['parent'])]['endy'] = dom[table_el]['rowspans'][k]['endy']
-            end
-          }
-          # update remaining rowspanned cells
-          dom[table_el]['rowspans'].each_with_index { |trwsp, k|
-            if dom[table_el]['rowspans'][k]['rowspan'] == 0
-              dom[table_el]['rowspans'][k]['endpage'] = dom[(dom[key]['parent'])]['endpage']
-              dom[table_el]['rowspans'][k]['endy'] = dom[(dom[key]['parent'])]['endy']
-            end
-          }
-        end
-        if (@num_columns > 1) and (dom[(dom[key]['parent'])]['endy'] >= (@page_break_trigger - @lasth)) and (@y < dom[(dom[key]['parent'])]['endy'])
-          Ln(0, cell)
-        else
-          setPage(dom[(dom[key]['parent'])]['endpage']);
-          @y = dom[(dom[key]['parent'])]['endy']
-          if !dom[table_el]['attribute']['cellspacing'].nil?
-            cellspacing = getHTMLUnitToUnits(dom[table_el]['attribute']['cellspacing'], 1, 'px')
-            @y += cellspacing
-          end
-          Ln(0, cell)
-          @x = parent['startx']
-          # account for booklet mode
-          if parent['startpage'] and @page > parent['startpage']
-            if @rtl and (@pagedim[@page]['orm'] != @pagedim[parent['startpage']]['orm'])
-              @x -= @pagedim[@page]['orm'] - @pagedim[parent['startpage']]['orm']
-            elsif !@rtl and (@pagedim[@page]['olm'] != @pagedim[parent['startpage']]['olm'])
-              @x += @pagedim[@page]['olm'] - @pagedim[parent['startpage']]['olm']
+              dom[(dom[key]['parent'])]['endpage'] = dom[table_el]['rowspans'][k]['endpage']
             end
           end
+        }
+        # report new endy and endpage to the rowspanned cells
+        dom[table_el]['rowspans'].each_with_index { |trwsp, k|
+          if dom[table_el]['rowspans'][k]['rowspan'] == 0
+            dom[table_el]['rowspans'][k]['endpage'] = [dom[table_el]['rowspans'][k]['endpage'], dom[(dom[key]['parent'])]['endpage']].max
+            dom[(dom[key]['parent'])]['endpage'] = dom[table_el]['rowspans'][k]['endpage']
+            dom[table_el]['rowspans'][k]['endy'] = [dom[table_el]['rowspans'][k]['endy'], dom[(dom[key]['parent'])]['endy']].max
+            dom[(dom[key]['parent'])]['endy'] = dom[table_el]['rowspans'][k]['endy']
+          end
+        }
+        # update remaining rowspanned cells
+        dom[table_el]['rowspans'].each_with_index { |trwsp, k|
+          if dom[table_el]['rowspans'][k]['rowspan'] == 0
+            dom[table_el]['rowspans'][k]['endpage'] = dom[(dom[key]['parent'])]['endpage']
+            dom[table_el]['rowspans'][k]['endy'] = dom[(dom[key]['parent'])]['endy']
+          end
+        }
+      end
+      if (@num_columns > 1) and (dom[(dom[key]['parent'])]['endy'] >= (@page_break_trigger - @lasth)) and (@y < dom[(dom[key]['parent'])]['endy'])
+        Ln(0, cell)
+      else
+        setPage(dom[(dom[key]['parent'])]['endpage']);
+        @y = dom[(dom[key]['parent'])]['endy']
+        if !dom[table_el]['attribute']['cellspacing'].nil?
+          cellspacing = getHTMLUnitToUnits(dom[table_el]['attribute']['cellspacing'], 1, 'px')
+          @y += cellspacing
         end
-      when 'table'
-        if dom[(dom[key]['parent'])]['attribute']['tablehead'] and dom[(dom[key]['parent'])]['attribute']['tablehead'] == "1"
-          # closing tag used for the thead part
-          in_table_head = true
-          @in_thead = false
+        Ln(0, cell)
+        @x = parent['startx']
+        # account for booklet mode
+        if parent['startpage'] and @page > parent['startpage']
+          if @rtl and (@pagedim[@page]['orm'] != @pagedim[parent['startpage']]['orm'])
+            @x -= @pagedim[@page]['orm'] - @pagedim[parent['startpage']]['orm']
+          elsif !@rtl and (@pagedim[@page]['olm'] != @pagedim[parent['startpage']]['olm'])
+            @x += @pagedim[@page]['olm'] - @pagedim[parent['startpage']]['olm']
+          end
         end
+      end
+    when 'table'
+      if dom[(dom[key]['parent'])]['attribute']['tablehead'] and dom[(dom[key]['parent'])]['attribute']['tablehead'] == "1"
+        # closing tag used for the thead part
+        in_table_head = true
+        @in_thead = false
+      end
 
-        table_el = parent
-        # draw borders
-        if (!table_el['attribute']['border'].nil? and (table_el['attribute']['border'].to_i > 0)) or (!table_el['style'].nil? and !table_el['style']['border'].nil? and (table_el['style']['border'].to_i > 0))
-          border = 1
-        else
-          border = 0
-        end
+      table_el = parent
+      # draw borders
+      if (!table_el['attribute']['border'].nil? and (table_el['attribute']['border'].to_i > 0)) or (!table_el['style'].nil? and !table_el['style']['border'].nil? and (table_el['style']['border'].to_i > 0))
+        border = 1
+      else
+        border = 0
+      end
 
-        startpage = 0
-        end_page = 0
-        # fix bottom line alignment of last line before page break
-        dom[(dom[key]['parent'])]['trids'].each_with_index { |trkey, j|
+      startpage = 0
+      end_page = 0
+      # fix bottom line alignment of last line before page break
+      dom[(dom[key]['parent'])]['trids'].each_with_index { |trkey, j|
+        # update row-spanned cells
+        if !dom[(dom[key]['parent'])]['rowspans'].nil?
+          dom[(dom[key]['parent'])]['rowspans'].each_with_index { |trwsp, k|
+            if trwsp['trid'] == trkey
+              dom[(dom[key]['parent'])]['rowspans'][k]['mrowspan'] -= 1
+            end
+            if defined?(prevtrkey) and (trwsp['trid'] == prevtrkey) and (trwsp['mrowspan'] >= 0)
+              dom[(dom[key]['parent'])]['rowspans'][k]['trid'] = trkey
+            end
+          }
+        end
+        if defined?(prevtrkey) and (dom[trkey]['startpage'] > dom[prevtrkey]['endpage'])
+          pgendy = @pagedim[dom[prevtrkey]['endpage']]['hk'] - @pagedim[dom[prevtrkey]['endpage']]['bm']
+          dom[prevtrkey]['endy'] = pgendy
           # update row-spanned cells
           if !dom[(dom[key]['parent'])]['rowspans'].nil?
             dom[(dom[key]['parent'])]['rowspans'].each_with_index { |trwsp, k|
-              if trwsp['trid'] == trkey
-                dom[(dom[key]['parent'])]['rowspans'][k]['mrowspan'] -= 1
-              end
-              if defined?(prevtrkey) and (trwsp['trid'] == prevtrkey) and (trwsp['mrowspan'] >= 0)
-                dom[(dom[key]['parent'])]['rowspans'][k]['trid'] = trkey
+              if (trwsp['trid'] == trkey) and (trwsp['mrowspan'] > 1) and (trwsp['endpage'] == dom[prevtrkey]['endpage'])
+                dom[(dom[key]['parent'])]['rowspans'][k]['endy'] = pgendy
+                dom[(dom[key]['parent'])]['rowspans'][k]['mrowspan'] = -1
               end
             }
           end
-          if defined?(prevtrkey) and (dom[trkey]['startpage'] > dom[prevtrkey]['endpage'])
-            pgendy = @pagedim[dom[prevtrkey]['endpage']]['hk'] - @pagedim[dom[prevtrkey]['endpage']]['bm']
-            dom[prevtrkey]['endy'] = pgendy
-            # update row-spanned cells
-            if !dom[(dom[key]['parent'])]['rowspans'].nil?
-              dom[(dom[key]['parent'])]['rowspans'].each_with_index { |trwsp, k|
-                if (trwsp['trid'] == trkey) and (trwsp['mrowspan'] > 1) and (trwsp['endpage'] == dom[prevtrkey]['endpage'])
-                  dom[(dom[key]['parent'])]['rowspans'][k]['endy'] = pgendy
-                  dom[(dom[key]['parent'])]['rowspans'][k]['mrowspan'] = -1
-                end
-              }
-            end
+        end
+        prevtrkey = trkey
+        table_el = dom[(dom[key]['parent'])].dup
+      }
+      # for each row
+      table_el['trids'].each_with_index { |trkey, j|
+        parent = dom[trkey]
+        # for each cell on the row
+        parent['cellpos'].each_with_index { |cellpos, k|
+          if !cellpos['rowspanid'].nil? and (cellpos['rowspanid'] >= 0)
+            cellpos['startx'] = table_el['rowspans'][(cellpos['rowspanid'])]['startx']
+            cellpos['endx'] = table_el['rowspans'][(cellpos['rowspanid'])]['endx']
+            endy = table_el['rowspans'][(cellpos['rowspanid'])]['endy']
+            startpage = table_el['rowspans'][(cellpos['rowspanid'])]['startpage']
+            end_page = table_el['rowspans'][(cellpos['rowspanid'])]['endpage']
+          else
+            endy = parent['endy']
+            startpage = parent['startpage']
+            end_page = parent['endpage']
           end
-          prevtrkey = trkey
-          table_el = dom[(dom[key]['parent'])].dup
-        }
-        # for each row
-        table_el['trids'].each_with_index { |trkey, j|
-          parent = dom[trkey]
-          # for each cell on the row
-          parent['cellpos'].each_with_index { |cellpos, k|
-            if !cellpos['rowspanid'].nil? and (cellpos['rowspanid'] >= 0)
-              cellpos['startx'] = table_el['rowspans'][(cellpos['rowspanid'])]['startx']
-              cellpos['endx'] = table_el['rowspans'][(cellpos['rowspanid'])]['endx']
-              endy = table_el['rowspans'][(cellpos['rowspanid'])]['endy']
-              startpage = table_el['rowspans'][(cellpos['rowspanid'])]['startpage']
-              end_page = table_el['rowspans'][(cellpos['rowspanid'])]['endpage']
-            else
-              endy = parent['endy']
-              startpage = parent['startpage']
-              end_page = parent['endpage']
-            end
-            cellpos['startx'] ||= 0
-            if end_page > startpage
-              # design borders around HTML cells.
-              startpage.upto(end_page) do |page|
-                setPage(page)
-                if page == startpage
-                  @y = parent['starty'] # put cursor at the beginning of row on the first page
-                  ch = getPageHeight() - parent['starty'] - getBreakMargin()
-                  cborder = getBorderMode(border, position='start')
-                elsif page == end_page
-                  @y = @t_margin # put cursor at the beginning of last page
-                  ch = endy - @t_margin
-                  cborder = getBorderMode(border, position='end')
-                else
-                  @y = @t_margin # put cursor at the beginning of the current page
-                  ch = getPageHeight() - @t_margin - getBreakMargin()
-                  cborder = getBorderMode(border, position='middle')
-                end
-                if !cellpos['bgcolor'].nil? and (cellpos['bgcolor'] != false)
-                  SetFillColorArray(cellpos['bgcolor'])
-                  fill = 1
-                else
-                  fill = 0
-                end
-                cw = (cellpos['endx'] - cellpos['startx']).abs
-                @x = cellpos['startx']
-                # account for margin changes
-                if page > startpage
-                  if @rtl and (@pagedim[page]['orm'] != @pagedim[startpage]['orm'])
-                    @x -= @pagedim[page]['orm'] - @pagedim[startpage]['orm']
-                  elsif !@rtl and (@pagedim[page]['lm'] != @pagedim[startpage]['olm'])
-                    @x += @pagedim[page]['olm'] - @pagedim[startpage]['olm']
-                  end
-                end
-
-                prevLastH = @lasth
-                # design a cell around the text
-                ccode = @fill_color + "\n" + getCellCode(cw, ch, '', cborder, 1, '', fill, '', 0, true)
-                @lasth = prevLastH
-
-                if (cborder != 0) or (fill == 1)
-                  pagebuff = getPageBuffer(@page)
-                  pstart = pagebuff[0, @intmrk[@page]]
-                  pend = pagebuff[@intmrk[@page]..-1]
-                  setPageBuffer(@page, pstart + ccode + "\n" + pend)
-                  @intmrk[@page] += (ccode + "\n").length
-                end
+          cellpos['startx'] ||= 0
+          if end_page > startpage
+            # design borders around HTML cells.
+            startpage.upto(end_page) do |page|
+              setPage(page)
+              if page == startpage
+                @y = parent['starty'] # put cursor at the beginning of row on the first page
+                ch = getPageHeight() - parent['starty'] - getBreakMargin()
+                cborder = getBorderMode(border, position='start')
+              elsif page == end_page
+                @y = @t_margin # put cursor at the beginning of last page
+                ch = endy - @t_margin
+                cborder = getBorderMode(border, position='end')
+              else
+                @y = @t_margin # put cursor at the beginning of the current page
+                ch = getPageHeight() - @t_margin - getBreakMargin()
+                cborder = getBorderMode(border, position='middle')
               end
-            else
-              setPage(startpage)
               if !cellpos['bgcolor'].nil? and (cellpos['bgcolor'] != false)
                 SetFillColorArray(cellpos['bgcolor'])
                 fill = 1
               else
                 fill = 0
               end
-              @x = cellpos['startx']
-              @y = parent['starty']
               cw = (cellpos['endx'] - cellpos['startx']).abs
-              ch = endy - parent['starty']
+              @x = cellpos['startx']
+              # account for margin changes
+              if page > startpage
+                if @rtl and (@pagedim[page]['orm'] != @pagedim[startpage]['orm'])
+                  @x -= @pagedim[page]['orm'] - @pagedim[startpage]['orm']
+                elsif !@rtl and (@pagedim[page]['lm'] != @pagedim[startpage]['olm'])
+                  @x += @pagedim[page]['olm'] - @pagedim[startpage]['olm']
+                end
+              end
 
               prevLastH = @lasth
               # design a cell around the text
-              ccode = @fill_color + "\n" + getCellCode(cw, ch, '', border, 1, '', fill, '', 0, true)
+              ccode = @fill_color + "\n" + getCellCode(cw, ch, '', cborder, 1, '', fill, '', 0, true)
               @lasth = prevLastH
 
-              if (border != 0) or (fill == 1)
-                if !@transfmrk[@page].nil?
-                  pagemark = @transfmrk[@page]
-                  @transfmrk[@page] += (ccode + "\n").length
-                elsif @in_footer
-                  pagemark = @footerpos[@page]
-                  @footerpos[@page] += (ccode + "\n").length
-                else
-                  pagemark = @intmrk[@page]
-                  @intmrk[@page] += (ccode + "\n").length
-                end
+              if (cborder != 0) or (fill == 1)
                 pagebuff = getPageBuffer(@page)
-                pstart = pagebuff[0, pagemark]
-                pend = pagebuff[pagemark..-1]
+                pstart = pagebuff[0, @intmrk[@page]]
+                pend = pagebuff[@intmrk[@page]..-1]
                 setPageBuffer(@page, pstart + ccode + "\n" + pend)
+                @intmrk[@page] += (ccode + "\n").length
               end
             end
-          }
-          if !table_el['attribute']['cellspacing'].nil?
-            cellspacing = getHTMLUnitToUnits(table_el['attribute']['cellspacing'], 1, 'px')
-            @y += cellspacing
-          end
-          Ln(0, cell)
-          @x = parent['startx']
-          if end_page > startpage
-            if @rtl and (@pagedim[end_page]['orm'] != @pagedim[startpage]['orm'])
-              @x += @pagedim[end_page]['orm'] - @pagedim[startpage]['orm']
-            elsif !@rtl and (@pagedim[end_page]['olm'] != @pagedim[startpage]['olm'])
-              @x += @pagedim[end_page]['olm'] - @pagedim[startpage]['olm']
+          else
+            setPage(startpage)
+            if !cellpos['bgcolor'].nil? and (cellpos['bgcolor'] != false)
+              SetFillColorArray(cellpos['bgcolor'])
+              fill = 1
+            else
+              fill = 0
+            end
+            @x = cellpos['startx']
+            @y = parent['starty']
+            cw = (cellpos['endx'] - cellpos['startx']).abs
+            ch = endy - parent['starty']
+
+            prevLastH = @lasth
+            # design a cell around the text
+            ccode = @fill_color + "\n" + getCellCode(cw, ch, '', border, 1, '', fill, '', 0, true)
+            @lasth = prevLastH
+
+            if (border != 0) or (fill == 1)
+              if !@transfmrk[@page].nil?
+                pagemark = @transfmrk[@page]
+                @transfmrk[@page] += (ccode + "\n").length
+              elsif @in_footer
+                pagemark = @footerpos[@page]
+                @footerpos[@page] += (ccode + "\n").length
+              else
+                pagemark = @intmrk[@page]
+                @intmrk[@page] += (ccode + "\n").length
+              end
+              pagebuff = getPageBuffer(@page)
+              pstart = pagebuff[0, pagemark]
+              pend = pagebuff[pagemark..-1]
+              setPageBuffer(@page, pstart + ccode + "\n" + pend)
             end
           end
         }
-        if !in_table_head
-          # we are not inside a thead section
-          if dom[(parent['parent'])]['attribute']['cellpadding'] ### fix ###
-            @c_margin = @old_c_margin
-          end
-          @lasth = @font_size * @cell_height_ratio
-          if (@page == @numpages - 1) and @pageopen[@numpages]
-            # remove last blank page
-            deletePage(@numpages)
-          end
-          if !@thead_margins['top'].nil?
-            # restore top margin
-            @t_margin = @thead_margins['top']
-            @pagedim[@page]['tm'] = @t_margin
-          end
-          if table_el['attribute']['nested'].nil? or (table_el['attribute']['nested'] != 'true')
-            # reset main table header
-            @thead = ''
-            @thead_margins = {}
+        if !table_el['attribute']['cellspacing'].nil?
+          cellspacing = getHTMLUnitToUnits(table_el['attribute']['cellspacing'], 1, 'px')
+          @y += cellspacing
+        end
+        Ln(0, cell)
+        @x = parent['startx']
+        if end_page > startpage
+          if @rtl and (@pagedim[end_page]['orm'] != @pagedim[startpage]['orm'])
+            @x += @pagedim[end_page]['orm'] - @pagedim[startpage]['orm']
+          elsif !@rtl and (@pagedim[end_page]['olm'] != @pagedim[startpage]['olm'])
+            @x += @pagedim[end_page]['olm'] - @pagedim[startpage]['olm']
           end
         end
-        if tag['block']
-          unless dom[(dom[key]['parent'])]['attribute']['tablehead'] and dom[(dom[key]['parent'])]['attribute']['tablehead'] == "1" ### fix ###
-            addHTMLVertSpace(hbz / 2, 0, cell, (dom[key+1].nil? or (dom[key+1]['value'] != 'table'))) ### fix ###
-          end
-        end
-      when 'a'
-        @href = {}
-        @html_anchor = nil
-      when 'sup'
-        SetXY(GetX(), GetY() + (0.7 * parent['fontsize'] / @k))
-      when 'sub'
-        SetXY(GetX(), GetY() - (0.3 * parent['fontsize'] / @k))
-      when 'div'
-        addHTMLVertSpace(hbz, 0, cell, firstorlast)
-      when 'blockquote'
-        if @rtl
-          @r_margin -= @listindent
-        else
-          @l_margin -= @listindent
-        end
-        @listindentlevel -= 1
-        addHTMLVertSpace(hbz, hb, cell, firstorlast)
-      when 'p'
-        addHTMLVertSpace(hbz, hb, cell, firstorlast)
-      when 'pre'
-        addHTMLVertSpace(hbz, hb, cell, firstorlast)
-        @premode = false
-      when 'dl'
-        @listnum -= 1
-        if @listnum <= 0
-          @listnum = 0
-          addHTMLVertSpace(hbz, hb, cell, firstorlast)
-        else
-          addHTMLVertSpace(0, 0, cell, firstorlast)
+      }
+      if !in_table_head
+        # we are not inside a thead section
+        if dom[(parent['parent'])]['attribute']['cellpadding'] ### fix ###
+          @c_margin = @old_c_margin
         end
         @lasth = @font_size * @cell_height_ratio
-      when 'dt'
-        @lispacer = ''
-        addHTMLVertSpace(0, 0, cell, firstorlast)
-      when 'dd'
-        @lispacer = ''
-        if @rtl
-          @r_margin -= @listindent
-        else
-          @l_margin -= @listindent
+        if (@page == @numpages - 1) and @pageopen[@numpages]
+          # remove last blank page
+          deletePage(@numpages)
         end
-        @listindentlevel -= 1
-        addHTMLVertSpace(0, 0, cell, firstorlast)
-      when 'ul', 'ol'
-        @listnum -= 1
-        @lispacer = ''
-        if @rtl
-          @r_margin -= @listindent
-        else
-          @l_margin -= @listindent
+        if !@thead_margins['top'].nil?
+          # restore top margin
+          @t_margin = @thead_margins['top']
+          @pagedim[@page]['tm'] = @t_margin
         end
-        @listindentlevel -= 1
-        if @listnum <= 0
-          @listnum = 0
-          addHTMLVertSpace(hbz, hb, cell, firstorlast)
-        else
-          addHTMLVertSpace(0, 0, cell, firstorlast)
+        if table_el['attribute']['nested'].nil? or (table_el['attribute']['nested'] != 'true')
+          # reset main table header
+          @thead = ''
+          @thead_margins = {}
         end
-        @lasth = @font_size * @cell_height_ratio
-      when 'li'
-        @lispacer = ''
-        addHTMLVertSpace(0, 0, cell, firstorlast)
-      when 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'
+      end
+      if tag['block']
+        unless dom[(dom[key]['parent'])]['attribute']['tablehead'] and dom[(dom[key]['parent'])]['attribute']['tablehead'] == "1" ### fix ###
+          addHTMLVertSpace(hbz / 2, 0, cell, (dom[key+1].nil? or (dom[key+1]['value'] != 'table'))) ### fix ###
+        end
+      end
+    when 'a'
+      @href = {}
+      @html_anchor = nil
+    when 'sup'
+      SetXY(GetX(), GetY() + (0.7 * parent['fontsize'] / @k))
+    when 'sub'
+      SetXY(GetX(), GetY() - (0.3 * parent['fontsize'] / @k))
+    when 'div'
+      addHTMLVertSpace(hbz, 0, cell, firstorlast)
+    when 'blockquote'
+      if @rtl
+        @r_margin -= @listindent
+      else
+        @l_margin -= @listindent
+      end
+      @listindentlevel -= 1
+      addHTMLVertSpace(hbz, hb, cell, firstorlast)
+    when 'p'
+      addHTMLVertSpace(hbz, hb, cell, firstorlast)
+    when 'pre'
+      addHTMLVertSpace(hbz, hb, cell, firstorlast)
+      @premode = false
+    when 'dl'
+      @listnum -= 1
+      if @listnum <= 0
+        @listnum = 0
         addHTMLVertSpace(hbz, hb, cell, firstorlast)
+      else
+        addHTMLVertSpace(0, 0, cell, firstorlast)
+      end
+      @lasth = @font_size * @cell_height_ratio
+    when 'dt'
+      @lispacer = ''
+      addHTMLVertSpace(0, 0, cell, firstorlast)
+    when 'dd'
+      @lispacer = ''
+      if @rtl
+        @r_margin -= @listindent
+      else
+        @l_margin -= @listindent
+      end
+      @listindentlevel -= 1
+      addHTMLVertSpace(0, 0, cell, firstorlast)
+    when 'ul', 'ol'
+      @listnum -= 1
+      @lispacer = ''
+      if @rtl
+        @r_margin -= @listindent
+      else
+        @l_margin -= @listindent
+      end
+      @listindentlevel -= 1
+      if @listnum <= 0
+        @listnum = 0
+        addHTMLVertSpace(hbz, hb, cell, firstorlast)
+      else
+        addHTMLVertSpace(0, 0, cell, firstorlast)
+      end
+      @lasth = @font_size * @cell_height_ratio
+    when 'li'
+      @lispacer = ''
+      addHTMLVertSpace(0, 0, cell, firstorlast)
+    when 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'
+      addHTMLVertSpace(hbz, hb, cell, firstorlast)
     end
+
     if dom[(dom[key]['parent'])]['attribute']['pagebreakafter']
       pba = dom[(dom[key]['parent'])]['attribute']['pagebreakafter']
       # check for pagebreak
