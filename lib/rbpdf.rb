@@ -10317,7 +10317,7 @@ public
       return
     end
     # sort outlines by page and original position
-    @outlines = @outlines.sort_by {|x| x[:p]}
+    @outlines = @outlines.sort_by {|x| [x[:p], x[:y]] }
     lru = []
     level = 0
     @outlines.each_with_index do |o, i|
