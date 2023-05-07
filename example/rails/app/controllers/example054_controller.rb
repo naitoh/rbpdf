@@ -65,6 +65,7 @@ class Example054Controller < ApplicationController
     <label for="password">password:</label> <input type="password" name="password" value="" size="20" maxlength="30" /><br /><br />
     <label for="infile">file:</label> <input type="file" name="userfile" size="20" /><br /><br />
     <input type="checkbox" name="agree" value="1" checked="checked"/> <label for="agree">I agree </label><br /><br />
+    <input type="checkbox" name="consent" value="1"/> <label for="consent">I consent </label><br /><br />
     <input type="radio" name="radioquestion" id="rqa" value="1" /> <label for="rqa">one</label><br />
     <input type="radio" name="radioquestion" id="rqb" value="2" checked="checked"/> <label for="rqb">two</label><br />
     <input type="radio" name="radioquestion" id="rqc" value="3" /> <label for="rqc">three</label><br /><br />

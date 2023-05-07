@@ -223,8 +223,8 @@ class RbpdfFormFuncTest < Test::Unit::TestCase
       'Subtype' => 'Widget',
       'ap' => {
         'n' => {
-         'Off' => 'q BT /F3 12.00 Tf 0 g 0 0 Td (8) Tj ET Q',
-         'On' => 'q BT /F3 12.00 Tf 0 g 0 0 Td (8) Tj ET Q'
+         'Off' => 'q 0 g BT /F3 12.00 Tf 0 0 Td (o) Tj ET Q',
+         'On' => 'q 0 g BT /F3 12.00 Tf 0 0 Td (n) Tj ET Q'
         }
       },
       'as' => 'Off',
@@ -302,7 +302,19 @@ class RbpdfFormFuncTest < Test::Unit::TestCase
   def eopt_result_Ch(name, values, ff)
     {
       'Subtype' => 'Widget',
-      'ap' => { 'n' => 'q BT /F1 12.00 Tf 0 g ET Q' },
+      'ap' => {
+        'n' => <<~EOS.chomp
+          /Tx BMC q /F1 12.00 Tf 0 g 0.57 w 0 J 0 j [] 0 d 0 G 0 g
+
+          0.57 w 0 J 0 j [] 0 d 0 G 0 g
+          BT 1.13 16.08 Td 0 Tr 0.00 w [(-)] TJ ET
+          0.57 w 0 J 0 j [] 0 d 0 G 0 g
+          BT 1.13 1.08 Td 0 Tr 0.00 w [(Male)] TJ ET
+          0.57 w 0 J 0 j [] 0 d 0 G 0 g
+          BT 1.13 -13.92 Td 0 Tr 0.00 w [(Fema'le)] TJ ET
+          Q EMC
+        EOS
+      },
       'border' => [0, 0, 1],
       'bs' => { 's' => 'S', 'w' => 1 },
       'default_value' => 'default_value',
@@ -459,8 +471,8 @@ class RbpdfFormFuncTest < Test::Unit::TestCase
       'Subtype' => 'Widget',
       'ap' => {
         'n' => {
-         'Off' => 'q BT /F3 12.00 Tf 0 g 0 0 Td (8) Tj ET Q',
-         'Yes' => 'q BT /F3 12.00 Tf 0 g 0 0 Td (8) Tj ET Q'
+         'Off' => 'q 0 g BT /F3 12.00 Tf 0 0 Td (o) Tj ET Q',
+         'Yes' => 'q 0 g BT /F3 12.00 Tf 0 0 Td (n) Tj ET Q'
         }
       },
       'as' => 'Off',
@@ -522,12 +534,31 @@ class RbpdfFormFuncTest < Test::Unit::TestCase
     assert_equal name, page_annots[1][0]['txt']
   end
 
-  def eopt_result_Btn(pdf, caption, name, aa)
+  def eopt_result_Btn(pdf, caption, name, w, aa)
     s = pdf.send(:textstring, caption)
+    k = pdf.get_scale_factor
+    width = pdf.GetStringWidth(caption)
+    xdk = sprintf('%.2f', ((w - width) / 2.0 ) * k)
+
     {
       'Subtype' => 'Widget',
       'aa' => aa,
-      'ap' => { 'n' => 'q BT /F1 12.00 Tf 0 g ET Q' },
+      'ap' => {
+        'n' => <<~EOS.chomp
+        /Tx BMC q /F1 12.00 Tf 0 g 0.800 g
+        2.83 w 0 J 0 j [] 0.00 d 0.906 G 0.800 g
+        0.00 141.73 283.46 -141.73 re B 
+        2.83 w
+        0 J
+        0 j
+        [] 0.00 d
+        0.906 G 
+        0.800 g
+        2.83 w 0 J 0 j [] 0.00 d 0.906 G 0.800 g
+        q 0 g BT #{xdk} 125.50 Td 0 Tr 0.00 w [(#{caption})] TJ ET Q
+        Q EMC
+        EOS
+      },
       'border' => [0, 0, 1],
       'bs' => { 's' => 'S', 'w' => 1 },
       'default_value' => 'default_value',
@@ -576,7 +607,7 @@ class RbpdfFormFuncTest < Test::Unit::TestCase
 
     # Check Annotation : Print
     opt = {'default_value' => 'default_value'}
-    eopt = eopt_result_Btn(pdf, caption, name, '/D 300001 0 R')
+    eopt = eopt_result_Btn(pdf, caption, name, w, '/D 300001 0 R')
 
     pdf = RBPDF.new
     pdf.add_page
@@ -602,7 +633,7 @@ class RbpdfFormFuncTest < Test::Unit::TestCase
     # Check Annotation : action : S
     caption = 'Reset'
     action = {'S'=>'ResetForm'}
-    eopt = eopt_result_Btn(pdf, caption, name, "/D << /S /ResetForm >>")
+    eopt = eopt_result_Btn(pdf, caption, name, w, "/D << /S /ResetForm >>")
 
     pdf = RBPDF.new
     pdf.add_page

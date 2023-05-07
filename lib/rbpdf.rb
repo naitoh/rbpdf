@@ -449,6 +449,7 @@ class RBPDF
     else
       @buffer ||= ''
     end
+    @tmp_buffer = nil
     @pages ||= []
     @prev_pages ||= []
     @state ||= 0
@@ -4028,7 +4029,9 @@ class RBPDF
       ccode = getCellCode(w, h, '', border, 1, '', fill, '', 0, true)
       @lasth = prevLastH
 
-      if (border != 0) or (fill == 1)
+      if @tmp_buffer
+        @tmp_buffer = "#{ccode}\n#{@tmp_buffer}"
+      elsif (border != 0) or (fill == 1)
         if !@transfmrk[@page].nil?
           pagemark = @transfmrk[@page]
           @transfmrk[@page] += (ccode + "\n").length
@@ -6564,7 +6567,7 @@ protected
     rect = sprintf('%.2f %.2f', w, h)
     out << ' /BBox [0 0 ' + rect + ']'
     out << ' /Matrix [1 0 0 1 0 0]'
-    out << ' /Resources <</ProcSet [/PDF]>>'
+    out << ' /Resources 2 0 R'
     out << ' /Length ' + stream.length.to_s
     out << ' >>'
     out << ' ' + getstream(stream)
@@ -7700,7 +7703,6 @@ protected
         objrefs << " #{objid} 0 R"
       }
       out << " /Fields [#{objrefs}]"
-      out << ' /NeedAppearances ' + (@form_obj_id.empty? ? 'false' : 'true')
       if @sign && @signature_data['cert_type']
         out << ' /SigFlags 3'
       end
@@ -8198,7 +8200,10 @@ protected
   #
   def out(s)
     s.force_encoding('ASCII-8BIT') if s.respond_to?(:force_encoding)
-    if (@state==2)
+
+    if @tmp_buffer
+      @tmp_buffer << "#{s}\n"
+    elsif (@state==2)
       if !@in_footer and !@footerlen[@page].nil? and (@footerlen[@page] > 0)
         # puts data before page footer
         pagebuff = getPageBuffer(@page)
@@ -10812,7 +10817,28 @@ public
     fontstyle = sprintf("/F%d %.2f Tf %s", fontkey + 1, @font_size_pt, @text_color)
     popt['da'] = fontstyle
     popt['ap'] = {}
-    popt['ap']['n'] = "q BT #{fontstyle} ET Q"
+
+    if opt['v'] && !empty_string(opt['v'])
+      # set Appearances
+      popt['ap']['n'] = "/Tx BMC q #{fontstyle} "
+      gvars = getGraphicVars()
+      @h = h
+      @w = w
+      @t_margin = 0
+      @c_margin = 0.2
+
+      @tmp_buffer = ''
+      multi_cell(w, h, opt['v'], 0, '', 0, 0, 0.2, 0, true, 0, false, true, 0)
+      popt['ap']['n'] << @tmp_buffer
+      @tmp_buffer = nil
+      popt['ap']['n'] << 'Q EMC'
+
+      # restore previous values
+      setGraphicVars(gvars, true)
+    else
+      popt['ap']['n'] = "q BT #{fontstyle} ET Q"
+    end
+
     # merge options
     opt = popt.merge opt
     # remove some conflicting options
@@ -10913,12 +10939,12 @@ public
     unless @annotation_fonts.include? fontkey
       @annotation_fonts[font] = fontkey
     end
-    fontstyle = sprintf('/F%d %.2f Tf %s', fontkey + 1, @font_size_pt, @text_color)
-    popt['da'] = fontstyle
+    fontstyle = sprintf('/F%d %.2f Tf', fontkey + 1, @font_size_pt)
+    popt['da'] = "#{fontstyle} #{@text_color}"
     popt['ap'] = {}
     popt['ap']['n'] = {}
-    popt['ap']['n'][onvalue] = "q BT #{fontstyle} 0 0 Td (8) Tj ET Q"
-    popt['ap']['n']['Off'] = "q BT #{fontstyle} 0 0 Td (8) Tj ET Q"
+    popt['ap']['n'][onvalue] = "q #{@text_color} BT #{fontstyle} 0 0 Td (n) Tj ET Q"
+    popt['ap']['n']['Off'] = "q #{@text_color} BT #{fontstyle} 0 0 Td (o) Tj ET Q"
     popt['mk'] ||= {}
     popt['mk']['ca'] = '(l)'
     # merge options
@@ -10983,10 +11009,35 @@ public
     unless @annotation_fonts.include? fontkey
       @annotation_fonts[font] = fontkey
     end
+    s = ''
+    values.each {|v|
+      if v.is_a?(Array)
+        s << "#{v[1]}\n"
+      else
+        s << "#{v}\n"
+      end
+    }
+
     fontstyle = sprintf('/F%d %.2f Tf %s', fontkey + 1, @font_size_pt, @text_color)
     popt['da'] = fontstyle
     popt['ap'] = {}
-    popt['ap']['n'] = "q BT #{fontstyle} ET Q"
+    # set Appearances
+    popt['ap']['n'] = "/Tx BMC q #{fontstyle} "
+    gvars = getGraphicVars()
+    @h = h
+    @w = w
+    @t_margin = 0
+    @c_margin = 0.2
+
+    @tmp_buffer = ''
+    multi_cell(w, h, s, 0, '', 0, 0, 0.2, 0, true, 0, false, true, 0)
+    popt['ap']['n'] << @tmp_buffer
+    popt['ap']['n'] << 'Q EMC'
+    @tmp_buffer = nil
+
+    # restore previous values
+    setGraphicVars(gvars, true)
+
     # merge options
     opt = popt.merge opt
     # set remaining annotation data
@@ -11046,10 +11097,35 @@ public
     unless @annotation_fonts.include? fontkey
       @annotation_fonts[font] = fontkey
     end
+
+    s = ''
+    values.each {|v|
+      if v.is_a?(Array)
+        s << "#{v[1]}\n"
+      else
+        s << "#{v}\n"
+      end
+    }
     fontstyle = sprintf('/F%d %.2f Tf %s', fontkey + 1, @font_size_pt, @text_color)
     popt['da'] = fontstyle
     popt['ap'] = {}
-    popt['ap']['n'] = "q BT #{fontstyle} ET Q"
+    # set Appearances
+    popt['ap']['n'] = "/Tx BMC q #{fontstyle} "
+    gvars = getGraphicVars()
+    @h = h
+    @w = w
+    @t_margin = 0
+    @c_margin = 0.2
+
+    @tmp_buffer = ''
+    multi_cell(w, h, s, 0, '', 0, 0, 0.2, 0, true, 0, false, true, 0)
+    popt['ap']['n'] << @tmp_buffer
+    popt['ap']['n'] << 'Q EMC'
+    @tmp_buffer = nil
+
+    # restore previous values
+    setGraphicVars(gvars, true)
+
     # merge options
     opt = popt.merge opt
     # set remaining annotation data
@@ -11103,18 +11179,22 @@ public
     unless @annotation_fonts.include? fontkey
       @annotation_fonts[font] = fontkey
     end
-    fontstyle = sprintf('/F%d %.2f Tf %s', fontkey + 1, @font_size_pt, @text_color)
-    popt['da'] = fontstyle
+    fontstyle = sprintf('/F%d %.2f Tf', fontkey + 1, @font_size_pt)
+    popt['da'] = "#{fontstyle} #{@text_color}"
     popt['ap'] = {}
     popt['ap']['n'] = {}
-    popt['ap']['n']['Yes'] = "q BT #{fontstyle} 0 0 Td (8) Tj ET Q"
-    popt['ap']['n']['Off'] = "q BT #{fontstyle} 0 0 Td (8) Tj ET Q"
+    popt['ap']['n']['Yes'] = "q #{@text_color} BT #{fontstyle} 0 0 Td (n) Tj ET Q"
+    popt['ap']['n']['Off'] = "q #{@text_color} BT #{fontstyle} 0 0 Td (o) Tj ET Q"
+
     # merge options
     opt = popt.merge opt
     # set remaining annotation data
     opt['Subtype'] = 'Widget'
     opt['ft'] = 'Btn'
     opt['t'] = name
+    if empty_string(onvalue)
+      onvalue = 'Yes'
+    end
     opt['opt'] = [onvalue]
     if checked
       opt['v'] = ['/Yes']
@@ -11180,7 +11260,25 @@ public
     fontstyle = sprintf('/F%d %.2f Tf %s', fontkey + 1, @font_size_pt, @text_color)
     popt['da'] = fontstyle
     popt['ap'] = {}
-    popt['ap']['n'] = "q BT #{fontstyle} ET Q"
+    # set Appearances
+    popt['ap']['n'] = "/Tx BMC q #{fontstyle} 0.800 g\n"
+
+    gvars = getGraphicVars()
+    @h = h
+    @w = w
+    @c_margin *= 1.6
+
+    @tmp_buffer = ''
+    SetLineStyle({'width' => 1.0, 'cap' => 'butt', 'join' => 'miter', 'dash' => 0, 'color' => [231]})
+    SetFillColor(204)
+    multi_cell(w, h, caption, 1, 'C', 1, 0, 0, 0, true)
+    popt['ap']['n'] << @tmp_buffer
+    popt['ap']['n'] << 'Q EMC'
+    @tmp_buffer = nil
+
+    # restore previous values
+    setGraphicVars(gvars, true)
+
     # merge options
     opt = popt.merge opt
     # set remaining annotation data
@@ -15280,6 +15378,7 @@ protected
       'rMargin' => @r_margin,
       'lMargin' => @l_margin,
       'cMargin' => @c_margin,
+      'tMargin' => @t_margin,
       'LineWidth' => @line_width,
       'linestyleWidth' => @linestyle_width,
       'linestyleCap' => @linestyle_cap,
@@ -15300,24 +15399,30 @@ protected
       'listordered' => @listordered,
       'listcount' => @listcount,
       'lispacer' => @lispacer,
-      'lasth' => @lasth
+      'lasth' => @lasth,
+      'h' => @h,
+      'w' => @w,
+      'x' => @x,
+      'y' => @y,
     }
     return grapvars
   end
 
   #
   # Set graphic variables.
-  # [@param :gvars] array graphic variables
+  # [@param array :gvars] graphic variables
+  # [@param bool :option] set additional parameters
   # [@access protected]
   # [@since 4.2.010 (2008-11-14)]
   #
-  def setGraphicVars(gvars)
+  def setGraphicVars(gvars, option = false)
     @font_family = gvars['FontFamily']
     @font_style = gvars['FontStyle']
     @font_size_pt = gvars['FontSizePt']
     @r_margin = gvars['rMargin']
     @l_margin = gvars['lMargin']
     @c_margin = gvars['cMargin']
+    @t_margin = gvars['tMargin']
     @line_width = gvars['LineWidth']
     @linestyle_width = gvars['linestyleWidth']
     @linestyle_cap = gvars['linestyleCap']
@@ -15338,7 +15443,13 @@ protected
     @listordered = gvars['listordered']
     @listcount = gvars['listcount']
     @lispacer = gvars['lispacer']
-    #@lasth = gvars['lasth']
+    if option
+      @lasth = gvars['lasth']
+      @h = gvars['h']
+      @w = gvars['w']
+      @x = gvars['x']
+      @y = gvars['y']
+    end
     out('' + @linestyle_width + ' ' + @linestyle_cap + ' ' + @linestyle_join + ' ' + @linestyle_dash + ' ' + @draw_color + ' ' + @fill_color + '')
     unless empty_string(@font_family)
       SetFont(@font_family, @font_style, @font_size_pt)
