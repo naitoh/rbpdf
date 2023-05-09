@@ -14865,6 +14865,8 @@ public
     else
       gap = ''
     end
+    # sort outlines by page and original position
+    @outlines = @outlines.sort_by {|x| [x[:p], x[:y]] }
     @outlines.each_with_index do |outline, key|
       if @rtl
         aligntext = 'R'
@@ -15004,6 +15006,8 @@ public
     @html_link_color_array = []
     @html_link_font_style = ''
     page_first = getPage()
+    # sort outlines by page and original position
+    @outlines = @outlines.sort_by {|x| [x[:p], x[:y]] }
     @outlines.each_with_index do |outline, key|
       if empty_string(page)
         pagenum = outline[:p].to_s
