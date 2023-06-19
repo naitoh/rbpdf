@@ -9,3 +9,4 @@ gemspec
 
 gem "actionpack", "~> 5.2.8.1"
 gem "mini_magick"
+gem 'loofah', '<= 2.20.0' if RUBY_VERSION < '2.5'
