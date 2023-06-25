@@ -12960,7 +12960,7 @@ public
           if !@premode
             prelen = dom[key]['value'].length
             if isRTLTextDir()
-              dom[key]['value'] = dom[key]['value'].rstrip + 0.chr
+              dom[key]['value'] = dom[key]['value'].rstrip
             else
               dom[key]['value'] = dom[key]['value'].lstrip
             end
