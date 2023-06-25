@@ -61,4 +61,19 @@ class RbpdfTest < Test::Unit::TestCase
     no = pdf.get_num_pages
     assert_equal data[:no], no
   end
+
+  htmls = {
+    'rtl=false' => {html: '<p><img src="/dummy.png" style="width:2000px;height:563px;"></p>', rtl: false},
+    'rtl=true' => {html: '<p><img src="/dummy.png" style="width:2000px;height:563px;"></p>', rtl: true},
+  }
+
+  data(htmls)
+  test "write_html_cell Infinit loop check test with image size" do |data|
+    pdf = RBPDF.new
+    pdf.add_page()
+    pdf.set_rtl(data[:rtl])
+    pdf.write_html_cell(0, 0, '', '', data[:html])
+    no = pdf.get_num_pages
+    assert_equal 1, no
+  end
 end
