@@ -1,3 +1,9 @@
+1.21.2 2023-06-27
+       - Resolving infinite loops when rtl == true. (#89)
+       - Ruby 2.4 is not compatible with loofah 2.21 or higher (#87)
+       - Order bookmarks by page and y for addTOC() and addHTMLTOC(). (#86)
+       - Order bookmarks by page and y (#85) (by skalimer0)
+
 1.21.1 2023-03-20
        - Changed version description of PDF PRODUCER. (#83)
        - fix isValidCSSSelectorForTag method. (#82)
