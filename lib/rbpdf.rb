@@ -14521,8 +14521,8 @@ public
         @form_mode = 'post'
       end
     when 'input'
-      if tag['attribute']['name'] && !empty_string(tag['attribute']['name'])
-        name = tag['attribute']['name']
+      if tag['attribute']['type'] == 'checkbox' || (tag['attribute']['name'] && !empty_string(tag['attribute']['name']))
+        name = tag['attribute']['name'] || rand.to_s
         prop = {}
         opt = {}
         if tag['attribute']['value'] && !empty_string(tag['attribute']['value'])
