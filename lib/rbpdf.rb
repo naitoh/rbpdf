@@ -330,6 +330,7 @@ class RBPDF
     @listindent ||= 0
     @listindentlevel ||= 0
     @lispacer ||= ""
+    @li_position_x = nil
 
     # bookmark
     @outlines ||= []
@@ -13091,6 +13092,7 @@ public
     prev_listordered = @listordered
     prev_listcount = @listcount
     prev_lispacer = @lispacer
+    prev_li_position_x = @li_position_x
     @listnum = 0
     @listordered = []
     @listcount = []
@@ -14163,6 +14165,7 @@ public
     @listordered = prev_listordered
     @listcount = prev_listcount
     @lispacer = prev_lispacer
+    @li_position_x = prev_li_position_x
     dom = nil
   rescue => err
     Error('writeHTML Error.', err)
@@ -14479,6 +14482,7 @@ public
           @lispacer = '!'
         end
       end
+      @li_position_x = @x
     when 'blockquote'
       if @rtl
         @r_margin += @listindent
@@ -15016,9 +15020,11 @@ public
       @lasth = @font_size * @cell_height_ratio
     when 'dt'
       @lispacer = ''
+      @li_position_x = nil
       addHTMLVertSpace(0, 0, cell, firstorlast)
     when 'dd'
       @lispacer = ''
+      @li_position_x = nil
       if @rtl
         @r_margin -= @listindent
       else
@@ -15029,6 +15035,7 @@ public
     when 'ul', 'ol'
       @listnum -= 1
       @lispacer = ''
+      @li_position_x = nil
       if @rtl
         @r_margin -= @listindent
       else
@@ -15044,6 +15051,7 @@ public
       @lasth = @font_size * @cell_height_ratio
     when 'li'
       @lispacer = ''
+      @li_position_x = nil
       addHTMLVertSpace(0, 0, cell, firstorlast)
     when 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'
       addHTMLVertSpace(hbz, hb, cell, firstorlast)
@@ -15291,6 +15299,7 @@ protected
     width = 0
     textitem = ''
     tmpx = @x
+    @x = @li_position_x
     lspace = GetStringWidth('  ')
     if listtype == '!'
       # set default list type for unordered list
@@ -15362,6 +15371,7 @@ protected
     end
     @x = tmpx
     @lispacer = ''
+    @li_position_x = nil
   end
 
   #
@@ -15399,6 +15409,7 @@ protected
       'listordered' => @listordered,
       'listcount' => @listcount,
       'lispacer' => @lispacer,
+      'li_position_x' => @li_position_x,
       'lasth' => @lasth,
       'h' => @h,
       'w' => @w,
@@ -15443,6 +15454,7 @@ protected
     @listordered = gvars['listordered']
     @listcount = gvars['listcount']
     @lispacer = gvars['lispacer']
+    @li_position_x = gvars['li_position_x']
     if option
       @lasth = gvars['lasth']
       @h = gvars['h']
