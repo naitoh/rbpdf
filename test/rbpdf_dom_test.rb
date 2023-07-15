@@ -48,6 +48,9 @@ class RbpdfTest < Test::Unit::TestCase
     'Attribute'       => {:html => '<p style="text-align:justify">abc</p>', :length => 4,
                           :params => [{:parent => 0, :tag => false, :attribute => {}}, # parent -> Root
                                       {:parent => 0, :tag => true,  :value => 'p',     :elkey => 0, :opening => true, :align => 'J', :attribute => {:style => 'text-align:justify;'}}]},
+    'Boolean Attribute' => {:html => '<input checked />', :length => 2,
+                          :params => [{:parent => 0, :tag => false, :attribute => {}}, # parent -> Root
+                                      {:parent => 0, :tag => true,  :value => 'input', :elkey => 0, :opening => true, :attribute => {:checked => nil}}]},
     'Table border'    => {:html => '<table border="1"><tr><td>abc</td></tr></table>', :length => 9,
                               # -> '<table border="1"><tr><td>abc<marker style="font-size:0"/></td></tr></table>' ## added marker tag (by getHtmlDomArray()) ##
                           :params => [{:parent => 0, :tag => false, :attribute => {}}, # parent -> Root
@@ -81,7 +84,7 @@ class RbpdfTest < Test::Unit::TestCase
   test "Dom Basic test" do |data|
     pdf = RBPDF.new
     dom = pdf.send(:getHtmlDomArray, data[:html])
-    assert_equal data[:length], dom.length if data[:length]
+    assert_equal "#{data[:html]} #{data[:length]}", "#{data[:html]} #{dom.length}" if data[:length]
     data[:params].each_with_index {|param, i|
       # validated length check (for Rails 4.2 later)
       if dom[i].nil? and i >= data[:validated_length]
@@ -172,6 +175,16 @@ class RbpdfTest < Test::Unit::TestCase
     dom1 = pdf.send(:getHtmlDomArray, '<b>ab<hr/>c</b>')
     dom2 = pdf.send(:getHtmlDomArray, '<b>ab<hr>c</b>')
     assert_equal dom1, dom2
+  end
+
+  test "Dom self close tag Boolean attribute test" do
+    pdf = RBPDF.new
+
+    dom = pdf.send(:getHtmlDomArray, '<input checked="checked" />')
+    dom2 = pdf.send(:getHtmlDomArray, '<input checked /></input>')
+    assert_equal dom, dom2
+
+    assert_equal({"checked" => nil}, dom[1]['attribute'])
   end
 
   test "Dom HTMLTagHandler Basic test" do

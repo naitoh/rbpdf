@@ -234,7 +234,7 @@ class RBPDF
   # This is the class constructor.
   # It allows to set up the page format, the orientation and
   # the measure unit used in all the methods (except for the font sizes).
-  # @since 1.0
+  # [@since 1.0]
   # [@param string :orientation]
   #   page orientation. Possible values are (case insensitive):
   #   * P or Portrait (default)
@@ -330,13 +330,16 @@ class RBPDF
     @listindent ||= 0
     @listindentlevel ||= 0
     @lispacer ||= ""
+    @li_position_x = nil
 
     # bookmark
     @outlines ||= []
 
     # --- javascript and form ---
     @javascript ||= ''
-    @js_objects ||= []
+    @js_objects ||= {}
+    @js_start_obj_id ||= 300000
+    @js_obj_id ||= 300000
 
     @dpi = 72.0
     @newpagegroup ||= []
@@ -394,6 +397,7 @@ class RBPDF
     @page_obj_id ||= []
     @embedded_start_obj_id ||= 100000
     @form_obj_id ||= []
+    @default_form_prop ||= {'lineWidth'=>1, 'borderStyle'=>'solid', 'fillColor'=>[255, 255, 255], 'strokeColor'=>[128, 128, 128]}
     @apxo_start_obj_id ||= 400000
     @apxo_obj_id ||= 400000
     @annotation_fonts ||= {}
@@ -446,6 +450,7 @@ class RBPDF
     else
       @buffer ||= ''
     end
+    @tmp_buffer = nil
     @pages ||= []
     @prev_pages ||= []
     @state ||= 0
@@ -4025,7 +4030,9 @@ class RBPDF
       ccode = getCellCode(w, h, '', border, 1, '', fill, '', 0, true)
       @lasth = prevLastH
 
-      if (border != 0) or (fill == 1)
+      if @tmp_buffer
+        @tmp_buffer = "#{ccode}\n#{@tmp_buffer}"
+      elsif (border != 0) or (fill == 1)
         if !@transfmrk[@page].nil?
           pagemark = @transfmrk[@page]
           @transfmrk[@page] += (ccode + "\n").length
@@ -6033,21 +6040,20 @@ protected
             annots << ' /FT /Btn'
             annots << ' /Ff 49152'
             annots << ' /Kids ['
+            defval = nil
             @radiobutton_groups[n][pl['txt']].each {|data|
-              annots << ' ' + data['kid'] + ' 0 R'
+              annots << " #{data['kid']} 0 R"
               if data['def'] != 'Off'
                 defval = data['def']
               end
             }
             annots << ' ]'
-            if defval
-              annots << ' /V /' + defval
-            end
+            annots << " /V /#{defval}" if defval
             annots << ' >>'
             @annot_obj_id += 1
             @offsets[@annot_obj_id] = @bufferlen
-            out(@annot_obj_id + ' 0 obj ' + annots + ' endobj')
-            @form_obj_id.push = @annot_obj_id
+            out("#{@annot_obj_id} 0 obj #{annots} endobj")
+            @form_obj_id << @annot_obj_id
             # store object id to be used on Parent entry of Kids
             @radiobutton_groups[n][pl['txt']] = @annot_obj_id
           end
@@ -6105,7 +6111,7 @@ protected
             else
               val = pl['opt']['f'].to_i
             end
-            annots << ' /F ' + val.to_i
+            annots << " /F #{val}"
           end
           # annots << ' /AP '
           # annots << ' /AS '
@@ -6114,24 +6120,23 @@ protected
           end
           if pl['opt']['ap']
             # appearance stream
-            annots << ' /AP << ' + pl['opt']['ap'] + ' >>'
             annots << ' /AP <<'
             if pl['opt']['ap'].is_a?(Hash)
               pl['opt']['ap'].each {|apmode, apdef|
                 # apmode can be: n = normal; r = rollover; d = down
                 annots << ' /' + apmode.upcase
-                if apdef.is_a?(Array)
+                if apdef.is_a?(Hash)
                   annots << ' <<'
                   apdef.each {|apstate, stream|
                     # reference to XObject that define the appearance for this mode-state
                     apsobjid = putAPXObject(c, d, stream)
-                    annots << ' /' + apstate + ' ' + apsobjid + ' 0 R'
+                    annots << " /#{apstate} #{apsobjid} 0 R"
                   }
                   annots << ' >>'
                 else
                   # reference to XObject that define the appearance for this mode
                   apsobjid = putAPXObject(c, d, apdef)
-                  annots << ' ' + apsobjid + ' 0 R'
+                  annots << " #{apsobjid} 0 R"
                 end
               }
             else
@@ -6143,7 +6148,7 @@ protected
             annots << ' /BS <<'
             annots << ' /Type /Border'
             if !pl['opt']['bs']['w'].nil?
-              annots << ' /W ' + pl['opt']['bs']['w'].to_i
+              annots << " /W #{pl['opt']['bs']['w']}"
             end
             bstyles = ['S', 'D', 'B', 'I', 'U']
             if !pl['opt']['bs']['s'].nil? and bstyles.include?(pl['opt']['bs']['s'])
@@ -6205,7 +6210,7 @@ protected
             if !pl['opt']['t'].nil? and pl['opt']['t'].is_a?(String)
               annots << ' /T ' + textannobjstring(pl['opt']['t'])
             end
-            # annots .= ' /Popup '
+            # annots << ' /Popup '
             if !pl['opt']['ca'].nil?
               annots << ' /CA ' + sprintf("%.4f", pl['opt']['ca'].to_f)
             end
@@ -6420,9 +6425,9 @@ protected
             end # end MK
 
             # --- Entries for field dictionaries ---
-            if @radiobutton_groups[n][pl['txt']]
+            if @radiobutton_groups[n] and @radiobutton_groups[n][pl['txt']]
               # set parent
-              annots << ' /Parent ' + @radiobutton_groups[n][pl['txt']] + ' 0 R'
+              annots << " /Parent #{@radiobutton_groups[n][pl['txt']]} 0 R"
             end
             if pl['opt']['t'] and pl['opt']['t'].is_a?(String)
               annots << ' /T ' + dataannobjstring(pl['opt']['t'])
@@ -6443,7 +6448,7 @@ protected
               else
                 flag = pl['opt']['ff'].to_i
               end
-              annots << ' /Ff ' + flag
+              annots << " /Ff #{flag}"
             end
             if pl['opt']['maxlen']
               annots << ' /MaxLen ' + pl['opt']['maxlen'].to_i.to_s
@@ -6529,9 +6534,9 @@ protected
           @offsets[@annot_obj_id] = @bufferlen
           out(@annot_obj_id.to_s + ' 0 obj ' + annots + ' endobj')
 
-          if formfield and ! @radiobutton_groups[n][pl['txt']]
+          if formfield and !(@radiobutton_groups[n] and @radiobutton_groups[n][pl['txt']])
             # store reference of form object
-            @form_obj_id.push = @annot_obj_id
+            @form_obj_id << @annot_obj_id
           end
         }
       end # end for each page
@@ -6563,7 +6568,7 @@ protected
     rect = sprintf('%.2f %.2f', w, h)
     out << ' /BBox [0 0 ' + rect + ']'
     out << ' /Matrix [1 0 0 1 0 0]'
-    out << ' /Resources <</ProcSet [/PDF]>>'
+    out << ' /Resources 2 0 R'
     out << ' /Length ' + stream.length.to_s
     out << ' >>'
     out << ' ' + getstream(stream)
@@ -7163,7 +7168,7 @@ protected
         out(out)
       end
     end
-    @fontkeys.each do |k|
+    @fontkeys.each_with_index do |k, i|
       #Font objects
       setFontSubBuffer(k, 'n', @n + 1)
       font = getFontBuffer(k)
@@ -7181,7 +7186,7 @@ protected
         end
         if name.downcase == 'helvetica'
           # add default font for annotations
-          @annotation_fonts['helvetica'] = k
+          @annotation_fonts['helvetica'] = i
         end
         out << ' >> endobj'
         out(out)
@@ -7232,9 +7237,9 @@ protected
           Error('Unsupported font type: ' + type)
         end
         obj_id = self.send(mtd,font)
-        # store object ID for current font
-        @font_obj_ids[k] = obj_id
       end
+      # store object ID for current font
+      @font_obj_ids[k] = obj_id
     end
   end
 
@@ -7595,6 +7600,7 @@ protected
     putbookmarks()
     putEmbeddedFiles()
     putannotsobjs()
+    putjavascript()
     # encryption
 
     ### T.B.D ### TCPDF 5.0.000 ###
@@ -7653,11 +7659,11 @@ protected
     newobj()
     out = '<< /Type /Catalog'
     out << ' /Pages 1 0 R'
-    if (@zoom_mode=='fullpage')
+    if @zoom_mode == 'fullpage'
       out << ' /OpenAction [3 0 R /Fit]'
-    elsif (@zoom_mode=='fullwidth')
+    elsif @zoom_mode == 'fullwidth'
       out << ' /OpenAction [3 0 R /FitH null]'
-    elsif (@zoom_mode=='real')
+    elsif @zoom_mode == 'real'
       out << ' /OpenAction [3 0 R /XYZ null null 1]'
     elsif @zoom_mode.is_a?(Numeric)
       out << ' /OpenAction [3 0 R /XYZ null null ' + (@zoom_mode/100.0).to_s + ']'
@@ -7674,7 +7680,7 @@ protected
     end
     out << ' /Names <<'
     if !@javascript.empty? or !@js_objects.empty?
-      out << ' /JavaScript ' + @n_js + ' 0 R'
+      out << " /JavaScript #{@n_js} 0 R"
     end
     out << ' >>'
 
@@ -7687,9 +7693,43 @@ protected
     v = @n_ocg_view.to_s + ' 0 R'
     as = '<</Event /Print /OCGs [' + p + ' ' + v + '] /Category [/Print]>> <</Event /View /OCGs [' + p + ' ' + v + '] /Category [/View]>>'
     out << ' /OCProperties <</OCGs [' + p + ' ' + v + '] /D <</ON [' + p + '] /OFF [' + v + '] /AS [' + as + ']>>>>'
+    # AcroForm
+    if !@form_obj_id.empty? || (@sign && @signature_data['cert_type'])
+      out << ' /AcroForm<<'
+      objrefs = ''
+      if @sign && @signature_data['cert_type']
+          objrefs << "#{@sig_obj_id} 0 R"
+      end
+      @form_obj_id.each{|objid|
+        objrefs << " #{objid} 0 R"
+      }
+      out << " /Fields [#{objrefs}]"
+      if @sign && @signature_data['cert_type']
+        out << ' /SigFlags 3'
+      end
 
-    ### T.B.D ### TCPDF 5.0.000 ###
-
+      #out << ' /CO '
+      unless @annotation_fonts.empty?
+        out << ' /DR <<'
+        out << ' /Font <<'
+        @annotation_fonts.each {|font, fontkey|
+          out << " /F#{fontkey + 1} #{@font_obj_ids[font]} 0 R"
+        }
+        out << ' >> >>'
+      end
+      out << " /DA (/F#{@fontkeys.index('helvetica') + 1} 0 Tf 0 g)"
+      out << ' /Q ' + (@rtl ? '2' : '0')
+      #out << ' /XFA '
+      out << ' >>'
+      # signatures
+      if @sign && @signature_data['cert_type']
+        if @signature_data['cert_type'] > 0
+          out << " /Perms<</DocMDP #{@sig_obj_id + 1} 0 R>>"
+        else
+          out << " /Perms<</UR3 #{@sig_obj_id + 1} 0 R>>"
+        end
+      end
+    end
     out << ' >> endobj'
     out(out)
   end
@@ -7830,6 +7870,20 @@ protected
     if @annot_obj_id > @annots_start_obj_id
       out((@annots_start_obj_id + 1).to_s + ' ' + (@annot_obj_id - @annots_start_obj_id).to_s)
       (@annots_start_obj_id + 1).upto(@annot_obj_id) do |i|
+        out(sprintf('%010d 00000 n ', @offsets[i]))
+      end
+    end
+    # Javascript Objects
+    if @js_obj_id > @js_start_obj_id
+      out((@js_start_obj_id + 1).to_s + ' ' + (@js_obj_id - @js_start_obj_id).to_s)
+      (@js_start_obj_id + 1).upto(@js_obj_id) do |i|
+        out(sprintf('%010d 00000 n ', @offsets[i]))
+      end
+    end
+    # Appearance streams XObjects
+    if @apxo_obj_id > @apxo_start_obj_id
+      out((@apxo_start_obj_id + 1).to_s + ' ' + (@apxo_obj_id - @apxo_start_obj_id).to_s)
+      (@apxo_start_obj_id + 1).upto(@apxo_obj_id) do |i|
         out(sprintf('%010d 00000 n ', @offsets[i]))
       end
     end
@@ -8108,9 +8162,9 @@ protected
 
   #
   # get raw output stream.
-  # @param string :s string to output.
-  # @param int :n object reference for encryption mode
-  # @access protected
+  # [@param string :s] string to output.
+  # [@param int :n] object reference for encryption mode
+  # [@access protected]
   #
   def getrawstream(s, n=0)
     if n <= 0
@@ -8122,9 +8176,9 @@ protected
 
   #
   # Format output stream
-  # @param string :s string to output.
-  # @param int :n object reference for encryption mode
-  # @access protected
+  # [@param string :s] string to output.
+  # [@param int :n] object reference for encryption mode
+  # [@access protected]
   #
   def getstream(s, n=0)
     "stream\n" + getrawstream(s, n=0) + "\nendstream"
@@ -8147,7 +8201,10 @@ protected
   #
   def out(s)
     s.force_encoding('ASCII-8BIT') if s.respond_to?(:force_encoding)
-    if (@state==2)
+
+    if @tmp_buffer
+      @tmp_buffer << "#{s}\n"
+    elsif (@state==2)
       if !@in_footer and !@footerlen[@page].nil? and (@footerlen[@page] > 0)
         # puts data before page footer
         pagebuff = getPageBuffer(@page)
@@ -10370,7 +10427,924 @@ public
   protected :putbookmarks
 
   # --- JAVASCRIPT ------------------------------------------------------
+  #
+  # Adds a javascript
+  # [@param string :script] Javascript code
+  # [@access public]
+  # [@author Johannes G�ntert, Nicola Asuni]
+  # [@since 2.1.002 (2008-02-12)]
+  #
+  def IncludeJS(script)
+    @javascript << script
+  end
+
+  #
+  # Adds a javascript object and return object ID
+  # [@param string :script] Javascript code
+  # [@param boolean :onload] if true executes this object when opening the document
+  # [@return int] internal object ID
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-07)]
+  #
+  def addJavascriptObject(script, onload = false)
+    @js_obj_id += 1
+    @js_objects[@js_obj_id] = {'js' => script, 'onload' => onload}
+    @js_obj_id
+  end
+
+  #
+  # Create a javascript PDF string.
+  # [@access protected]
+  # [@author Johannes G�ntert, Nicola Asuni]
+  # [@since 2.1.002 (2008-02-12)]
+  #
+  def putjavascript()
+    return if @javascript.empty? && @js_objects.empty?
+
+    if @javascript.index 'this.addField'
+      # @setUserRights() unless @ur
+
+      # the following two lines are used to avoid form fields duplication after saving
+      # The addField method only works on Acrobat Writer, unless the document is signed with Adobe private key (UR3)
+      jsa = sprintf("ftcpdfdocsaved=this.addField('%s','%s',%d,[%.2f,%.2f,%.2f,%.2f]);", 'tcpdfdocsaved', 'text', 0, 0, 1, 0, 1)
+      jsb = "getField('tcpdfdocsaved').value='saved';"
+      @javascript = "#{jsa}\n#{@javascript}\n#{jsb}"
+    end
+    @n_js = newobj()
+    out = ' << /Names ['
+    unless @javascript.empty?
+      out << " (EmbeddedJS) #{@n + 1} 0 R"
+    end
+    unless @js_objects.empty?
+      @js_objects.each{|key, val|
+        out << " (JS#{key}) #{key} 0 R" if val['onload']
+      }
+    end
+    out << ' ] >> endobj'
+    out(out)
+    # default Javascript object
+    unless @javascript.empty?
+      newobj()
+      out = '<< /S /JavaScript'
+      out << " /JS #{textstring(@javascript)}"
+      out << ' >> endobj'
+      out(out)
+    end
+    # additional Javascript objects
+    unless @js_objects.empty?
+      @js_objects.each {|key, val|
+        @offsets[key] = @bufferlen
+        out = "#{key} 0 obj\n << /S /JavaScript /JS #{textstring(val['js'])} >> endobj"
+        out(out)
+      }
+    end
+  end
+
+  #
+  # Convert color to javascript color.
+  # [@param string :color] color name or #RRGGBB
+  # [@access protected}
+  # [@author Denis Van Nuffelen, Nicola Asuni]
+  # [@since 2.1.002 (2008-02-12)]
+  #
+  def JScolor(color)
+    aColors = ['transparent', 'black', 'white', 'red', 'green', 'blue', 'cyan', 'magenta', 'yellow', 'dkGray', 'gray', 'ltGray']
+    if color[0] == '#'
+      return sprintf("['RGB',%.3f,%.3f,%.3f]", color[1, 2].to_i(16) / 255, color[3, 2].to_i(16) / 255, color[5, 2].to_i(16) / 255)
+    end
+
+    unless aColors.include? color
+      Error('Invalid color: ' + color)
+    end
+    'color.' + color
+  end
+  protected :JScolor
+
+  #
+  # Adds a javascript form field.
+  # [@param string :type] field type
+  # [@param string :name] field name
+  # [@param int :x] horizontal position
+  # [@param int :y] vertical position
+  # [@param int :w] width
+  # [@param int :h] height
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@access protected]
+  # [@author Denis Van Nuffelen, Nicola Asuni]
+  # [@since 2.1.002 (2008-02-12)]
+  #
+  def addfield(type, name, x, y, w, h, prop)
+    x = x - w if @rtl
+
+    # the followind avoid fields duplication after saving the document
+    @javascript << "if(getField('tcpdfdocsaved').value != 'saved') {"
+    k = @k
+    @javascript << "f#{name}=this.addField('#{name}','#{type}',#{PageNo() - 1},[#{sprintf("%.2f,%.2f,%.2f,%.2f", x * k, (@h - y) * k + 1, (x + w) * k, (@h - y - h) * k + 1)}]);\n"
+    @javascript << "f#{name}.textSize=#{@font_size_pt};\n"
+    prop.each {|k, v|
+      val = k[-5..-1] == 'Color' ? JScolor(v) : "'#{v}'"
+      @javascript << "f#{name}.#{k}=#{val};\n"
+    }
+    if @rtl
+      @x -= w
+    else
+      @x += w
+    end
+    @javascript << '}'
+  end
+  protected :addfield
+
   # --- FORM FIELDS -----------------------------------------------------
+
+  #
+  # Convert JavaScript form fields properties array to Annotation Properties array.
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@return array of annotation properties]
+  # [@access protected]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-06)]
+  #
+  def getAnnotOptFromJSProp(prop)
+    # the annotation options area already defined
+    return prop['aopt'] if prop['aopt'].is_a?(Array)
+
+    opt = {} # value to be returned
+    # alignment: Controls how the text is laid out within the text field.
+    if prop['alignment']
+      opt['q'] = case prop['alignment']
+                 when 'left'; 0
+                 when 'center'; 1
+                 when 'right'; 2
+                 else @rtl ? 2 : 0
+                 end
+    end
+    # lineWidth: Specifies the thickness of the border when stroking the perimeter of a field's rectangle.
+    if prop['lineWidth']
+      linewidth = prop['lineWidth'].to_i
+    else
+      linewidth = 1
+    end
+    # borderStyle: The border style for a field.
+    case prop['borderStyle']
+    when 'border.d', 'dashed'
+      opt['border'] = [0, 0, linewidth, [3, 2]]
+      opt['bs'] = {'w'=>linewidth, 's'=>'D', 'd'=>[3, 2]}
+    when 'border.b', 'beveled'
+      opt['border'] = [0, 0, linewidth]
+      opt['bs'] = {'w'=>linewidth, 's'=>'B'}
+    when 'border.i', 'inset'
+      opt['border'] = [0, 0, linewidth]
+      opt['bs'] = {'w'=>linewidth, 's'=>'I'}
+    when 'border.u', 'underline'
+      opt['border'] = [0, 0, linewidth]
+      opt['bs'] = {'w'=>linewidth, 's'=>'U'}
+    else # 'border.s', 'solid'
+      opt['border'] = [0, 0, linewidth]
+      opt['bs'] = {'w'=>linewidth, 's'=>'S'}
+    end
+
+    opt['border'] = prop['border'] if prop['border'].is_a?(Array)
+    opt['mk'] ||= {}
+    opt['mk']['if'] ||= {}
+    opt['mk']['if']['a'] = [0.5, 0.5]
+    # buttonAlignX: Controls how space is distributed from the left of the button face with respect to the icon.
+    opt['mk']['if']['a'][0] = prop['buttonAlignX'] if prop['buttonAlignX']
+    # buttonAlignY: Controls how unused space is distributed from the bottom of the button face with respect to the icon.
+    opt['mk']['if']['a'][1] = prop['buttonAlignY'] if prop['buttonAlignY']
+    # buttonFitBounds: If true, the extent to which the icon may be scaled is set to the bounds of the button field.
+    opt['mk']['if']['fb'] = true if prop['buttonFitBounds'] && (prop['buttonFitBounds'] == 'true')
+    # buttonScaleHow: Controls how the icon is scaled (if necessary) to fit inside the button face.
+    case prop['buttonScaleHow']
+    when 'scaleHow.proportional'; opt['mk']['if']['s'] = 'P'
+    when 'scaleHow.anamorphic';   opt['mk']['if']['s'] = 'A'
+    end
+    # buttonScaleWhen: Controls when an icon is scaled to fit inside the button face.
+    case prop['buttonScaleWhen']
+    when 'scaleWhen.always';   opt['mk']['if']['sw'] = 'A'
+    when 'scaleWhen.never';    opt['mk']['if']['sw'] = 'N'
+    when 'scaleWhen.tooBig';   opt['mk']['if']['sw'] = 'B'
+    when 'scaleWhen.tooSmall'; opt['mk']['if']['sw'] = 'S'
+    end
+    # buttonPosition: Controls how the text and the icon of the button are positioned with respect to each other within the button face.
+    case prop['buttonPosition']
+    when 0, 'position.textOnly';  opt['mk']['tp'] = 0
+    when 1, 'position.iconOnly';  opt['mk']['tp'] = 1
+    when 2, 'position.iconTextV'; opt['mk']['tp'] = 2
+    when 3, 'position.textIconV'; opt['mk']['tp'] = 3
+    when 4, 'position.iconTextH'; opt['mk']['tp'] = 4
+    when 5, 'position.textIconH'; opt['mk']['tp'] = 5
+    when 6, 'position.overlay';   opt['mk']['tp'] = 6
+    end
+    # fillColor: Specifies the background color for a field.
+    if prop['fillColor']
+      if prop['fillColor'].is_a? Array
+        opt['mk']['bg'] = prop['fillColor']
+      else
+        opt['mk']['bg'] = convertHTMLColorToDec(prop['fillColor'])
+      end
+    end
+    # strokeColor: Specifies the stroke color for a field that is used to stroke the rectangle of the field with a line as large as the line width.
+    if prop['strokeColor']
+      if prop['strokeColor'].is_a? Array
+        opt['mk']['bc'] = prop['strokeColor']
+      else
+        opt['mk']['bc'] = convertHTMLColorToDec(prop['strokeColor'])
+      end
+    end
+    # rotation: The rotation of a widget in counterclockwise increments.
+    opt['mk']['r'] = prop['rotation'] if prop['rotation']
+    # charLimit: Limits the number of characters that a user can type into a text field.
+    opt['maxlen'] = prop['charLimit'].to_i if prop['charLimit']
+
+    ff ||= 0
+    # readonly: The read-only characteristic of a field. If a field is read-only, the user can see the field but cannot change it.
+    ff |= 1 << 0 if prop['readonly'] == 'true'
+    # required: Specifies whether a field requires a value.
+    ff |= 1 << 1 if prop['required'] == 'true'
+    # multiline: Controls how text is wrapped within the field.
+    ff |= 1 << 12 if prop['multiline'] == 'true'
+    # password: Specifies whether the field should display asterisks when data is entered in the field.
+    ff |= 1 << 13 if prop['password'] == 'true'
+    # NoToggleToOff: If set, exactly one radio button shall be selected at all times; selecting the currently selected button has no effect.
+    ff |= 1 << 14 if prop['NoToggleToOff'] == 'true'
+    # Radio: If set, the field is a set of radio buttons.
+    ff |= 1 << 15 if prop['Radio'] == 'true'
+    # Pushbutton: If set, the field is a pushbutton that does not retain a permanent value.
+    ff |= 1 << 16 if prop['Pushbutton'] == 'true'
+    # Combo: If set, the field is a combo box; if clear, the field is a list box.
+    ff |= 1 << 17 if prop['Combo'] == 'true'
+    # editable: Controls whether a combo box is editable.
+    ff |= 1 << 18 if prop['editable'] == 'true'
+    # Sort: If set, the field's option items shall be sorted alphabetically.
+    ff |= 1 << 19 if prop['Sort'] == 'true'
+    # fileSelect: If true, sets the file-select flag in the Options tab of the text field (Field is Used for File Selection).
+    ff |= 1 << 20 if prop['fileSelect'] == 'true'
+    # multipleSelection: If true, indicates that a list box allows a multiple selection of items.
+    ff |= 1 << 21 if prop['multipleSelection'] == 'true'
+    # doNotSpellCheck: If true, spell checking is not performed on this editable text field.
+    ff |= 1 << 22 if prop['doNotSpellCheck'] == 'true'
+    # doNotScroll: If true, the text field does not scroll and the user, therefore, is limited by the rectangular region designed for the field.
+    ff |= 1 << 23 if prop['doNotScroll'] == 'true'
+    # comb: If set to true, the field background is drawn as series of boxes (one for each character in the value of the field) and each character of the content is drawn within those boxes. The number of boxes drawn is determined from the charLimit property. It applies only to text fields. The setter will also raise if any of the following field properties are also set multiline, password, and fileSelect. A side-effect of setting this property is that the doNotScroll property is also set.
+    ff |= 1 << 24 if prop['comb'] == 'true'
+    # radiosInUnison: If false, even if a group of radio buttons have the same name and export value, they behave in a mutually exclusive fashion, like HTML radio buttons.
+    ff |= 1 << 25 if prop['radiosInUnison'] == 'true'
+    # richText: If true, the field allows rich text formatting.
+    ff |= 1 << 25 if prop['richText'] == 'true'
+    # commitOnSelChange: Controls whether a field value is committed after a selection change.
+    ff |= 1 << 26 if prop['commitOnSelChange'] == 'true'
+    opt['ff'] = ff
+
+    # defaultValue: The default value of a field - that is, the value that the field is set to when the form is reset.
+    opt['dv'] = prop['defaultValue'] if prop['defaultValue']
+    f = 1 << 2 # default value for annotation flags
+    # readonly: The read-only characteristic of a field. If a field is read-only, the user can see the field but cannot change it.
+    if prop['readonly'] == 'true'
+      f |= 1 << 6
+    end
+    # display: Controls whether the field is hidden or visible on screen and in print.
+    case prop['display']
+    when 'display.visible'
+      #
+    when 'display.hidden'
+      f |= 1 << 1
+    when 'display.noPrint'
+      f &= ~(1 << 2)
+    when 'display.noView'
+      f |= 1 << 5
+    end
+    opt['f'] = f
+
+    # currentValueIndices: Reads and writes single or multiple values of a list box or combo box.
+    opt['i'] = prop['currentValueIndices'] if prop['currentValueIndices'].is_a?(Array)
+    # value: The value of the field data that the user has entered.
+    if prop['value']
+      if prop['value'].is_a?(Array)
+        opt['opt'] = []
+        prop['value'].each_with_index {|v, i|
+          # exportValues: An array of strings representing the export values for the field.
+          if prop['exportValues'] && prop['exportValues'][i]
+            opt['opt'][i] = [prop['exportValues'][i], v]
+          else
+            opt['opt'][i] = v
+          end
+        }
+      else
+        opt['v'] = prop['value']
+      end
+    end
+    # richValue: This property specifies the text contents and formatting of a rich text field.
+    opt['rv'] = prop['richValue'] if prop['richValue']
+    # submitName: If nonempty, used during form submission instead of name. Only applicable if submitting in HTML format (that is, URL-encoded).
+    opt['tm'] = prop['submitName'] if prop['submitName']
+    # name: Fully qualified field name.
+    opt['t'] = prop['name'] if prop['name']
+    # userName: The user name (short description string) of the field.
+    opt['tu'] = prop['userName'] if prop['userName']
+    # highlight: Defines how a button reacts when a user clicks it.
+    case prop['highlight']
+    when 'none',    'highlight.n'; opt['h'] = 'N'
+    when 'invert',  'highlight.i'; opt['h'] = 'i'
+    when 'push',    'highlight.p'; opt['h'] = 'P'
+    when 'outline', 'highlight.o'; opt['h'] = 'O'
+    end
+    # Unsupported options:
+    # - calcOrderIndex: Changes the calculation order of fields in the document.
+    # - delay: Delays the redrawing of a field's appearance.
+    # - defaultStyle: This property defines the default style attributes for the form field.
+    # - style: Allows the user to set the glyph style of a check box or radio button.
+    # - textColor, textFont, textSize
+    opt
+  end
+  protected :getAnnotOptFromJSProp
+
+  #
+  # Set default properties for form fields.
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-06)]
+  #
+  def setFormDefaultProp(prop = [])
+    @default_form_prop = prop
+  end
+  alias_method :set_form_default_prop, :setFormDefaultProp
+
+  #
+  # Return the default properties for form fields.
+  # [@return array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-06)]
+  #
+  def getFormDefaultProp()
+    @default_form_prop
+  end
+  alias_method :get_form_default_prop, :getFormDefaultProp
+
+  #
+  # Creates a text field
+  # [@param string :name] field name
+  # [@param float :w] Width of the rectangle
+  # [@param float :h] Height of the rectangle
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@param array :opt] annotation parameters. Possible values are described on official PDF32000_2008 reference.
+  # [@param float :x] Abscissa of the upper-left corner of the rectangle
+  # [@param float :y] Ordinate of the upper-left corner of the rectangle
+  # [@param boolean :js] if true put the field using JavaScript (requires Acrobat Writer to be rendered).
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-07)]
+  #
+  def TextField(name, w, h, prop = {}, opt = {}, x = '', y = '', js = false)
+    x = @x if x == ''
+    y = @y if y == ''
+
+    if js
+      addfield('text', name, x, y, w, h, prop)
+      return
+    end
+    # get default style
+    prop = getFormDefaultProp.merge prop
+    # get annotation data
+    popt = getAnnotOptFromJSProp(prop)
+    # set default appearance stream
+    font = @font_family
+    fontkey = @fontkeys.index font
+    unless @annotation_fonts.include? fontkey
+      @annotation_fonts[font] = fontkey
+    end
+    fontstyle = sprintf("/F%d %.2f Tf %s", fontkey + 1, @font_size_pt, @text_color)
+    popt['da'] = fontstyle
+    popt['ap'] = {}
+
+    if opt['v'] && !empty_string(opt['v'])
+      # set Appearances
+      popt['ap']['n'] = "/Tx BMC q #{fontstyle} "
+      gvars = getGraphicVars()
+      @h = h
+      @w = w
+      @t_margin = 0
+      @c_margin = 0.2
+
+      @tmp_buffer = ''
+      multi_cell(w, h, opt['v'], 0, '', 0, 0, 0.2, 0, true, 0, false, true, 0)
+      popt['ap']['n'] << @tmp_buffer
+      @tmp_buffer = nil
+      popt['ap']['n'] << 'Q EMC'
+
+      # restore previous values
+      setGraphicVars(gvars, true)
+    else
+      popt['ap']['n'] = "q BT #{fontstyle} ET Q"
+    end
+
+    # merge options
+    opt = popt.merge opt
+    # remove some conflicting options
+    opt.delete :bs
+    # set remaining annotation data
+    opt['Subtype'] = 'Widget'
+    opt['ft'] = 'Tx'
+    opt['t'] = name
+    #
+    # Additional annotation's parameters (check _putannotsobj() method):
+    # opt['f']
+    # opt['ap']
+    # opt['as']
+    # opt['bs']
+    # opt['be']
+    # opt['c']
+    # opt['border']
+    # opt['h']
+    # opt['mk']
+    # opt['mk']['r']
+    # opt['mk']['bc']
+    # opt['mk']['bg']
+    # opt['mk']['ca']
+    # opt['mk']['rc']
+    # opt['mk']['ac']
+    # opt['mk']['i']
+    # opt['mk']['ri']
+    # opt['mk']['ix']
+    # opt['mk']['if']
+    # opt['mk']['if']['sw']
+    # opt['mk']['if']['s']
+    # opt['mk']['if']['a']
+    # opt['mk']['if']['fb']
+    # opt['mk']['tp']
+    # opt['tu']
+    # opt['tm']
+    # opt['ff']
+    # opt['v']
+    # opt['dv']
+    # opt['a']
+    # opt['aa']
+    # opt['q']
+    Annotation(x, y, w, h, name, opt, 0)
+    if @rtl
+      @x -= w
+    else
+      @x += w
+    end
+  end
+  alias_method :text_field, :TextField
+
+  #
+  # Creates a RadioButton field
+  # [@param string :name] field name
+  # [@param int :w] width
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@param array :opt] annotation parameters. Possible values are described on official PDF32000_2008 reference.
+  # [@param string :onvalue] value to be returned if selected.
+  # [@param boolean :checked] define the initial state.
+  # [@param float :x] Abscissa of the upper-left corner of the rectangle
+  # [@param float :y] Ordinate of the upper-left corner of the rectangle
+  # [@param boolean :js] if true put the field using JavaScript (requires Acrobat Writer to be rendered).
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-07)]
+  #
+  def RadioButton(name, w, prop = {}, opt = {}, onvalue = 'On', checked = false, x = '', y = '', js = false)
+    x = @x if x == ''
+    y = @y if y == ''
+
+    if js
+      addfield('radiobutton', name, x, y, w, w, prop)
+      return
+    end
+
+    onvalue = 'On' if empty_string(onvalue)
+    defval = checked ? onvalue : 'Off'
+    # set data for parent group
+    @radiobutton_groups[@page] ||= {}
+    unless @radiobutton_groups[@page][name]
+      @radiobutton_groups[@page][name] = []
+      @annot_obj_id += 1
+      @radio_groups << @annot_obj_id
+    end
+    # save object ID to be added on Kids entry on parent object
+    @radiobutton_groups[@page][name] << {'kid' => @annot_obj_id + 1, 'def' => defval}
+    # get default style
+    prop = getFormDefaultProp.merge prop
+    prop['NoToggleToOff'] = 'true'
+    prop['Radio'] = 'true'
+    prop['borderStyle'] = 'inset'
+    # get annotation data
+    popt = getAnnotOptFromJSProp(prop)
+    # set additional default values
+    font = 'zapfdingbats'
+    AddFont(font)
+    fontkey = @fontkeys.index font
+    unless @annotation_fonts.include? fontkey
+      @annotation_fonts[font] = fontkey
+    end
+    fontstyle = sprintf('/F%d %.2f Tf', fontkey + 1, @font_size_pt)
+    popt['da'] = "#{fontstyle} #{@text_color}"
+    popt['ap'] = {}
+    popt['ap']['n'] = {}
+    popt['ap']['n'][onvalue] = "q #{@text_color} BT #{fontstyle} 0 0 Td (n) Tj ET Q"
+    popt['ap']['n']['Off'] = "q #{@text_color} BT #{fontstyle} 0 0 Td (o) Tj ET Q"
+    popt['mk'] ||= {}
+    popt['mk']['ca'] = '(l)'
+    # merge options
+    opt = popt.merge opt
+    # set remaining annotation data
+    opt['Subtype'] = 'Widget'
+    opt['ft'] = 'Btn'
+    if checked
+      opt['v'] = ["/#{onvalue}"]
+      opt['as'] = onvalue
+    else
+      opt['as'] = 'Off'
+    end
+    Annotation(x, y, w, w, name, opt, 0)
+    if @rtl
+      @x -= w
+    else
+      @x += w
+    end
+  end
+  alias_method :radio_button, :RadioButton
+
+  #
+  # Creates a List-box field
+  # [@param string :name] field name
+  # [@param int :w] width
+  # [@param int :h] height
+  # [@param array :values] array containing the list of values.
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@param array :opt] annotation parameters. Possible values are described on official PDF32000_2008 reference.
+  # [@param float :x] Abscissa of the upper-left corner of the rectangle
+  # [@param float :y] Ordinate of the upper-left corner of the rectangle
+  # [@param boolean :js] if true put the field using JavaScript (requires Acrobat Writer to be rendered).
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-07)]
+  #
+  def ListBox(name, w, h, values, prop = {}, opt = {}, x = '', y = '', js = false)
+    x = @x if x == ''
+    y = @y if y == ''
+
+    if js
+      addfield('listbox', name, x, y, w, h, prop)
+      s = ''
+      values.each {|v|
+        if v.is_a?(Array)
+          s << "['#{v[0]}','#{v[1]}'],"
+        else
+          s << "'#{v}',"
+        end
+      }
+      @javascript << "f#{name}.setItems([#{s[0...-1]}]);\n"
+      return
+    end
+    # get default style
+    prop = getFormDefaultProp.merge prop
+    # get annotation data
+    popt = getAnnotOptFromJSProp(prop)
+    # set additional default values
+    font = @font_family
+    fontkey = @fontkeys.index font
+    unless @annotation_fonts.include? fontkey
+      @annotation_fonts[font] = fontkey
+    end
+    s = ''
+    values.each {|v|
+      if v.is_a?(Array)
+        s << "#{v[1]}\n"
+      else
+        s << "#{v}\n"
+      end
+    }
+
+    fontstyle = sprintf('/F%d %.2f Tf %s', fontkey + 1, @font_size_pt, @text_color)
+    popt['da'] = fontstyle
+    popt['ap'] = {}
+    # set Appearances
+    popt['ap']['n'] = "/Tx BMC q #{fontstyle} "
+    gvars = getGraphicVars()
+    @h = h
+    @w = w
+    @t_margin = 0
+    @c_margin = 0.2
+
+    @tmp_buffer = ''
+    multi_cell(w, h, s, 0, '', 0, 0, 0.2, 0, true, 0, false, true, 0)
+    popt['ap']['n'] << @tmp_buffer
+    popt['ap']['n'] << 'Q EMC'
+    @tmp_buffer = nil
+
+    # restore previous values
+    setGraphicVars(gvars, true)
+
+    # merge options
+    opt = popt.merge opt
+    # set remaining annotation data
+    opt['Subtype'] = 'Widget'
+    opt['ft'] = 'Ch'
+    opt['t'] = name
+    opt['opt'] = values
+    Annotation(x, y, w, h, name, opt, 0)
+    if @rtl
+      @x -= w
+    else
+      @x += w
+    end
+  end
+  alias_method :list_box, :ListBox
+
+  #
+  # Creates a Combo-box field
+  # [@param string :name] field name
+  # [@param int :w] width
+  # [@param int :h] height
+  # [@param array :values] array containing the list of values.
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@param array :opt] annotation parameters. Possible values are described on official PDF32000_2008 reference.
+  # [@param float :x] Abscissa of the upper-left corner of the rectangle
+  # [@param float :y] Ordinate of the upper-left corner of the rectangle
+  # [@param boolean :js] if true put the field using JavaScript (requires Acrobat Writer to be rendered).
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-07)]
+  #
+  def ComboBox(name, w, h, values, prop = {}, opt = {}, x = '', y = '', js = false)
+    x = @x if x == ''
+    y = @y if y == ''
+
+    if js
+      addfield('combobox', name, x, y, w, h, prop)
+      s = ''
+      values.each {|v|
+        if v.is_a?(Array)
+          s << "['#{v[0]}','#{v[1]}'],"
+        else
+          s << "'#{v}',"
+        end
+      }
+      @javascript << "f#{name}.setItems([#{s[0...-1]}]);\n"
+      return
+    end
+    # get default style
+    prop = getFormDefaultProp.merge prop
+    prop['Combo'] = 'true'
+    # get annotation data
+    popt = getAnnotOptFromJSProp(prop)
+    # set additional default options
+    font = @font_family
+    fontkey = @fontkeys.index font
+    unless @annotation_fonts.include? fontkey
+      @annotation_fonts[font] = fontkey
+    end
+
+    s = ''
+    values.each {|v|
+      if v.is_a?(Array)
+        s << "#{v[1]}\n"
+      else
+        s << "#{v}\n"
+      end
+    }
+    fontstyle = sprintf('/F%d %.2f Tf %s', fontkey + 1, @font_size_pt, @text_color)
+    popt['da'] = fontstyle
+    popt['ap'] = {}
+    # set Appearances
+    popt['ap']['n'] = "/Tx BMC q #{fontstyle} "
+    gvars = getGraphicVars()
+    @h = h
+    @w = w
+    @t_margin = 0
+    @c_margin = 0.2
+
+    @tmp_buffer = ''
+    multi_cell(w, h, s, 0, '', 0, 0, 0.2, 0, true, 0, false, true, 0)
+    popt['ap']['n'] << @tmp_buffer
+    popt['ap']['n'] << 'Q EMC'
+    @tmp_buffer = nil
+
+    # restore previous values
+    setGraphicVars(gvars, true)
+
+    # merge options
+    opt = popt.merge opt
+    # set remaining annotation data
+    opt['Subtype'] = 'Widget'
+    opt['ft'] = 'Ch'
+    opt['t'] = name
+    opt['opt'] = values
+    Annotation(x, y, w, h, name, opt, 0)
+    if @rtl
+      @x -= w
+    else
+      @x += w
+    end
+  end
+  alias_method :combo_box, :ComboBox
+
+  #
+  # Creates a CheckBox field
+  # [@param string :name] field name
+  # [@param int :w] width
+  # [@param boolean :checked] define the initial state.
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@param array :opt] annotation parameters. Possible values are described on official PDF32000_2008 reference.
+  # [@param string :onvalue] value to be returned if selected.
+  # [@param float :x] Abscissa of the upper-left corner of the rectangle
+  # [@param float :y] Ordinate of the upper-left corner of the rectangle
+  # [@param boolean :js] if true put the field using JavaScript (requires Acrobat Writer to be rendered).
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-07)]
+  #
+  def CheckBox(name, w, checked=false, prop = {}, opt = {}, onvalue = 'Yes', x = '', y = '', js = false)
+    x = @x if x == ''
+    y = @y if y == ''
+
+    if js
+      addfield('checkbox', name, x, y, w, w, prop)
+      return
+    end
+
+    prop['value'] ||= ['Yes']
+    # get default style
+    prop = getFormDefaultProp.merge prop
+    prop['borderStyle'] = 'inset'
+    # get annotation data
+    popt = getAnnotOptFromJSProp(prop)
+    # set additional default options
+    font = 'zapfdingbats'
+    AddFont(font)
+    fontkey = @fontkeys.index font
+    unless @annotation_fonts.include? fontkey
+      @annotation_fonts[font] = fontkey
+    end
+    fontstyle = sprintf('/F%d %.2f Tf', fontkey + 1, @font_size_pt)
+    popt['da'] = "#{fontstyle} #{@text_color}"
+    popt['ap'] = {}
+    popt['ap']['n'] = {}
+    popt['ap']['n']['Yes'] = "q #{@text_color} BT #{fontstyle} 0 0 Td (n) Tj ET Q"
+    popt['ap']['n']['Off'] = "q #{@text_color} BT #{fontstyle} 0 0 Td (o) Tj ET Q"
+
+    # merge options
+    opt = popt.merge opt
+    # set remaining annotation data
+    opt['Subtype'] = 'Widget'
+    opt['ft'] = 'Btn'
+    opt['t'] = name
+    if empty_string(onvalue)
+      onvalue = 'Yes'
+    end
+    opt['opt'] = [onvalue]
+    if checked
+      opt['v'] = ['/Yes']
+      opt['as'] = 'Yes'
+    else
+      opt['v'] = ['/Off']
+      opt['as'] = 'Off'
+    end
+    Annotation(x, y, w, w, name, opt, 0)
+    if @rtl
+      @x -= w
+    else
+      @x += w
+    end
+  end
+  alias_method :check_box, :CheckBox
+
+  #
+  # Creates a button field
+  # [@param string :name] field name
+  # [@param int :w] width
+  # [@param int :h] height
+  # [@param string :caption] caption.
+  # [@param mixed :action] action triggered by pressing the button. Use a string to specify a javascript action. Use an array to specify a form action options as on section 12.7.5 of PDF32000_2008.
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@param array :opt] annotation parameters. Possible values are described on official PDF32000_2008 reference.
+  # [@param float :x] Abscissa of the upper-left corner of the rectangle
+  # [@param float :y] Ordinate of the upper-left corner of the rectangle
+  # [@param boolean :js] if true put the field using JavaScript (requires Acrobat Writer to be rendered).
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-07)]
+  #
+  def Button(name, w, h, caption, action, prop = {}, opt = {}, x = '', y = '', js = false)
+    x = @x if x == ''
+    y = @y if y == ''
+
+    if js
+      addfield('button', name, x, y, w, h, prop)
+      @javascript << "f#{name}.buttonSetCaption('#{caption}');\n"
+      @javascript << "f#{name}.setAction('MouseUp','#{action}');\n"
+      @javascript << "f#{name}.highlight='push';\n"
+      @javascript << "f#{name}.print=false;\n"
+      return
+    end
+    # get default style
+    prop = getFormDefaultProp.merge prop
+    prop['Pushbutton'] = 'true'
+    prop['highlight'] = 'push'
+    prop['display'] = 'display.noPrint'
+    # get annotation data
+    popt = getAnnotOptFromJSProp(prop)
+    # set additional default options
+    popt['mk'] ||= {}
+    popt['mk']['ca'] = textstring(caption)
+    popt['mk']['rc'] = textstring(caption)
+    popt['mk']['ac'] = textstring(caption)
+    font = @font_family
+    fontkey = @fontkeys.index font
+    unless @annotation_fonts.include? fontkey
+      @annotation_fonts[font] = fontkey
+    end
+    fontstyle = sprintf('/F%d %.2f Tf %s', fontkey + 1, @font_size_pt, @text_color)
+    popt['da'] = fontstyle
+    popt['ap'] = {}
+    # set Appearances
+    popt['ap']['n'] = "/Tx BMC q #{fontstyle} 0.800 g\n"
+
+    gvars = getGraphicVars()
+    @h = h
+    @w = w
+    @c_margin *= 1.6
+
+    @tmp_buffer = ''
+    SetLineStyle({'width' => 1.0, 'cap' => 'butt', 'join' => 'miter', 'dash' => 0, 'color' => [231]})
+    SetFillColor(204)
+    multi_cell(w, h, caption, 1, 'C', 1, 0, 0, 0, true)
+    popt['ap']['n'] << @tmp_buffer
+    popt['ap']['n'] << 'Q EMC'
+    @tmp_buffer = nil
+
+    # restore previous values
+    setGraphicVars(gvars, true)
+
+    # merge options
+    opt = popt.merge opt
+    # set remaining annotation data
+    opt['Subtype'] = 'Widget'
+    opt['ft'] = 'Btn'
+    opt['t'] = caption
+    opt['v'] = name
+    unless action.empty?
+      if action.is_a?(Hash)
+        # form action options as on section 12.7.5 of PDF32000_2008.
+        opt['aa'] = '/D <<'
+        bmode = ['SubmitForm', 'ResetForm', 'ImportData']
+        action.each {|key, val|
+          if (key == 'S') && bmode.include?(val)
+            opt['aa'] << " /S /#{val}"
+          elsif (key == 'F') && !val.empty?
+            opt['aa'] << " /F #{datastring(val)}"
+          elsif (key == 'Fields') && val.is_a?(Array) && !val.empty?
+            opt['aa'] << ' /Fields ['
+            val.each {|field|
+              opt['aa'] << " #{textstring(field)}"
+            }
+            opt['aa'] << ']'
+          elsif key == 'Flags'
+            ff = 0
+            if val.is_a?(Array)
+              val.each {|flag|
+                case flag
+                when 'Include/Exclude';      ff |= 1 << 0
+                when 'IncludeNoValueFields'; ff |= 1 << 1
+                when 'ExportFormat';         ff |= 1 << 2
+                when 'GetMethod';            ff |= 1 << 3
+                when 'SubmitCoordinates';    ff |= 1 << 4
+                when 'XFDF';                 ff |= 1 << 5
+                when 'IncludeAppendSaves';   ff |= 1 << 6
+                when 'IncludeAnnotations';   ff |= 1 << 7
+                when 'SubmitPDF';            ff |= 1 << 8
+                when 'CanonicalFormat';      ff |= 1 << 9
+                when 'ExclNonUserAnnots';    ff |= 1 << 10
+                when 'ExclFKey';             ff |= 1 << 11
+                when 'EmbedForm';            ff |= 1 << 13
+                end
+              }
+            else
+              ff = val.to_i
+            end
+            opt['aa'] << " /Flags #{ff}"
+          end
+        }
+        opt['aa'] << ' >>'
+      else
+        # Javascript action or raw action command
+        js_obj_id = addJavascriptObject(action)
+        opt['aa'] = "/D #{js_obj_id} 0 R"
+      end
+    end
+    Annotation(x, y, w, h, name, opt, 0)
+    if @rtl
+      @x -= w
+    else
+      @x += w
+    end
+  end
+  alias_method :button, :Button
+
   # --- END FORMS FIELDS ------------------------------------------------
 
   #
@@ -11378,7 +12352,39 @@ protected
       html = html_a + html_b + html[(pos + 6)..-1]
       offset = (html_a + html_b).length
     end
+
+    offset = 0
+    while (offset < html.length) && (pos = html.index('</textarea>', offset))
+      html_a = html[0, offset]
+      html_b = html[offset, pos - offset + 11]
+      while html_b =~ %r@<textarea([^\>]*)>(.*?)\n(.*?)</textarea>@mi
+        # preserve newlines on <textarea> tag
+        html_b.gsub!(%r@<textarea([^\>]*)>(.*?)\n(.*?)</textarea>@mi, "<textarea\\1>\\2<TBR>\\3</textarea>")
+        html_b.gsub!(%r@<textarea([^\>]*)>(.*?)[\"](.*?)</textarea>@mi, "<textarea\\1>\\2''\\3</textarea>")
+      end
+      html = html_a + html_b + html[(pos + 11)..-1]
+      offset = html_a.length + html_b.length
+    end
+    html.gsub!(/([\s]*)<option/mi, "<option")
+    html.gsub!(%r@</option>([\s]*)@mi, "</option>")
+    offset = 0
+    while (offset < html.length) && (pos = html.index('</option>', offset))
+      html_a = html[0, offset]
+      html_b = html[offset, pos - offset + 9]
+      while html_b =~ %r@<option([^\>]*)>(.*?)</option>@mi
+        html_b.gsub!(%r@<option([\s]+)value=\"([^\"]*)\"([^\>]*)>(.*?)</option>@mi, "\\2\t\\4\r")
+        html_b.gsub!(%r@<option([^\>]*)>(.*?)</option>@mi, "\\2\r")
+      end
+      html = html_a + html_b + html[(pos + 9)..-1]
+      offset = html_a.length + html_b.length
+    end
+    html.gsub!(/<select([^\>]*)>/mi, "<select\\1 opt=\"")
+    html.gsub!(%r@([\s]+)</select>@mi, "\" />")
     html.gsub!(/[\n]/, " ")
+
+    # restore textarea newlines
+    html.gsub!('<TBR>', "\n")
+
     # remove extra spaces from code
     html.gsub!(/[\s]+<\/(table|tr|td|th|ul|ol|li|dl|dt|dd)>/, '</\\1>')
     html.gsub!(/[\s]+<(tr|td|th|ul|ol|li|dl|dt|dd|br)/, '<\\1')
@@ -11389,6 +12395,8 @@ protected
     html.gsub!(/[\s]*<img/, ' <img')
     html.gsub!(/<img([^\>]*)>/xi, '<img\\1><span><marker style="font-size:0"/></span>')
     html.gsub!(/<xre/, '<pre') # restore pre tag
+    html.gsub!(/<textarea([^\>]*)>/xi, '<textarea\\1 value="')
+    html.gsub!(/<\/textarea>/, '" />')
 
     # trim string
     html.gsub!(/^[\s]+/, '')
@@ -11520,7 +12528,7 @@ protected
           # *** opening html tag
           dom[key]['opening'] = true
           dom[key]['parent'] = level[-1]
-          if element[-1, 1] == '/' or (dom[key]['value'] =~ /(br|img|hr)/)
+          if element[-1, 1] == '/' or (dom[key]['value'] =~ /(br|img|hr|input)/)
             # self-closing tag
             dom[key]['self'] = true
           else
@@ -11546,7 +12554,7 @@ protected
             dom[key]['text-indent'] = dom[parentkey]['text-indent']
           end
           # get attributes
-          attr_array = element.scan(/([^=\s]*)[\s]*=[\s]*"([^"]*)"/)
+          attr_array = element.scan(/([^=\s]+)[\s]*(?:=[\s]*"([^"]*)")*/)[1..-1]
           dom[key]['attribute'] = {} # reset attribute array
           attr_array.each do |name, value|
             dom[key]['attribute'][name.downcase] = value
@@ -11982,8 +12990,9 @@ public
   def sanitize_html(html)
     # Escape '<' character for not tag case.
     html = html.gsub(%r{(<+)([^/a-zA-Z])}){CGI.escapeHTML($1) + $2}.gsub(%r{</([^a-zA-Z])}){'&lt;/' +  $1}
-
-    html = "%s" % sanitize(html, :tags=> %w(a b blockquote body br dd del div dl dt em font h1 h2 h3 h4 h5 h6 hr i img li ol p pre small span strong sub sup table td th thead tr tt u ins ul), :attributes => %w(cellspacing cellpadding bgcolor color value width height src size colspan rowspan style align border face href name dir class id nobr stroke strokecolor fill nested tablehead))
+    "%s" % sanitize(html,
+            :tags=> %w(a b blockquote body br dd del div dl dt em font form h1 h2 h3 h4 h5 h6 hr i img input label li ol option p pre select small span strong sub sup table td textarea th thead tr tt u ins ul),
+            :attributes => %w(cellspacing cellpadding bgcolor color value width height src size colspan rowspan style align border face href name dir class id nobr stroke strokecolor fill nested tablehead cols rows type action enctype method maxlength onclick multiple checked disabled))
   end
   protected :sanitize_html
 
@@ -12083,6 +13092,7 @@ public
     prev_listordered = @listordered
     prev_listcount = @listcount
     prev_lispacer = @lispacer
+    prev_li_position_x = @li_position_x
     @listnum = 0
     @listordered = []
     @listcount = []
@@ -13155,6 +14165,7 @@ public
     @listordered = prev_listordered
     @listcount = prev_listcount
     @lispacer = prev_lispacer
+    @li_position_x = prev_li_position_x
     dom = nil
   rescue => err
     Error('writeHTML Error.', err)
@@ -13471,6 +14482,7 @@ public
           @lispacer = '!'
         end
       end
+      @li_position_x = @x
     when 'blockquote'
       if @rtl
         @r_margin += @listindent
@@ -13494,6 +14506,166 @@ public
       SetXY(GetX(), GetY() + ((0.3 * @font_size_pt) / @k))
     when 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'
       addHTMLVertSpace(hbz, hb, cell, firstorlast)
+
+    # Form fields (since 4.8.000 - 2009-09-07)
+    when 'form'
+      if tag['attribute']['action']
+        @form_action = tag['attribute']['action']
+      else
+        @form_action = @@k_path_url + request&.base_url.to_s
+      end
+      if tag['attribute']['enctype']
+        @form_enctype = tag['attribute']['enctype']
+      else
+        @form_enctype = 'application/x-www-form-urlencoded'
+      end
+      if tag['attribute']['method']
+        @form_mode = tag['attribute']['method']
+      else
+        @form_mode = 'post'
+      end
+    when 'input'
+      if tag['attribute']['type'] == 'checkbox' || (tag['attribute']['name'] && !empty_string(tag['attribute']['name']))
+        name = tag['attribute']['name'] || rand.to_s
+        prop = {}
+        opt = {}
+        if tag['attribute']['value'] && !empty_string(tag['attribute']['value'])
+          value = tag['attribute']['value']
+        end
+        if tag['attribute']['maxlength'] && !empty_string(tag['attribute']['maxlength'])
+          opt['maxlen'] = tag['attribute']['maxlength'].to_i
+        end
+        h = @font_size * @cell_height_ratio
+        if tag['attribute']['size'] && !empty_string(tag['attribute']['size'])
+          w = tag['attribute']['size'].to_i * GetStringWidth(32.chr) * 2
+        else
+          w = h
+        end
+        if tag['attribute'].key? 'disabled'
+          prop['readonly'] = 'true'
+        end
+        if tag['attribute'].key? 'checked'
+          checked = true
+        else
+          checked = false
+        end
+
+        case tag['attribute']['type']
+        when 'text'
+          opt['v'] = value if value
+          TextField(name, w, h, prop, opt, '', '', false)
+        when 'password'
+          opt['v'] = value if value
+          prop['password'] = 'true'
+          TextField(name, w, h, prop, opt, '', '', false)
+        when 'checkbox'
+          CheckBox(name, w, checked, prop, opt, value, '', '', false)
+        when 'radio'
+          RadioButton(name, w, prop, opt, value, checked, '', '', false)
+        when 'submit'
+          w = GetStringWidth(value) * 1.5
+          h *= 1.6
+          prop = {'lineWidth'=>1, 'borderStyle'=>'beveled', 'fillColor'=>[196, 196, 196], 'strokeColor'=>[255, 255, 255]}
+          action = {}
+          action['S'] = 'SubmitForm'
+          action['F'] = @form_action
+          action['Flags'] = ['ExportFormat'] unless @form_enctype == 'FDF'
+          action['Flags'] = ['GetMethod'] if @form_mode == 'get'
+          Button(name, w, h, value, action, prop, opt, '', '', false)
+        when 'reset'
+          w = GetStringWidth(value) * 1.5
+          h *= 1.6
+          prop = {'lineWidth'=>1, 'borderStyle'=>'beveled', 'fillColor'=>[196, 196, 196], 'strokeColor'=>[255, 255, 255]}
+          Button(name, w, h, value, {'S'=>'ResetForm'}, prop, opt, '', '', false)
+        when 'file'
+          prop['fileSelect'] = 'true'
+          TextField(name, w, h, prop, opt, '', '', false)
+          value ||= '*'
+          w = GetStringWidth(value) * 2
+          h *= 1.2
+          prop = {'lineWidth'=>1, 'borderStyle'=>'beveled', 'fillColor'=>[196, 196, 196], 'strokeColor'=>[255, 255, 255]}
+          jsaction = "var f=this.getField('#{name}'); f.browseForFileToSubmit();"
+          Button('FB_' + name, w, h, value, jsaction, prop, opt, '', '', false)
+        when 'hidden'
+          opt['v'] = value if value
+          opt['f'] = ['invisible', 'hidden']
+          TextField(name, 0, 0, prop, opt, '', '', false)
+        when 'image'
+          # THIS TYPE MUST BE FIXED
+          if tag['attribute']['src'] && !empty_string(tag['attribute']['src'])
+            img = tag['attribute']['src']
+            value = 'img'
+            #opt['mk'] = {'i'=>img, 'tp'=>1, 'if'=>{'sw'=>'A', 's'=>'A', 'fb'=>false}}
+            if tag['attribute']['onclick'] && !tag['attribute']['onclick'].empty?
+              jsaction = tag['attribute']['onclick']
+            else
+              jsaction = ''
+            end
+            Button(name, w, h, value, jsaction, prop, opt, '', '', false)
+          end
+        when 'button'
+          w = GetStringWidth(value) * 1.5
+          h *= 1.6
+          prop = {'lineWidth'=>1, 'borderStyle'=>'beveled', 'fillColor'=>[196, 196, 196], 'strokeColor'=>[255, 255, 255]}
+          if tag['attribute']['onclick'] && !tag['attribute']['onclick'].empty?
+            jsaction = tag['attribute']['onclick']
+          else
+            jsaction = ''
+          end
+          Button(name, w, h, value, jsaction, prop, opt, '', '', false)
+        end
+      end
+    when 'textarea'
+      if tag['attribute']['name'] && !empty_string(tag['attribute']['name'])
+        prop = {}
+        opt = {}
+        name = tag['attribute']['name']
+        if tag['attribute']['value'] && !empty_string(tag['attribute']['value'])
+          opt['v'] = tag['attribute']['value']
+        end
+        if tag['attribute']['cols'] && !empty_string(tag['attribute']['cols'])
+          w = tag['attribute']['cols'].to_i * GetStringWidth(32.chr) * 2
+        else
+          w = 40
+        end
+        if tag['attribute']['rows'] && !empty_string(tag['attribute']['rows'])
+          h = tag['attribute']['rows'].to_i * @font_size * @cell_height_ratio
+        else
+          h = 10
+        end
+        prop['multiline'] = 'true'
+        TextField(name, w, h, prop, opt, '', '', false)
+      end
+    when 'select'
+      if tag['attribute']['name'] && !empty_string(tag['attribute']['name']) && tag['attribute']['opt'] && !empty_string(tag['attribute']['opt'])
+        h = @font_size * @cell_height_ratio
+        if tag['attribute']['size'] && !empty_string(tag['attribute']['size'])
+          h *= (tag['attribute']['size'].to_i + 1)
+        end
+        prop = {}
+        opt = {}
+        name = tag['attribute']['name']
+        w = 0
+        options = tag['attribute']['opt'].split("\r")
+        values = []
+        options.each {|val|
+          if val.index("\t")
+            opts = val.split("\t")
+            values << opts
+            w = [w, GetStringWidth(opts[1])].max
+          else
+            values << val
+            w = [w, GetStringWidth(val)].max
+          end
+        }
+        w *= 2
+        if tag['attribute'].key? 'multiple'
+          prop['multipleSelection'] = 'true'
+          ListBox(name, w, h, values, prop, opt, '', '', false)
+        else
+          ComboBox(name, w, h, values, prop, opt, '', '', false)
+        end
+      end
     end
 
     if dom[key]['self'] and dom[key]['attribute']['pagebreakafter']
@@ -13569,317 +14741,325 @@ public
     end
     # Closing tag
     case (tag['value'])
-      when 'tr'
-        table_el = dom[(dom[key]['parent'])]['parent']
-        if parent['endy'].nil?
-          dom[(dom[key]['parent'])]['endy'] = @y
-          parent['endy'] = @y
-        end
-        if parent['endpage'].nil?
-          dom[(dom[key]['parent'])]['endpage'] = @page
-          parent['endpage'] = @page
-        end
-        # update row-spanned cells
-        if !dom[table_el]['rowspans'].nil?
-          dom[table_el]['rowspans'].each_with_index { |trwsp, k|
-            dom[table_el]['rowspans'][k]['rowspan'] -= 1
-            if dom[table_el]['rowspans'][k]['rowspan'] == 0
-              if dom[table_el]['rowspans'][k]['endpage'] == parent['endpage']
-                dom[(dom[key]['parent'])]['endy'] = [dom[table_el]['rowspans'][k]['endy'], parent['endy']].max
-              elsif dom[table_el]['rowspans'][k]['endpage'] > parent['endpage']
-                dom[(dom[key]['parent'])]['endy'] = dom[table_el]['rowspans'][k]['endy']
-                dom[(dom[key]['parent'])]['endpage'] = dom[table_el]['rowspans'][k]['endpage']
-              end
-            end
-          }
-          # report new endy and endpage to the rowspanned cells
-          dom[table_el]['rowspans'].each_with_index { |trwsp, k|
-            if dom[table_el]['rowspans'][k]['rowspan'] == 0
-              dom[table_el]['rowspans'][k]['endpage'] = [dom[table_el]['rowspans'][k]['endpage'], dom[(dom[key]['parent'])]['endpage']].max
-              dom[(dom[key]['parent'])]['endpage'] = dom[table_el]['rowspans'][k]['endpage']
-              dom[table_el]['rowspans'][k]['endy'] = [dom[table_el]['rowspans'][k]['endy'], dom[(dom[key]['parent'])]['endy']].max
+    when 'tr'
+      table_el = dom[(dom[key]['parent'])]['parent']
+      if parent['endy'].nil?
+        dom[(dom[key]['parent'])]['endy'] = @y
+        parent['endy'] = @y
+      end
+      if parent['endpage'].nil?
+        dom[(dom[key]['parent'])]['endpage'] = @page
+        parent['endpage'] = @page
+      end
+      # update row-spanned cells
+      if !dom[table_el]['rowspans'].nil?
+        dom[table_el]['rowspans'].each_with_index { |trwsp, k|
+          dom[table_el]['rowspans'][k]['rowspan'] -= 1
+          if dom[table_el]['rowspans'][k]['rowspan'] == 0
+            if dom[table_el]['rowspans'][k]['endpage'] == parent['endpage']
+              dom[(dom[key]['parent'])]['endy'] = [dom[table_el]['rowspans'][k]['endy'], parent['endy']].max
+            elsif dom[table_el]['rowspans'][k]['endpage'] > parent['endpage']
               dom[(dom[key]['parent'])]['endy'] = dom[table_el]['rowspans'][k]['endy']
-            end
-          }
-          # update remaining rowspanned cells
-          dom[table_el]['rowspans'].each_with_index { |trwsp, k|
-            if dom[table_el]['rowspans'][k]['rowspan'] == 0
-              dom[table_el]['rowspans'][k]['endpage'] = dom[(dom[key]['parent'])]['endpage']
-              dom[table_el]['rowspans'][k]['endy'] = dom[(dom[key]['parent'])]['endy']
-            end
-          }
-        end
-        if (@num_columns > 1) and (dom[(dom[key]['parent'])]['endy'] >= (@page_break_trigger - @lasth)) and (@y < dom[(dom[key]['parent'])]['endy'])
-          Ln(0, cell)
-        else
-          setPage(dom[(dom[key]['parent'])]['endpage']);
-          @y = dom[(dom[key]['parent'])]['endy']
-          if !dom[table_el]['attribute']['cellspacing'].nil?
-            cellspacing = getHTMLUnitToUnits(dom[table_el]['attribute']['cellspacing'], 1, 'px')
-            @y += cellspacing
-          end
-          Ln(0, cell)
-          @x = parent['startx']
-          # account for booklet mode
-          if parent['startpage'] and @page > parent['startpage']
-            if @rtl and (@pagedim[@page]['orm'] != @pagedim[parent['startpage']]['orm'])
-              @x -= @pagedim[@page]['orm'] - @pagedim[parent['startpage']]['orm']
-            elsif !@rtl and (@pagedim[@page]['olm'] != @pagedim[parent['startpage']]['olm'])
-              @x += @pagedim[@page]['olm'] - @pagedim[parent['startpage']]['olm']
+              dom[(dom[key]['parent'])]['endpage'] = dom[table_el]['rowspans'][k]['endpage']
             end
           end
+        }
+        # report new endy and endpage to the rowspanned cells
+        dom[table_el]['rowspans'].each_with_index { |trwsp, k|
+          if dom[table_el]['rowspans'][k]['rowspan'] == 0
+            dom[table_el]['rowspans'][k]['endpage'] = [dom[table_el]['rowspans'][k]['endpage'], dom[(dom[key]['parent'])]['endpage']].max
+            dom[(dom[key]['parent'])]['endpage'] = dom[table_el]['rowspans'][k]['endpage']
+            dom[table_el]['rowspans'][k]['endy'] = [dom[table_el]['rowspans'][k]['endy'], dom[(dom[key]['parent'])]['endy']].max
+            dom[(dom[key]['parent'])]['endy'] = dom[table_el]['rowspans'][k]['endy']
+          end
+        }
+        # update remaining rowspanned cells
+        dom[table_el]['rowspans'].each_with_index { |trwsp, k|
+          if dom[table_el]['rowspans'][k]['rowspan'] == 0
+            dom[table_el]['rowspans'][k]['endpage'] = dom[(dom[key]['parent'])]['endpage']
+            dom[table_el]['rowspans'][k]['endy'] = dom[(dom[key]['parent'])]['endy']
+          end
+        }
+      end
+      if (@num_columns > 1) and (dom[(dom[key]['parent'])]['endy'] >= (@page_break_trigger - @lasth)) and (@y < dom[(dom[key]['parent'])]['endy'])
+        Ln(0, cell)
+      else
+        setPage(dom[(dom[key]['parent'])]['endpage']);
+        @y = dom[(dom[key]['parent'])]['endy']
+        if !dom[table_el]['attribute']['cellspacing'].nil?
+          cellspacing = getHTMLUnitToUnits(dom[table_el]['attribute']['cellspacing'], 1, 'px')
+          @y += cellspacing
         end
-      when 'table'
-        if dom[(dom[key]['parent'])]['attribute']['tablehead'] and dom[(dom[key]['parent'])]['attribute']['tablehead'] == "1"
-          # closing tag used for the thead part
-          in_table_head = true
-          @in_thead = false
+        Ln(0, cell)
+        @x = parent['startx']
+        # account for booklet mode
+        if parent['startpage'] and @page > parent['startpage']
+          if @rtl and (@pagedim[@page]['orm'] != @pagedim[parent['startpage']]['orm'])
+            @x -= @pagedim[@page]['orm'] - @pagedim[parent['startpage']]['orm']
+          elsif !@rtl and (@pagedim[@page]['olm'] != @pagedim[parent['startpage']]['olm'])
+            @x += @pagedim[@page]['olm'] - @pagedim[parent['startpage']]['olm']
+          end
         end
+      end
+    when 'table'
+      if dom[(dom[key]['parent'])]['attribute']['tablehead'] and dom[(dom[key]['parent'])]['attribute']['tablehead'] == "1"
+        # closing tag used for the thead part
+        in_table_head = true
+        @in_thead = false
+      end
 
-        table_el = parent
-        # draw borders
-        if (!table_el['attribute']['border'].nil? and (table_el['attribute']['border'].to_i > 0)) or (!table_el['style'].nil? and !table_el['style']['border'].nil? and (table_el['style']['border'].to_i > 0))
-          border = 1
-        else
-          border = 0
-        end
+      table_el = parent
+      # draw borders
+      if (!table_el['attribute']['border'].nil? and (table_el['attribute']['border'].to_i > 0)) or (!table_el['style'].nil? and !table_el['style']['border'].nil? and (table_el['style']['border'].to_i > 0))
+        border = 1
+      else
+        border = 0
+      end
 
-        startpage = 0
-        end_page = 0
-        # fix bottom line alignment of last line before page break
-        dom[(dom[key]['parent'])]['trids'].each_with_index { |trkey, j|
+      startpage = 0
+      end_page = 0
+      # fix bottom line alignment of last line before page break
+      dom[(dom[key]['parent'])]['trids'].each_with_index { |trkey, j|
+        # update row-spanned cells
+        if !dom[(dom[key]['parent'])]['rowspans'].nil?
+          dom[(dom[key]['parent'])]['rowspans'].each_with_index { |trwsp, k|
+            if trwsp['trid'] == trkey
+              dom[(dom[key]['parent'])]['rowspans'][k]['mrowspan'] -= 1
+            end
+            if defined?(prevtrkey) and (trwsp['trid'] == prevtrkey) and (trwsp['mrowspan'] >= 0)
+              dom[(dom[key]['parent'])]['rowspans'][k]['trid'] = trkey
+            end
+          }
+        end
+        if defined?(prevtrkey) and (dom[trkey]['startpage'] > dom[prevtrkey]['endpage'])
+          pgendy = @pagedim[dom[prevtrkey]['endpage']]['hk'] - @pagedim[dom[prevtrkey]['endpage']]['bm']
+          dom[prevtrkey]['endy'] = pgendy
           # update row-spanned cells
           if !dom[(dom[key]['parent'])]['rowspans'].nil?
             dom[(dom[key]['parent'])]['rowspans'].each_with_index { |trwsp, k|
-              if trwsp['trid'] == trkey
-                dom[(dom[key]['parent'])]['rowspans'][k]['mrowspan'] -= 1
-              end
-              if defined?(prevtrkey) and (trwsp['trid'] == prevtrkey) and (trwsp['mrowspan'] >= 0)
-                dom[(dom[key]['parent'])]['rowspans'][k]['trid'] = trkey
+              if (trwsp['trid'] == trkey) and (trwsp['mrowspan'] > 1) and (trwsp['endpage'] == dom[prevtrkey]['endpage'])
+                dom[(dom[key]['parent'])]['rowspans'][k]['endy'] = pgendy
+                dom[(dom[key]['parent'])]['rowspans'][k]['mrowspan'] = -1
               end
             }
           end
-          if defined?(prevtrkey) and (dom[trkey]['startpage'] > dom[prevtrkey]['endpage'])
-            pgendy = @pagedim[dom[prevtrkey]['endpage']]['hk'] - @pagedim[dom[prevtrkey]['endpage']]['bm']
-            dom[prevtrkey]['endy'] = pgendy
-            # update row-spanned cells
-            if !dom[(dom[key]['parent'])]['rowspans'].nil?
-              dom[(dom[key]['parent'])]['rowspans'].each_with_index { |trwsp, k|
-                if (trwsp['trid'] == trkey) and (trwsp['mrowspan'] > 1) and (trwsp['endpage'] == dom[prevtrkey]['endpage'])
-                  dom[(dom[key]['parent'])]['rowspans'][k]['endy'] = pgendy
-                  dom[(dom[key]['parent'])]['rowspans'][k]['mrowspan'] = -1
-                end
-              }
-            end
+        end
+        prevtrkey = trkey
+        table_el = dom[(dom[key]['parent'])].dup
+      }
+      # for each row
+      table_el['trids'].each_with_index { |trkey, j|
+        parent = dom[trkey]
+        # for each cell on the row
+        parent['cellpos'].each_with_index { |cellpos, k|
+          if !cellpos['rowspanid'].nil? and (cellpos['rowspanid'] >= 0)
+            cellpos['startx'] = table_el['rowspans'][(cellpos['rowspanid'])]['startx']
+            cellpos['endx'] = table_el['rowspans'][(cellpos['rowspanid'])]['endx']
+            endy = table_el['rowspans'][(cellpos['rowspanid'])]['endy']
+            startpage = table_el['rowspans'][(cellpos['rowspanid'])]['startpage']
+            end_page = table_el['rowspans'][(cellpos['rowspanid'])]['endpage']
+          else
+            endy = parent['endy']
+            startpage = parent['startpage']
+            end_page = parent['endpage']
           end
-          prevtrkey = trkey
-          table_el = dom[(dom[key]['parent'])].dup
-        }
-        # for each row
-        table_el['trids'].each_with_index { |trkey, j|
-          parent = dom[trkey]
-          # for each cell on the row
-          parent['cellpos'].each_with_index { |cellpos, k|
-            if !cellpos['rowspanid'].nil? and (cellpos['rowspanid'] >= 0)
-              cellpos['startx'] = table_el['rowspans'][(cellpos['rowspanid'])]['startx']
-              cellpos['endx'] = table_el['rowspans'][(cellpos['rowspanid'])]['endx']
-              endy = table_el['rowspans'][(cellpos['rowspanid'])]['endy']
-              startpage = table_el['rowspans'][(cellpos['rowspanid'])]['startpage']
-              end_page = table_el['rowspans'][(cellpos['rowspanid'])]['endpage']
-            else
-              endy = parent['endy']
-              startpage = parent['startpage']
-              end_page = parent['endpage']
-            end
-            cellpos['startx'] ||= 0
-            if end_page > startpage
-              # design borders around HTML cells.
-              startpage.upto(end_page) do |page|
-                setPage(page)
-                if page == startpage
-                  @y = parent['starty'] # put cursor at the beginning of row on the first page
-                  ch = getPageHeight() - parent['starty'] - getBreakMargin()
-                  cborder = getBorderMode(border, position='start')
-                elsif page == end_page
-                  @y = @t_margin # put cursor at the beginning of last page
-                  ch = endy - @t_margin
-                  cborder = getBorderMode(border, position='end')
-                else
-                  @y = @t_margin # put cursor at the beginning of the current page
-                  ch = getPageHeight() - @t_margin - getBreakMargin()
-                  cborder = getBorderMode(border, position='middle')
-                end
-                if !cellpos['bgcolor'].nil? and (cellpos['bgcolor'] != false)
-                  SetFillColorArray(cellpos['bgcolor'])
-                  fill = 1
-                else
-                  fill = 0
-                end
-                cw = (cellpos['endx'] - cellpos['startx']).abs
-                @x = cellpos['startx']
-                # account for margin changes
-                if page > startpage
-                  if @rtl and (@pagedim[page]['orm'] != @pagedim[startpage]['orm'])
-                    @x -= @pagedim[page]['orm'] - @pagedim[startpage]['orm']
-                  elsif !@rtl and (@pagedim[page]['lm'] != @pagedim[startpage]['olm'])
-                    @x += @pagedim[page]['olm'] - @pagedim[startpage]['olm']
-                  end
-                end
-
-                prevLastH = @lasth
-                # design a cell around the text
-                ccode = @fill_color + "\n" + getCellCode(cw, ch, '', cborder, 1, '', fill, '', 0, true)
-                @lasth = prevLastH
-
-                if (cborder != 0) or (fill == 1)
-                  pagebuff = getPageBuffer(@page)
-                  pstart = pagebuff[0, @intmrk[@page]]
-                  pend = pagebuff[@intmrk[@page]..-1]
-                  setPageBuffer(@page, pstart + ccode + "\n" + pend)
-                  @intmrk[@page] += (ccode + "\n").length
-                end
+          cellpos['startx'] ||= 0
+          if end_page > startpage
+            # design borders around HTML cells.
+            startpage.upto(end_page) do |page|
+              setPage(page)
+              if page == startpage
+                @y = parent['starty'] # put cursor at the beginning of row on the first page
+                ch = getPageHeight() - parent['starty'] - getBreakMargin()
+                cborder = getBorderMode(border, position='start')
+              elsif page == end_page
+                @y = @t_margin # put cursor at the beginning of last page
+                ch = endy - @t_margin
+                cborder = getBorderMode(border, position='end')
+              else
+                @y = @t_margin # put cursor at the beginning of the current page
+                ch = getPageHeight() - @t_margin - getBreakMargin()
+                cborder = getBorderMode(border, position='middle')
               end
-            else
-              setPage(startpage)
               if !cellpos['bgcolor'].nil? and (cellpos['bgcolor'] != false)
                 SetFillColorArray(cellpos['bgcolor'])
                 fill = 1
               else
                 fill = 0
               end
-              @x = cellpos['startx']
-              @y = parent['starty']
               cw = (cellpos['endx'] - cellpos['startx']).abs
-              ch = endy - parent['starty']
+              @x = cellpos['startx']
+              # account for margin changes
+              if page > startpage
+                if @rtl and (@pagedim[page]['orm'] != @pagedim[startpage]['orm'])
+                  @x -= @pagedim[page]['orm'] - @pagedim[startpage]['orm']
+                elsif !@rtl and (@pagedim[page]['lm'] != @pagedim[startpage]['olm'])
+                  @x += @pagedim[page]['olm'] - @pagedim[startpage]['olm']
+                end
+              end
 
               prevLastH = @lasth
               # design a cell around the text
-              ccode = @fill_color + "\n" + getCellCode(cw, ch, '', border, 1, '', fill, '', 0, true)
+              ccode = @fill_color + "\n" + getCellCode(cw, ch, '', cborder, 1, '', fill, '', 0, true)
               @lasth = prevLastH
 
-              if (border != 0) or (fill == 1)
-                if !@transfmrk[@page].nil?
-                  pagemark = @transfmrk[@page]
-                  @transfmrk[@page] += (ccode + "\n").length
-                elsif @in_footer
-                  pagemark = @footerpos[@page]
-                  @footerpos[@page] += (ccode + "\n").length
-                else
-                  pagemark = @intmrk[@page]
-                  @intmrk[@page] += (ccode + "\n").length
-                end
+              if (cborder != 0) or (fill == 1)
                 pagebuff = getPageBuffer(@page)
-                pstart = pagebuff[0, pagemark]
-                pend = pagebuff[pagemark..-1]
+                pstart = pagebuff[0, @intmrk[@page]]
+                pend = pagebuff[@intmrk[@page]..-1]
                 setPageBuffer(@page, pstart + ccode + "\n" + pend)
+                @intmrk[@page] += (ccode + "\n").length
               end
             end
-          }
-          if !table_el['attribute']['cellspacing'].nil?
-            cellspacing = getHTMLUnitToUnits(table_el['attribute']['cellspacing'], 1, 'px')
-            @y += cellspacing
-          end
-          Ln(0, cell)
-          @x = parent['startx']
-          if end_page > startpage
-            if @rtl and (@pagedim[end_page]['orm'] != @pagedim[startpage]['orm'])
-              @x += @pagedim[end_page]['orm'] - @pagedim[startpage]['orm']
-            elsif !@rtl and (@pagedim[end_page]['olm'] != @pagedim[startpage]['olm'])
-              @x += @pagedim[end_page]['olm'] - @pagedim[startpage]['olm']
+          else
+            setPage(startpage)
+            if !cellpos['bgcolor'].nil? and (cellpos['bgcolor'] != false)
+              SetFillColorArray(cellpos['bgcolor'])
+              fill = 1
+            else
+              fill = 0
+            end
+            @x = cellpos['startx']
+            @y = parent['starty']
+            cw = (cellpos['endx'] - cellpos['startx']).abs
+            ch = endy - parent['starty']
+
+            prevLastH = @lasth
+            # design a cell around the text
+            ccode = @fill_color + "\n" + getCellCode(cw, ch, '', border, 1, '', fill, '', 0, true)
+            @lasth = prevLastH
+
+            if (border != 0) or (fill == 1)
+              if !@transfmrk[@page].nil?
+                pagemark = @transfmrk[@page]
+                @transfmrk[@page] += (ccode + "\n").length
+              elsif @in_footer
+                pagemark = @footerpos[@page]
+                @footerpos[@page] += (ccode + "\n").length
+              else
+                pagemark = @intmrk[@page]
+                @intmrk[@page] += (ccode + "\n").length
+              end
+              pagebuff = getPageBuffer(@page)
+              pstart = pagebuff[0, pagemark]
+              pend = pagebuff[pagemark..-1]
+              setPageBuffer(@page, pstart + ccode + "\n" + pend)
             end
           end
         }
-        if !in_table_head
-          # we are not inside a thead section
-          if dom[(parent['parent'])]['attribute']['cellpadding'] ### fix ###
-            @c_margin = @old_c_margin
-          end
-          @lasth = @font_size * @cell_height_ratio
-          if (@page == @numpages - 1) and @pageopen[@numpages]
-            # remove last blank page
-            deletePage(@numpages)
-          end
-          if !@thead_margins['top'].nil?
-            # restore top margin
-            @t_margin = @thead_margins['top']
-            @pagedim[@page]['tm'] = @t_margin
-          end
-          if table_el['attribute']['nested'].nil? or (table_el['attribute']['nested'] != 'true')
-            # reset main table header
-            @thead = ''
-            @thead_margins = {}
+        if !table_el['attribute']['cellspacing'].nil?
+          cellspacing = getHTMLUnitToUnits(table_el['attribute']['cellspacing'], 1, 'px')
+          @y += cellspacing
+        end
+        Ln(0, cell)
+        @x = parent['startx']
+        if end_page > startpage
+          if @rtl and (@pagedim[end_page]['orm'] != @pagedim[startpage]['orm'])
+            @x += @pagedim[end_page]['orm'] - @pagedim[startpage]['orm']
+          elsif !@rtl and (@pagedim[end_page]['olm'] != @pagedim[startpage]['olm'])
+            @x += @pagedim[end_page]['olm'] - @pagedim[startpage]['olm']
           end
         end
-        if tag['block']
-          unless dom[(dom[key]['parent'])]['attribute']['tablehead'] and dom[(dom[key]['parent'])]['attribute']['tablehead'] == "1" ### fix ###
-            addHTMLVertSpace(hbz / 2, 0, cell, (dom[key+1].nil? or (dom[key+1]['value'] != 'table'))) ### fix ###
-          end
-        end
-      when 'a'
-        @href = {}
-        @html_anchor = nil
-      when 'sup'
-        SetXY(GetX(), GetY() + (0.7 * parent['fontsize'] / @k))
-      when 'sub'
-        SetXY(GetX(), GetY() - (0.3 * parent['fontsize'] / @k))
-      when 'div'
-        addHTMLVertSpace(hbz, 0, cell, firstorlast)
-      when 'blockquote'
-        if @rtl
-          @r_margin -= @listindent
-        else
-          @l_margin -= @listindent
-        end
-        @listindentlevel -= 1
-        addHTMLVertSpace(hbz, hb, cell, firstorlast)
-      when 'p'
-        addHTMLVertSpace(hbz, hb, cell, firstorlast)
-      when 'pre'
-        addHTMLVertSpace(hbz, hb, cell, firstorlast)
-        @premode = false
-      when 'dl'
-        @listnum -= 1
-        if @listnum <= 0
-          @listnum = 0
-          addHTMLVertSpace(hbz, hb, cell, firstorlast)
-        else
-          addHTMLVertSpace(0, 0, cell, firstorlast)
+      }
+      if !in_table_head
+        # we are not inside a thead section
+        if dom[(parent['parent'])]['attribute']['cellpadding'] ### fix ###
+          @c_margin = @old_c_margin
         end
         @lasth = @font_size * @cell_height_ratio
-      when 'dt'
-        @lispacer = ''
-        addHTMLVertSpace(0, 0, cell, firstorlast)
-      when 'dd'
-        @lispacer = ''
-        if @rtl
-          @r_margin -= @listindent
-        else
-          @l_margin -= @listindent
+        if (@page == @numpages - 1) and @pageopen[@numpages]
+          # remove last blank page
+          deletePage(@numpages)
         end
-        @listindentlevel -= 1
-        addHTMLVertSpace(0, 0, cell, firstorlast)
-      when 'ul', 'ol'
-        @listnum -= 1
-        @lispacer = ''
-        if @rtl
-          @r_margin -= @listindent
-        else
-          @l_margin -= @listindent
+        if !@thead_margins['top'].nil?
+          # restore top margin
+          @t_margin = @thead_margins['top']
+          @pagedim[@page]['tm'] = @t_margin
         end
-        @listindentlevel -= 1
-        if @listnum <= 0
-          @listnum = 0
-          addHTMLVertSpace(hbz, hb, cell, firstorlast)
-        else
-          addHTMLVertSpace(0, 0, cell, firstorlast)
+        if table_el['attribute']['nested'].nil? or (table_el['attribute']['nested'] != 'true')
+          # reset main table header
+          @thead = ''
+          @thead_margins = {}
         end
-        @lasth = @font_size * @cell_height_ratio
-      when 'li'
-        @lispacer = ''
-        addHTMLVertSpace(0, 0, cell, firstorlast)
-      when 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'
+      end
+      if tag['block']
+        unless dom[(dom[key]['parent'])]['attribute']['tablehead'] and dom[(dom[key]['parent'])]['attribute']['tablehead'] == "1" ### fix ###
+          addHTMLVertSpace(hbz / 2, 0, cell, (dom[key+1].nil? or (dom[key+1]['value'] != 'table'))) ### fix ###
+        end
+      end
+    when 'a'
+      @href = {}
+      @html_anchor = nil
+    when 'sup'
+      SetXY(GetX(), GetY() + (0.7 * parent['fontsize'] / @k))
+    when 'sub'
+      SetXY(GetX(), GetY() - (0.3 * parent['fontsize'] / @k))
+    when 'div'
+      addHTMLVertSpace(hbz, 0, cell, firstorlast)
+    when 'blockquote'
+      if @rtl
+        @r_margin -= @listindent
+      else
+        @l_margin -= @listindent
+      end
+      @listindentlevel -= 1
+      addHTMLVertSpace(hbz, hb, cell, firstorlast)
+    when 'p'
+      addHTMLVertSpace(hbz, hb, cell, firstorlast)
+    when 'pre'
+      addHTMLVertSpace(hbz, hb, cell, firstorlast)
+      @premode = false
+    when 'dl'
+      @listnum -= 1
+      if @listnum <= 0
+        @listnum = 0
         addHTMLVertSpace(hbz, hb, cell, firstorlast)
+      else
+        addHTMLVertSpace(0, 0, cell, firstorlast)
+      end
+      @lasth = @font_size * @cell_height_ratio
+    when 'dt'
+      @lispacer = ''
+      @li_position_x = nil
+      addHTMLVertSpace(0, 0, cell, firstorlast)
+    when 'dd'
+      @lispacer = ''
+      @li_position_x = nil
+      if @rtl
+        @r_margin -= @listindent
+      else
+        @l_margin -= @listindent
+      end
+      @listindentlevel -= 1
+      addHTMLVertSpace(0, 0, cell, firstorlast)
+    when 'ul', 'ol'
+      @listnum -= 1
+      @lispacer = ''
+      @li_position_x = nil
+      if @rtl
+        @r_margin -= @listindent
+      else
+        @l_margin -= @listindent
+      end
+      @listindentlevel -= 1
+      if @listnum <= 0
+        @listnum = 0
+        addHTMLVertSpace(hbz, hb, cell, firstorlast)
+      else
+        addHTMLVertSpace(0, 0, cell, firstorlast)
+      end
+      @lasth = @font_size * @cell_height_ratio
+    when 'li'
+      @lispacer = ''
+      @li_position_x = nil
+      addHTMLVertSpace(0, 0, cell, firstorlast)
+    when 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'
+      addHTMLVertSpace(hbz, hb, cell, firstorlast)
+    when 'form' # Form fields (since 4.8.000 - 2009-09-07)
+      @form_action = ''
+      @form_enctype = 'application/x-www-form-urlencoded'
     end
+
     if dom[(dom[key]['parent'])]['attribute']['pagebreakafter']
       pba = dom[(dom[key]['parent'])]['attribute']['pagebreakafter']
       # check for pagebreak
@@ -14119,6 +15299,7 @@ protected
     width = 0
     textitem = ''
     tmpx = @x
+    @x = @li_position_x
     lspace = GetStringWidth('  ')
     if listtype == '!'
       # set default list type for unordered list
@@ -14190,6 +15371,7 @@ protected
     end
     @x = tmpx
     @lispacer = ''
+    @li_position_x = nil
   end
 
   #
@@ -14206,6 +15388,7 @@ protected
       'rMargin' => @r_margin,
       'lMargin' => @l_margin,
       'cMargin' => @c_margin,
+      'tMargin' => @t_margin,
       'LineWidth' => @line_width,
       'linestyleWidth' => @linestyle_width,
       'linestyleCap' => @linestyle_cap,
@@ -14226,24 +15409,31 @@ protected
       'listordered' => @listordered,
       'listcount' => @listcount,
       'lispacer' => @lispacer,
-      'lasth' => @lasth
+      'li_position_x' => @li_position_x,
+      'lasth' => @lasth,
+      'h' => @h,
+      'w' => @w,
+      'x' => @x,
+      'y' => @y,
     }
     return grapvars
   end
 
   #
   # Set graphic variables.
-  # [@param :gvars] array graphic variables
+  # [@param array :gvars] graphic variables
+  # [@param bool :option] set additional parameters
   # [@access protected]
   # [@since 4.2.010 (2008-11-14)]
   #
-  def setGraphicVars(gvars)
+  def setGraphicVars(gvars, option = false)
     @font_family = gvars['FontFamily']
     @font_style = gvars['FontStyle']
     @font_size_pt = gvars['FontSizePt']
     @r_margin = gvars['rMargin']
     @l_margin = gvars['lMargin']
     @c_margin = gvars['cMargin']
+    @t_margin = gvars['tMargin']
     @line_width = gvars['LineWidth']
     @linestyle_width = gvars['linestyleWidth']
     @linestyle_cap = gvars['linestyleCap']
@@ -14264,7 +15454,14 @@ protected
     @listordered = gvars['listordered']
     @listcount = gvars['listcount']
     @lispacer = gvars['lispacer']
-    #@lasth = gvars['lasth']
+    @li_position_x = gvars['li_position_x']
+    if option
+      @lasth = gvars['lasth']
+      @h = gvars['h']
+      @w = gvars['w']
+      @x = gvars['x']
+      @y = gvars['y']
+    end
     out('' + @linestyle_width + ' ' + @linestyle_cap + ' ' + @linestyle_join + ' ' + @linestyle_dash + ' ' + @draw_color + ' ' + @fill_color + '')
     unless empty_string(@font_family)
       SetFont(@font_family, @font_style, @font_size_pt)
@@ -14671,18 +15868,17 @@ public
     #global jfrompage, jtopage
     #jfrompage = frompage
     #jtopage = topage
-    #@javascript = preg_replace_callback('/this\.addField\(\'([^\']*)\',\'([^\']*)\',([0-9]+)/',
-    #create_function('$matches', 'global $jfrompage, $jtopage;
-    #  pagenum = matches[3].to_i + 1
-    #  if (pagenum >= jtopage) and (pagenum < jfrompage)
-    #    newpage = pagenum + 1
-    #  elsif pagenum == jfrompage
-    #    newpage = jtopage
-    #  else
-    #    newpage = pagenum
-    #  end
-    #  newpage -= 1
-    #  return "this.addField(\'".$matches[1]."\',\'".$matches[2]."\',".$newpage."";'), $tmpjavascript);
+    #tmpjavascript =~ /this\.addField\(\'([^\']*)\',\'([^\']*)\',([0-9]+)/
+    #pagenum = $3.to_i + 1
+    #if (pagenum >= jtopage) && (pagenum < jfrompage)
+    #  newpage = pagenum + 1
+    #elsif pagenum == jfrompage
+    #  newpage = jtopage
+    #else
+    #  newpage = pagenum
+    #end
+    #newpage -= 1
+    #@javascript = "this.addField(\'" + $1 + "\',\'" + $2 + "\'," + newpage + ""
 
     # return to last page
     lastPage(true)

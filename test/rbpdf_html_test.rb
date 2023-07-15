@@ -582,6 +582,36 @@ class RbpdfHtmlTest < Test::Unit::TestCase
     assert_equal 'a\\\\bc', pdf_text
   end
 
+  test "write_html <ul><li> tag test" do
+    pdf = MYPDF.new
+    pdf.set_print_header(false)
+    pdf.add_page()
+
+    htmlcontent = '<ul><li>text A</li><li>text B</li></ul>'
+    pdf.write_html(htmlcontent, true, 0, true, 0)
+    pdf_text = pdf.get_html_text(1)
+    assert_equal 'text Atext B', pdf_text
+  end
+
+  test "write_html <ul><li><input> tag test" do
+    pdf = MYPDF.new
+    pdf.set_print_header(false)
+    pdf.add_page()
+
+    htmlcontent = '
+    <ul>
+      <li><input type="checkbox">bar
+        <ul>
+          <li><input type="checkbox">baz</li>
+        </ul>
+      </li>
+      <li>test</li>
+    </ul>'
+    pdf.write_html(htmlcontent, true, 0, true, 0)
+    pdf_text = pdf.get_html_text(1)
+    assert_equal 'barbaztest', pdf_text
+  end
+
   test "write_html <ol><li> tag test" do
     pdf = MYPDF.new
     pdf.set_print_header(false)
