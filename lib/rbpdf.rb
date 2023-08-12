@@ -7552,23 +7552,28 @@ protected
       end
     }
     out << ' >>'
-=begin
+
     # gradient patterns
     if @gradients and !@gradients.empty?
       out << ' /Pattern <<'
-      @gradients.each_with_index  {|grad, id|
-        out << ' /p' + id + ' ' + grad['pattern'] + ' 0 R'
-      }
+      @gradients.each_with_index do |grad, id|
+        next unless grad
+
+        out << " /p#{id} #{grad['pattern']} 0 R"
+      end
       out << ' >>'
     end
     # gradient shadings
     if @gradients and !@gradients.empty?
       out << ' /Shading <<'
-      @gradients.each_with_index  {|grad, id|
-        out << ' /Sh' + id + ' ' + grad['id'] + ' 0 R'
-      }
+      @gradients.each_with_index do |grad, id|
+        next unless grad
+
+        out << " /Sh#{id} #{grad['id']} 0 R"
+      end
       out << ' >>'
     end
+=begin
     # spot colors
     if @spot_colors and !@spot_colors.empty?
       out << ' /ColorSpace <<'
@@ -7590,13 +7595,14 @@ protected
     mapLinksToHtmlAnchors()
     putextgstates()
     putocg()
-    putfonts();
-    putimages();
+    putfonts()
+    putimages()
     putspotcolors()
+    putshaders()
 
     #Resource dictionary
     @offsets[2]=@bufferlen
-    putresourcedict();
+    putresourcedict()
     putbookmarks()
     putEmbeddedFiles()
     putannotsobjs()
@@ -11734,6 +11740,434 @@ public
     @viewer_preferences = preferences
   end
   alias_method :set_viewer_preferences, :setViewerPreferences
+
+  #
+  # Paints a linear colour gradient.
+  # [@param float :x] abscissa of the top left corner of the rectangle.
+  # [@param float :y] ordinate of the top left corner of the rectangle.
+  # [@param float :w] width of the rectangle.
+  # [@param float :h] height of the rectangle.
+  # [@param array :col1] first color (Grayscale, RGB or CMYK components).
+  # [@param array :col2] second color (Grayscale, RGB or CMYK components).
+  # [@param array :coords] array of the form (x1, y1, x2, y2) which defines the gradient vector (see linear_gradient_coords.jpg). The default value is from left to right (x1=0, y1=0, x2=1, y2=0).
+  # [@since 3.1.000 (2008-06-09)]
+  # [@access public]
+  #
+  def LinearGradient(x, y, w, h, col1=[], col2=[], coords=[0,0,1,0])
+    Clip(x, y, w, h)
+    Gradient(2, coords, [{'color' => col1, 'offset' => 0, 'exponent' => 1}, {'color' => col2, 'offset' => 1, 'exponent' => 1}], [], false)
+  end
+  alias_method :linear_gradient, :LinearGradient
+
+  #
+  # Paints a radial colour gradient.
+  # [@param float :x] abscissa of the top left corner of the rectangle.
+  # [@param float :y] ordinate of the top left corner of the rectangle.
+  # [@param float :w] width of the rectangle.
+  # [@param float :h] height of the rectangle.
+  # [@param array :col1] first color (Grayscale, RGB or CMYK components).
+  # [@param array :col2] second color (Grayscale, RGB or CMYK components).
+  # [@param array :coords] array of the form (fx, fy, cx, cy, r) where (fx, fy) is the starting point of the gradient with color1, (cx, cy) is the center of the circle with color2, and r is the radius of the circle (see radial_gradient_coords.jpg). (fx, fy) should be inside the circle, otherwise some areas will not be defined.
+  # [@since 3.1.000 (2008-06-09)]
+  # [@access public]
+  #
+  def RadialGradient(x, y, w, h, col1=[], col2=[], coords=[0.5,0.5,0.5,0.5,1])
+    Clip(x, y, w, h)
+    Gradient(3, coords, [{'color' => col1, 'offset' => 0, 'exponent' => 1}, {'color' => col2, 'offset' => 1, 'exponent' => 1}], [], false)
+  end
+  alias_method :radial_gradient, :RadialGradient
+
+  #
+  # Paints a coons patch mesh.
+  # [@param float :x] abscissa of the top left corner of the rectangle.
+  # [@param float :y] ordinate of the top left corner of the rectangle.
+  # [@param float :w] width of the rectangle.
+  # [@param float :h] height of the rectangle.
+  # [@param array :col1] first color (lower left corner) (RGB components).
+  # [@param array :col2] second color (lower right corner) (RGB components).
+  # [@param array :col3] third color (upper right corner) (RGB components).
+  # [@param array :col4] fourth color (upper left corner) (RGB components).
+  # [@param array :coords] <ul><li>for one patch mesh: array(float x1, float y1, .... float x12, float y12): 12 pairs of coordinates (normally from 0 to 1) which specify the Bezier control points that define the patch. First pair is the lower left edge point, next is its right control point (control point 2). Then the other points are defined in the order: control point 1, edge point, control point 2 going counter-clockwise around the patch. Last (x12, y12) is the first edge point's left control point (control point 1).</li><li>for two or more patch meshes: array[number of patches]: arrays with the following keys for each patch: f: where to put that patch (0 = first patch, 1, 2, 3 = right, top and left of precedent patch - I didn't figure this out completely - just try and error ;-) points: 12 pairs of coordinates of the Bezier control points as above for the first patch, 8 pairs of coordinates for the following patches, ignoring the coordinates already defined by the precedent patch (I also didn't figure out the order of these - also: try and see what's happening) colors: must be 4 colors for the first patch, 2 colors for the following patches</li></ul>
+  # [@param array :coords_min] minimum value used by the coordinates. If a coordinate's value is smaller than this it will be cut to coords_min. default: 0
+  # [@param array :coords_max] maximum value used by the coordinates. If a coordinate's value is greater than this it will be cut to coords_max. default: 1
+  # [@param boolean :antialias] A flag indicating whether to filter the shading function to prevent aliasing artifacts.
+  # [@since 3.1.000 (2008-06-09)]
+  # [@access public]
+  #
+  def CoonsPatchMesh(x, y, w, h, col1=[], col2=[], col3=[], col4=[], coords=[0.00,0.0,0.33,0.00,0.67,0.00,1.00,0.00,1.00,0.33,1.00,0.67,1.00,1.00,0.67,1.00,0.33,1.00,0.00,1.00,0.00,0.67,0.00,0.33], coords_min=0, coords_max=1, antialias=false)
+    Clip(x, y, w, h)
+    n = @gradients.size + 1
+    @gradients[n] = {}
+    @gradients[n]['type'] = 6 #coons patch mesh
+    @gradients[n]['coords'] = []
+    @gradients[n]['antialias'] = antialias
+    @gradients[n]['colors'] = []
+    @gradients[n]['transparency'] = false
+    # check the coords array if it is the simple array or the multi patch array
+    if coords[0].is_a? Hash
+      # multi patch array
+      patch_array = coords
+    else
+      # simple array -> convert to multi patch array
+      if col1[1].nil?
+        col1[1] = col1[2] = col1[0]
+      end
+      if col2[1].nil?
+        col2[1] = col2[2] = col2[0]
+      end
+      if col3[1].nil?
+        col3[1] = col3[2] = col3[0]
+      end
+      if col4[1].nil?
+        col4[1] = col4[2] = col4[0]
+      end
+      patch_array = []
+      patch_array[0] = {}
+      patch_array[0]['f'] = 0
+      patch_array[0]['points'] = coords
+      patch_array[0]['colors'] = []
+      patch_array[0]['colors'][0] = {}
+      patch_array[0]['colors'][0]['r'] = col1[0]
+      patch_array[0]['colors'][0]['g'] = col1[1]
+      patch_array[0]['colors'][0]['b'] = col1[2]
+      patch_array[0]['colors'][1] = {}
+      patch_array[0]['colors'][1]['r'] = col2[0]
+      patch_array[0]['colors'][1]['g'] = col2[1]
+      patch_array[0]['colors'][1]['b'] = col2[2]
+      patch_array[0]['colors'][2] = {}
+      patch_array[0]['colors'][2]['r'] = col3[0]
+      patch_array[0]['colors'][2]['g'] = col3[1]
+      patch_array[0]['colors'][2]['b'] = col3[2]
+      patch_array[0]['colors'][3] = {}
+      patch_array[0]['colors'][3]['r'] = col4[0]
+      patch_array[0]['colors'][3]['g'] = col4[1]
+      patch_array[0]['colors'][3]['b'] = col4[2]
+    end
+    bpcd = 65535 #16 bits per coordinate
+    # build the data stream
+    @gradients[n]['stream'] = ''
+    count_patch = patch_array.size
+    count_patch.times do |i|
+      @gradients[n]['stream'] << (patch_array[i]['f']).chr # start with the edge flag as 8 bit
+      count_points = patch_array[i]['points'].size
+      count_points.times do |j|
+        # each point as 16 bit
+        patch_array[i]['points'][j] = ((patch_array[i]['points'][j] - coords_min) / (coords_max - coords_min)) * bpcd
+        if patch_array[i]['points'][j] < 0
+          patch_array[i]['points'][j] = 0
+        end
+        if patch_array[i]['points'][j] > bpcd
+          patch_array[i]['points'][j] = bpcd
+        end
+        @gradients[n]['stream'] << ((patch_array[i]['points'][j] / 256.0).floor).chr
+        @gradients[n]['stream'] << ((patch_array[i]['points'][j] % 256.0).floor).chr
+      end
+      count_cols = patch_array[i]['colors'].size
+      count_cols.times do |j|
+        # each color component as 8 bit
+        @gradients[n]['stream'] << (patch_array[i]['colors'][j]['r']).chr
+        @gradients[n]['stream'] << (patch_array[i]['colors'][j]['g']).chr
+        @gradients[n]['stream'] << (patch_array[i]['colors'][j]['b']).chr
+      end
+    end
+    # paint the gradient
+    out("/Sh#{n} sh")
+    # restore previous Graphic State
+    out('Q')
+  end
+  alias_method :coons_patch_mesh, :CoonsPatchMesh
+
+  #
+  # Set a rectangular clipping area.
+  # [@param float :x] abscissa of the top left corner of the rectangle (or top right corner for RTL mode).
+  # [@param float :y] ordinate of the top left corner of the rectangle.
+  # [@param float :w] width of the rectangle.
+  # [@param float :h] height of the rectangle.
+  # [@since 3.1.000 (2008-06-09)]
+  # [@access protected]
+  #
+  def Clip(x, y, w, h)
+    x = @w - x - w if @rtl
+
+    # save current Graphic State
+    s = 'q'
+    # set clipping area
+    s << sprintf(' %.2f %.2f %.2f %.2f re W n', x * @k, (@h - y) * @k, w * @k, -h * @k)
+    # set up transformation matrix for gradient
+    s << sprintf(' %.3f 0 0 %.3f %.3f %.3f cm', w * @k, h * @k, x * @k, (@h - (y + h)) * @k)
+    out(s)
+  end
+  protected :Clip
+
+	#
+  # Output gradient.
+  # [@param int :type] type of gradient (1 Function-based shading; 2 Axial shading; 3 Radial shading; 4 Free-form Gouraud-shaded triangle mesh; 5 Lattice-form Gouraud-shaded triangle mesh; 6 Coons patch mesh; 7 Tensor-product patch mesh). (Not all types are currently supported)
+  # [@param array :coords] array of coordinates.
+  # [@param array :stops] array gradient color components: color = array of GRAY, RGB or CMYK color components; offset = (0 to 1) represents a location along the gradient vector; exponent = exponent of the exponential interpolation function (default = 1).
+  # [@param array :background] An array of colour components appropriate to the colour space, specifying a single background colour value.
+  # [@param boolean :antialias] A flag indicating whether to filter the shading function to prevent aliasing artifacts.
+  # [@since 3.1.000 (2008-06-09)]
+  # [@access public]
+  #
+  def Gradient(type, coords, stops, background=[], antialias=false)
+    n = @gradients.size + 1
+    @gradients[n] = {}
+    @gradients[n]['type'] = type
+    @gradients[n]['coords'] = coords
+    @gradients[n]['antialias'] = antialias
+    @gradients[n]['colors'] = []
+    @gradients[n]['transparency'] = false
+    # color space
+    numcolspace = stops[0]['color'].size
+    bcolor = background
+    case numcolspace
+    when 4 # CMYK
+      @gradients[n]['colspace'] = 'DeviceCMYK'
+      unless background.empty?
+        @gradients[n]['background'] = sprintf('%.3f %.3f %.3f %.3f', bcolor[0]/100.0, bcolor[1]/100.0, bcolor[2]/100.0, bcolor[3]/100.0)
+      end
+    when 3 # RGB
+      @gradients[n]['colspace'] = 'DeviceRGB'
+      unless background.empty?
+        @gradients[n]['background'] = sprintf('%.3f %.3f %.3f', bcolor[0]/255.0, bcolor[1]/255.0, bcolor[2]/255.0)
+      end
+    when 1 # Gray scale
+      @gradients[n]['colspace'] = 'DeviceGray'
+      unless background.empty?
+        @gradients[n]['background'] = sprintf('%.3f', bcolor[0]/255.0)
+      end
+    end
+    num_stops = stops.size
+    last_stop_id = num_stops - 1
+    stops.each_with_index do |stop, key|
+      @gradients[n]['colors'][key] = {}
+      # offset represents a location along the gradient vector
+      if stop['offset']
+        @gradients[n]['colors'][key]['offset'] = stop['offset']
+      else
+        if key == 0
+          @gradients[n]['colors'][key]['offset'] = 0
+        elsif key == last_stop_id
+          @gradients[n]['colors'][key]['offset'] = 1
+        else
+          offsetstep = (1 - @gradients[n]['colors'][key - 1]['offset']) / (num_stops - key)
+          @gradients[n]['colors'][key]['offset'] = @gradients[n]['colors'][key - 1]['offset'] + offsetstep
+        end
+      end
+      if stop['opacity']
+        @gradients[n]['colors'][key]['opacity'] = stop['opacity']
+        if stop['opacity'] < 1
+          @gradients[n]['transparency'] = true
+        end
+      else
+        @gradients[n]['colors'][key]['opacity'] = 1
+      end
+      # exponent for the exponential interpolation function
+      if stop['exponent']
+        @gradients[n]['colors'][key]['exponent'] = stop['exponent']
+      else
+        @gradients[n]['colors'][key]['exponent'] = 1
+      end
+      # set colors
+      color = stop['color']
+      case numcolspace
+      when 4 # CMYK
+        @gradients[n]['colors'][key]['color'] = sprintf('%.3f %.3f %.3f %.3f', color[0]/100.0, color[1]/100.0, color[2]/100.0, color[3]/100.0)
+      when 3 # RGB
+        @gradients[n]['colors'][key]['color'] = sprintf('%.3f %.3f %.3f', color[0]/255.0, color[1]/255.0, color[2]/255.0)
+      when 1 # Gray scale
+        @gradients[n]['colors'][key]['color'] = sprintf('%.3f', color[0]/255.0)
+      end
+    end
+    if @gradients[n]['transparency']
+      # paint luminosity gradient
+      out("/TGS#{n} gs")
+    end
+    # paint the gradient
+    out("/Sh#{n} sh")
+    # restore previous Graphic State
+    out('Q')
+  end
+  alias_method :gradient, :Gradient
+
+  #
+  # Output gradient shaders.
+  # [@since 3.1.000 (2008-06-09)]
+  # [@access protected]
+  #
+  def putshaders()
+    idt = @gradients.size #index for transparency gradients
+    @gradients.each_with_index do |grad, id|
+      next unless grad
+
+      if (grad['type'] == 2) || (grad['type'] == 3)
+        newobj()
+        fc = @n
+        out = '<<'
+        out << ' /FunctionType 3'
+        out << ' /Domain [0 1]'
+        functions = ''
+        bounds = ''
+        encode = ''
+        i = 1
+        num_cols = grad['colors'].size
+        lastcols = num_cols - 1
+        1.upto(num_cols - 1) do |i|
+          functions << "#{fc + i} 0 R "
+          if i < lastcols
+            bounds << sprintf('%.3f ', grad['colors'][i]['offset'])
+          end
+          encode << '0 1 '
+        end
+        out << " /Functions [#{functions.strip}]"
+        out << " /Bounds [#{bounds.strip}]"
+        out << " /Encode [#{encode.strip}]"
+        out << ' >>'
+        out << ' endobj'
+        out(out)
+        1.upto(num_cols - 1) do |i|
+          newobj()
+          out = '<<'
+          out << ' /FunctionType 2'
+          out << ' /Domain [0 1]'
+          out << " /C0 [#{grad['colors'][i - 1]['color']}]"
+          out << " /C1 [#{grad['colors'][i]['color']}]"
+          out << " /N #{grad['colors'][i]['exponent']}"
+          out << ' >>'
+          out << ' endobj'
+          out(out)
+        end
+        # set transparency fuctions
+        if grad['transparency']
+          newobj()
+          ft = @n
+          out = '<<'
+          out << ' /FunctionType 3'
+          out << ' /Domain [0 1]'
+          functions = ''
+          i = 1
+          num_cols = grad['colors'].size
+          1.upto(num_cols - 1) do |i|
+            functions << "#{ft + i} 0 R "
+          end
+          out << " /Functions [#{functions.strip}]"
+          out << " /Bounds [#{bounds.strip}]"
+          out << " /Encode [#{encode.strip}]"
+          out << ' >>'
+          out << ' endobj'
+          out(out)
+          1.upto(num_cols - 1) do |i|
+            newobj()
+            out = '<<'
+            out << ' /FunctionType 2'
+            out << ' /Domain [0 1]'
+            out << " /C0 [#{grad['colors'][(i - 1)]['opacity']}]"
+            out << " /C1 [#{grad['colors'][i]['opacity']}]"
+            out << " /N #{grad['colors'][i]['exponent']}"
+            out << ' >>'
+            out << ' endobj'
+            out(out)
+          end
+        end
+      end
+      # set shading object
+      newobj()
+      out = "<< /ShadingType #{grad['type']}"
+      if grad['colspace']
+        out << " /ColorSpace /#{grad['colspace']}"
+      else
+        out << ' /ColorSpace /DeviceRGB'
+      end
+      if grad['background'] && !grad['background'].empty?
+        out << " /Background [#{grad['background']}]"
+      end
+      if grad['antialias'] == true
+        out << ' /AntiAlias true'
+      end
+      case grad['type']
+      when 2
+        out << sprintf(' /Coords [%.3f %.3f %.3f %.3f]', grad['coords'][0], grad['coords'][1], grad['coords'][2], grad['coords'][3])
+        out << ' /Domain [0 1]'
+        out << " /Function #{fc} 0 R"
+        out << ' /Extend [true true]'
+        out << ' >>'
+      when 3
+        # x0, y0, r0, x1, y1, r1
+        # at this this time radius of inner circle is 0
+        out << sprintf(' /Coords [%.3f %.3f 0 %.3f %.3f %.3f]', grad['coords'][0], grad['coords'][1], grad['coords'][2], grad['coords'][3], grad['coords'][4])
+        out << ' /Domain [0 1]'
+        out << " /Function #{fc} 0 R"
+        out << ' /Extend [true true]'
+        out << ' >>'
+      when 6
+        out << ' /BitsPerCoordinate 16'
+        out << ' /BitsPerComponent 8'
+        out << ' /Decode[0 1 0 1 0 1 0 1 0 1]'
+        out << ' /BitsPerFlag 8'
+        out << " /Length #{grad['stream'].length} >> "
+        out << getstream(grad['stream'])
+      end
+      out << ' endobj'
+      out(out)
+      if grad['transparency']
+        shading_transparency = out.gsub(%r{/ColorSpace /[^\s]+}mi, '/ColorSpace /DeviceGray')
+        shading_transparency = shading_transparency.gsub(%r{/Function [0-9]+ }mi, "/Function #{ft} ")
+      end
+      @gradients[id]['id'] = @n
+      # set pattern object
+      newobj()
+      out = '<< /Type /Pattern /PatternType 2'
+      out << " /Shading #{@gradients[id]['id']} 0 R"
+      out << ' >> endobj'
+      out(out)
+      @gradients[id]['pattern'] = @n
+      # set shading and pattern for transparency mask
+      if grad['transparency']
+        # luminosity pattern
+        idgs = id + idt
+        newobj()
+        out(shading_transparency)
+        @gradients[idgs] = {}
+        @gradients[idgs]['id'] = @n
+        newobj()
+        out = '<< /Type /Pattern /PatternType 2'
+        out << " /Shading #{@gradients[idgs]['id']} 0 R"
+        out << ' >> endobj'
+        out(out)
+        @gradients[idgs]['pattern'] = @n
+        # luminosity XObject
+        newobj()
+        filter = ''
+        stream = "q /a0 gs /Pattern cs /p#{idgs} scn 0 0 #{@w_pt} #{@h_pt} re f Q"
+        if @compress
+          filter = ' /Filter /FlateDecode'
+          stream = Zlib::Deflate.deflate(stream)
+        end
+        out = "<< /Type /XObject /Subtype /Form /FormType 1#{filter}"
+        out << " /Length #{stream.length}"
+        out << " /BBox [0 0 #{@w_pt} #{@h_pt}]"
+        out << ' /Group << /Type /Group /S /Transparency /CS /DeviceGray >>'
+        out << ' /Resources <<'
+        out << ' /ExtGState << /a0 << /ca 1 /CA 1 >> >>'
+        out << " /Pattern << /p#{idgs} #{@gradients[idgs]['pattern']} 0 R >>"
+        out << ' >>'
+        out << ' >> '
+        out << getstream(stream)
+        out << ' endobj'
+        out(out)
+        # SMask
+        newobj()
+        out = "<< /Type /Mask /S /Luminosity /G #{@n - 1} 0 R >> endobj"
+        out(out)
+        # ExtGState
+        newobj()
+        out = "<< /Type /ExtGState /SMask #{@n - 1} 0 R /AIS false >> endobj"
+        out(out)
+        @extgstates << {'n' => @n, 'name' => "TGS#{id}"}
+      end
+    end
+  end
+  protected :putshaders
 
   #
   # Draw the sector of a circle.
