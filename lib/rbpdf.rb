@@ -10499,6 +10499,7 @@ public
       }
     end
   end
+  protected :putjavascript
 
   #
   # Convert color to javascript color.
