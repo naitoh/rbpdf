@@ -1457,7 +1457,7 @@ class RBPDF
   #
   # Defines the title of the document.
   # [@param string :title] The title.
-  # [@access public$
+  # [@access public]
   # [@since 1.2]
   # [@see] SetAuthor(), SetCreator(), SetKeywords(), SetSubject()
   #
@@ -4088,7 +4088,7 @@ class RBPDF
   #   * T: top
   #   * R: right
   #   * B: bottom
-  # [@param string multicell position: 'start', 'middle', 'end'
+  # [@param string multicell :position] 'start', 'middle', 'end'
   # [@return mixed] border mode
   # [@access protected]
   # [@since 4.4.002 (2008-12-09)]
@@ -7501,7 +7501,7 @@ protected
 
   #
   # Output Spot Colors Resources.
-  # [@access protected[
+  # [@access protected]
   # [@since 4.0.024 (2008-09-12)]
   #
   def putspotcolors()
@@ -8078,7 +8078,6 @@ protected
   # [@access protected]
   #
   def escape(s)
-    # Add \ before \, ( and )
     s.gsub('\\','\\\\\\').gsub('(','\\(').gsub(')','\\)').gsub(13.chr, '\r')
   end
 
@@ -9340,8 +9339,8 @@ public
   #   * all: Line style of all lines. Array like for {@link SetLineStyle SetLineStyle}.
   #   * 0 to (:np - 1): Line style of each line. Array like for {@link SetLineStyle SetLineStyle}.
   #   If a key is not present or is null, not draws the line. Default value is default line style (empty array).
-  # [@param array :fill_color Fill color. Format: array(GREY) or array(R,G,B) or array(C,M,Y,K). Default value: default color (empty array).
-  # [@param boolean :closed if true the polygon is closes, otherwise will remain open
+  # [@param array :fill_color] Fill color. Format: array(GREY) or array(R,G,B) or array(C,M,Y,K). Default value: default color (empty array).
+  # [@param boolean :closed] if true the polygon is closes, otherwise will remain open
   # [@access public]
   # [@since 4.8.003 (2009-09-15)]
   #
@@ -10364,7 +10363,7 @@ public
 
   #
   # Create a bookmark PDF string.
-  # [@access private]
+  # [@access protected]
   # [@author] Olivier Plathey, Nicola Asuni
   # [@since 2.1.002 (2008-02-12)]
   #
@@ -10500,11 +10499,12 @@ public
       }
     end
   end
+  protected :putjavascript
 
   #
   # Convert color to javascript color.
   # [@param string :color] color name or #RRGGBB
-  # [@access protected}
+  # [@access protected]
   # [@author Denis Van Nuffelen, Nicola Asuni]
   # [@since 2.1.002 (2008-02-12)]
   #
@@ -16489,7 +16489,7 @@ public
   # [@param string :default] default style
   # [@param boolean :mode] if true enable rasterization, false otherwise.
   # [@author] Nicola Asuni
-  # [@access protected:
+  # [@access protected]
   # [@since 5.0.000 (2010-04-30)]
   #
   def getPathPaintOperator(style, default='S')
