@@ -40,6 +40,7 @@ class RbpdfTest < Test::Unit::TestCase
     '026 : Text Rendering Modes and Text Clipping'          => '026',
     '028 : Changing page formats'                           => '028',
     '029 : Set PDF viewer display preferences.'             => '029',
+    '030 : Colour gradients'                                => '030',
     '031 : Pie Chart'                                       => '031',
     '033 : Mixed font types'                                => '033',
     '034 : Clipping'                                        => '034',
