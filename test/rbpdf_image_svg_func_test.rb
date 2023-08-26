@@ -14,6 +14,10 @@ class RbpdfTest < Test::Unit::TestCase
     def get_styling_properties(prev_svgstyle, attribs)
       super
     end
+
+    def svg_path(d, style='')
+      super
+    end
   end
 
   test "SVG parse_svg_tag_attributes empty file test" do
@@ -139,5 +143,15 @@ class RbpdfTest < Test::Unit::TestCase
       diff = svgstyle.to_a - prev_svgstyle.to_a
       assert_equal(data[:output], Hash[*diff.flatten])
     end
+  end
+
+  test "SVG svg_path test" do
+    pdf = MYPDF.new
+    x, y, w, h = pdf.svg_path("M30,1h40l29,29v40l-29,29h-40l-29.0-29v-40z", "D")
+
+    assert_equal 0.35277777777777963, x
+    assert_equal 0.35277777777777775, y
+    assert_equal 34.572222222222216, w
+    assert_equal 34.57222222222222, h
   end
 end

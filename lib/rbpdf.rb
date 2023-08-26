@@ -17781,7 +17781,7 @@ protected
       params = []
       if val[1]
         # get curve parameters
-        rawparams = val[1].strip.split(/[,\s]+/mi)
+        rawparams = val[1].strip.scan(/-?[.\d]+/)
         rawparams.each_with_index do |cp, ck|
           params[ck] = getHTMLUnitToUnits(cp, 0, @svgunit, false)
         end
