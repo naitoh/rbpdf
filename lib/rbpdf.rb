@@ -17090,24 +17090,24 @@ public
     # get original image width and height
     regs = svgdata.scan(/<svg([^\>]*)>/mi)
     if !regs[0][0].nil? && !regs[0][0].empty?
-      tmp = regs[0][0].scan(/[\s]+x[\s]*=[\s]*"([^"]*)"/mi)
+      tmp = regs[0][0].scan(/\s+x\s*=\s*["']([^"']*)["']/mi)
       if tmp[0] && !tmp[0].empty?
         ox = getHTMLUnitToUnits(tmp[0][0], 0, @svgunit, false)
       end
-      tmp = regs[0][0].scan(/[\s]+y[\s]*=[\s]*"([^"]*)"/mi)
+      tmp = regs[0][0].scan(/\s+y\s*=\s*["']([^"']*)["']/mi)
       if tmp[0] && !tmp[0].empty?
         oy = getHTMLUnitToUnits(tmp[0][0], 0, @svgunit, false)
       end
-      tmp = regs[0][0].scan(/[\s]+width[\s]*=[\s]*"([^"]*)"/mi)
+      tmp = regs[0][0].scan(/\s+width\s*=\s*["']([^"']*)["']/mi)
       if tmp[0] && !tmp[0].empty?
         ow = getHTMLUnitToUnits(tmp[0][0], 1, @svgunit, false)
       end
-      tmp = regs[0][0].scan(/[\s]+height[\s]*=[\s]*"([^"]*)"/mi)
+      tmp = regs[0][0].scan(/\s+height\s*=\s*["']([^"']*)["']/mi)
       if tmp[0] && !tmp[0].empty?
         oh = getHTMLUnitToUnits(tmp[0][0], 1, @svgunit, false)
       end
       view_box = []
-      tmp = regs[0][0].scan(/[\s]+viewBox[\s]*=[\s]*"[\s]*([0-9\.\-]+)[\s]+([0-9\.\-]+)[\s]+([0-9\.]+)[\s]+([0-9\.]+)[\s]*"/mi)
+      tmp = regs[0][0].scan(/\s+viewBox\s*=\s*["']\s*([-0-9.]+)\s+([-0-9.]+)\s+([0-9.]+)\s+([0-9.]+)\s*["']/mi)
       if tmp[0] && !tmp[0].empty?
         if tmp[0].size == 4
           tmp[0].each_with_index {|val, key|
@@ -17133,6 +17133,10 @@ public
           end
         end
       end
+    end
+    if (view_box[2]&.> 0) && (view_box[3]&.> 0)
+      ow = view_box[2]
+      oh = view_box[3]
     end
     # calculate image width and height on document
     if (w <= 0) && (h <= 0)
@@ -17202,10 +17206,6 @@ public
     # store SVG position and scale factors
     svgoffset_x = (ximg - ox) * @k
     svgoffset_y = -(y - oy) * @k
-    if (view_box[2]&.> 0) && (view_box[3]&.> 0)
-      ow = view_box[2]
-      oh = view_box[3]
-    end
     svgscale_x = w / ow
     svgscale_y = h / oh
     # scaling and alignment
