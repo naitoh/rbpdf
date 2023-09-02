@@ -9197,31 +9197,28 @@ public
   # [@param float :y] Ordinate of upper-left corner (or upper-right corner for RTL language).
   # [@param float :w] Width.
   # [@param float :h] Height.
-  # [@param string :style]
-  #   Style of rendering. See the getPathPaintOperator() function for more information.
+  # [@param string :style] Style of rendering. See the getPathPaintOperator() function for more information.
+  # [@param hash :border_style] Border style of rectangle. Hash with keys among the following:
   #   * all: Line style of all borders. Array like for {@link SetLineStyle SetLineStyle}.
   #   * L, T, R, B or combinations: Line style of left, top, right or bottom border. Array like for {@link SetLineStyle SetLineStyle}.
-  #   If a key is not present or is null, not draws the border. Default value: default line style (empty array).
-  # [@param array :border_style] Border style of rectangle. Array like for {@link SetLineStyle SetLineStyle}. Default value: default line style (empty array).
+  #   If a key is not present or is null, not draws the border. Default value: default line style (empty Hash).
   # [@param array :fill_color] Fill color. Format: array(GREY) or array(R,G,B) or array(C,M,Y,K). Default value: default color (empty array).
   # [@access public]
   # [@since 1.0]
   # [@see] SetLineStyle()
   #
-  def Rect(x, y, w, h, style='', border_style={}, fill_color={})
-    if style.index('F') != nil and !fill_color.empty?
+  def Rect(x, y, w, h, style='', border_style={}, fill_color=[])
+    if !style.index('F').nil? && fill_color && !fill_color.empty?
       SetFillColorArray(fill_color)
     end
     op = getPathPaintOperator(style)
-    if !border_style or !border_style['all'].nil?
-      if !border_style['all'].nil? and border_style['all']
-        SetLineStyle(border_style['all'])
-        border_style = {}
-      end
+    if border_style && border_style['all']
+      SetLineStyle(border_style['all'])
+      border_style = {}
     end
     outRect(x, y, w, h, op)
 
-    if border_style
+    if border_style && !border_style.empty?
       border_style2 = {}
       border_style.each { |line, value|
         length = line.length
@@ -9259,18 +9256,18 @@ public
   # [@param float :x3] Abscissa of end point.
   # [@param float :y3] Ordinate of end point.
   # [@param string :style] Style of rendering. See the getPathPaintOperator() function for more information.
-  # [@param array :line_style] Line style of curve. Array like for {@link SetLineStyle SetLineStyle}. Default value: default line style (empty array).
+  # [@param hash :line_style] Line style of curve. Array like for {@link SetLineStyle SetLineStyle}. Default value: default line style (empty Hash).
   # [@param array :fill_color] Fill color. Format: array(GREY) or array(R,G,B) or array(C,M,Y,K). Default value: default color (empty array).
   # [@access public]
   # [@see] SetLineStyle()
   # [@since 2.1.000 (2008-01-08)]
   #
-  def Curve(x0, y0, x1, y1, x2, y2, x3, y3, style='', line_style=nil, fill_color=nil)
-    if style and (style.index('F') != nil) and fill_color
+  def Curve(x0, y0, x1, y1, x2, y2, x3, y3, style='', line_style={}, fill_color=[])
+    if style && !style.index('F').nil? && fill_color && !fill_color.empty?
       SetFillColorArray(fill_color)
     end
     op = getPathPaintOperator(style)
-    if line_style
+    if line_style && !line_style.empty?
       SetLineStyle(line_style)
     end
     outPoint(x0, y0)
@@ -9290,19 +9287,19 @@ public
   # [@param float :astart] Angle start of draw line. Default value: 0.
   # [@param float :afinish] Angle finish of draw line. Default value: 360.
   # [@param string :style] Style of rendering. See the getPathPaintOperator() function for more information.
-  # [@param array :line_style] Line style of ellipse. Array like for {@link SetLineStyle SetLineStyle}. Default value: default line style (empty array).
+  # [@param hash :line_style] Line style of ellipse. Array like for {@link SetLineStyle SetLineStyle}. Default value: default line style (empty Hash).
   # [@param array :fill_color] Fill color. Format: array(GREY) or array(R,G,B) or array(C,M,Y,K). Default value: default color (empty array).
   # [@param integer :nc] Number of curves used to draw a 90 degrees portion of ellipse.
   # [@author] Nicola Asuni
   # [@access public]
   # [@since 2.1.000 (2008-01-08)]
   #
-  def Ellipse(x0, y0, rx, ry='', angle=0, astart=0, afinish=360, style='', line_style=nil, fill_color=nil, nc=2)
+  def Ellipse(x0, y0, rx, ry='', angle=0, astart=0, afinish=360, style='', line_style={}, fill_color=[], nc=2)
     style = '' if style.nil?
     if empty_string(ry) or (ry == 0)
       ry = rx
     end
-    if (nil != style.index('F')) and fill_color
+    if !style.index('F').nil? && fill_color && !fill_color.empty?
       SetFillColorArray(fill_color)
     end
     op = getPathPaintOperator(style)
@@ -9427,13 +9424,13 @@ public
   # [@param float :angstr] Angle start of draw line. Default value: 0.
   # [@param float :angend] Angle finish of draw line. Default value: 360.
   # [@param string :style] Style of rendering. See the getPathPaintOperator() function for more information.
-  # [@param array :line_style] Line style of circle. Array like for {@link SetLineStyle SetLineStyle}. Default value: default line style (empty array).
+  # [@param hash :line_style] Line style of circle. Array like for {@link SetLineStyle SetLineStyle}. Default value: default line style (empty Hash).
   # [@param array :fill_color] Fill color. Format: array(red, green, blue). Default value: default color (empty array).
   # [@param integer :nc] Number of curves used to draw a 90 degrees portion of circle.
   # [@access public]
   # [@since 2.1.000 (2008-01-08)]
   #
-  def Circle(x0, y0, r, angstr=0, angend=360, style='', line_style=nil, fill_color=nil, nc=2)
+  def Circle(x0, y0, r, angstr=0, angend=360, style='', line_style={}, fill_color=[], nc=2)
     Ellipse(x0, y0, r, r, 0, angstr, angend, style, line_style, fill_color, nc)
   end
   alias_method :circle, :Circle
@@ -9442,17 +9439,17 @@ public
   # Draws a polygonal line
   # [@param array :p] Points 0 to (:np - 1). Array with values (x0, y0, x1, y1,..., x(np-1), y(np - 1))
   # [@param string :style] Style of rendering. See the getPathPaintOperator() function for more information.
-  # [@param array :line_style]
-  #   Line style of polygon. Array with keys among the following:
+  # [@param hash :line_style]
+  #   Line style of polygon. Hash with keys among the following:
   #   * all: Line style of all lines. Array like for {@link SetLineStyle SetLineStyle}.
   #   * 0 to (:np - 1): Line style of each line. Array like for {@link SetLineStyle SetLineStyle}.
-  #   If a key is not present or is null, not draws the line. Default value is default line style (empty array).
+  #   If a key is not present or is null, not draws the line. Default value is default line style (empty Hash).
   # [@param array :fill_color] Fill color. Format: array(GREY) or array(R,G,B) or array(C,M,Y,K). Default value: default color (empty array).
   # [@param boolean :closed] if true the polygon is closes, otherwise will remain open
   # [@access public]
   # [@since 4.8.003 (2009-09-15)]
   #
-  def PolyLine(p, style='', line_style=nil, fill_color=nil)
+  def PolyLine(p, style='', line_style={}, fill_color=[])
     Polygon(p, style, line_style, fill_color, false)
   end
   alias_method :poly_line, :PolyLine
@@ -9461,17 +9458,17 @@ public
   # Draws a polygon.
   # [@param array :p] Points 0 to (np - 1). Array with values (x0, y0, x1, y1,..., x(np-1), y(np - 1))
   # [@param string :style] Style of rendering. See the getPathPaintOperator() function for more information.
-  # [@param array :line_style]
-  #   Line style of polygon. Array with keys among the following:
+  # [@param hash :line_style]
+  #   Line style of polygon. Hash with keys among the following:
   #   * all: Line style of all lines. Array like for {@link SetLineStyle SetLineStyle}.
   #   * 0 to (:np - 1): Line style of each line. Array like for {@link SetLineStyle SetLineStyle}.
-  # If a key is not present or is null, not draws the line. Default value is default line style (empty array).
+  # If a key is not present or is null, not draws the line. Default value is default line style (empty Hash).
   # [@param array :fill_color] Fill color. Format: array(GREY) or array(R,G,B) or array(C,M,Y,K). Default value: default color (empty array).
   # [@param boolean :closed] if true the polygon is closes, otherwise will remain open
   # [@access public]
   # [@since 2.1.000 (2008-01-08)]
   #
-  def Polygon(p, style='', line_style=nil, fill_color=nil, closed=true)
+  def Polygon(p, style='', line_style={}, fill_color=[], closed=true)
     style = '' if style.nil?
     nc = p.length # number of coordinates
     np = nc / 2 # number of points
@@ -9490,15 +9487,15 @@ public
       end
       nc += 4
     end
-    if (nil != style.index('F')) and fill_color
+    if !style.index('F').nil? && fill_color && !fill_color.empty?
       SetFillColorArray(fill_color)
     end
     op = getPathPaintOperator(style)
     if op == 'f'
-      line_style = []
+      line_style = {}
     end
     draw = true
-    if line_style
+    if line_style && !line_style.empty?
       if line_style.is_a? Hash and line_style['all']
         SetLineStyle(line_style['all'])
       else
@@ -9555,11 +9552,11 @@ public
   # [@param float :angle] Angle oriented (anti-clockwise). Default value: 0.
   # [@param boolean :draw_circle] Draw inscribed circle or not. Default value: false.
   # [@param string :style] Style of rendering. See the getPathPaintOperator() function for more information.
-  # [@param array :line_style]
-  #   Line style of polygon sides. Array with keys among the following:
+  # [@param hash :line_style]
+  #   Line style of polygon sides. Hash with keys among the following:
   #   * all: Line style of all sides. Array like for {@link SetLineStyle SetLineStyle}.
   #   * 0 to (:ns - 1): Line style of each side. Array like for {@link SetLineStyle SetLineStyle}.
-  #   If a key is not present or is null, not draws the side. Default value is default line style (empty array).
+  #   If a key is not present or is null, not draws the side. Default value is default line style (empty Hash).
   # [@param array :fill_color] Fill color. Format: array(red, green, blue). Default value: default color (empty array).
   # [@param string :circle_style]
   #   Style of rendering of inscribed circle (if draws). Possible values are:
@@ -9568,12 +9565,12 @@ public
   #   * DF or FD: Draw and fill.
   #   * CNZ: Clipping mode (using the even-odd rule to determine which regions lie inside the clipping path).
   #   * CEO: Clipping mode (using the nonzero winding number rule to determine which regions lie inside the clipping path).
-  # [@param array :circle_outLine_style] Line style of inscribed circle (if draws). Array like for {@link SetLineStyle SetLineStyle}. Default value: default line style (empty array).
+  # [@param hash :circle_outLine_style] Line style of inscribed circle (if draws). Array like for {@link SetLineStyle SetLineStyle}. Default value: default line style (empty Hash).
   # [@param array :circle_fill_color] Fill color of inscribed circle (if draws). Format: array(red, green, blue). Default value: default color (empty array).
   # [@access public]
   # [@since 2.1.000 (2008-01-08)]
   #
-  def RegularPolygon(x0, y0, r, ns, angle=0, draw_circle=false, style='', line_style=nil, fill_color=nil, circle_style='', circle_outLine_style=nil, circle_fill_color=nil)
+  def RegularPolygon(x0, y0, r, ns, angle=0, draw_circle=false, style='', line_style={}, fill_color=[], circle_style='', circle_outLine_style={}, circle_fill_color=[])
     draw_circle = false if draw_circle == 0
     if 3 > ns
       ns = 3
@@ -9602,11 +9599,11 @@ public
   # [@param float :angle] Angle oriented (anti-clockwise). Default value: 0.
   # [@param boolean :draw_circle] Draw inscribed circle or not. Default value is false.
   # [@param string :style] Style of rendering. See the getPathPaintOperator() function for more information.
-  # [@param array :line_style]
-  #   Line style of polygon sides. Array with keys among the following:
+  # [@param hash :line_style]
+  #   Line style of polygon sides. Hash with keys among the following:
   #   * all: Line style of all sides. Array like for {@link SetLineStyle SetLineStyle}.
   #   * 0 to (n - 1): Line style of each side. Array like for {@link SetLineStyle SetLineStyle}.
-  # If a key is not present or is null, not draws the side. Default value is default line style (empty array).
+  # If a key is not present or is null, not draws the side. Default value is default line style (empty Hash).
   # [@param array :fill_color ]Fill color. Format: array(red, green, blue). Default value: default color (empty array).
   # [@param string :circle_style]
   #   Style of rendering of inscribed circle (if draws). Possible values are:
@@ -9615,12 +9612,12 @@ public
   #   * DF or FD: Draw and fill.
   #   * CNZ: Clipping mode (using the even-odd rule to determine which regions lie inside the clipping path).
   #   * CEO: Clipping mode (using the nonzero winding number rule to determine which regions lie inside the clipping path).
-  # [@param array :circle_outLine_style] Line style of inscribed circle (if draws). Array like for {@link SetLineStyle SetLineStyle}. Default value: default line style (empty array).
+  # [@param hash :circle_outLine_style] Line style of inscribed circle (if draws). Array like for {@link SetLineStyle SetLineStyle}. Default value: default line style (empty Hash).
   # [@param array :circle_fill_color] Fill color of inscribed circle (if draws). Format: array(red, green, blue). Default value: default color (empty array).
   # [@access public]
   # [@since 2.1.000 (2008-01-08)]
   #
-  def StarPolygon(x0, y0, r, nv, ng, angle=0, draw_circle=false, style='', line_style=nil, fill_color=nil, circle_style='', circle_outLine_style=nil, circle_fill_color=nil)
+  def StarPolygon(x0, y0, r, nv, ng, angle=0, draw_circle=false, style='', line_style={}, fill_color=[], circle_style='', circle_outLine_style={}, circle_fill_color=[])
     draw_circle = false if draw_circle == 0
     if nv < 2
       nv = 2
@@ -9660,12 +9657,12 @@ public
   # [@param float :r] the radius of the circle used to round off the corners of the rectangle.
   # [@param string :round_corner] Draws rounded corner or not. String with a 0 (not rounded i-corner) or 1 (rounded i-corner) in i-position. Positions are, in order and begin to 0: top left, top right, bottom right and bottom left. Default value: all rounded corner ("1111").
   # [@param string :style] Style of rendering. See the getPathPaintOperator() function for more information.
-  # [@param array :border_style] Border style of rectangle. Array like for {@link SetLineStyle SetLineStyle}. Default value: default line style (empty array).
+  # [@param hash :border_style] Border style of rectangle. Array like for {@link SetLineStyle SetLineStyle}. Default value: default line style (empty hash).
   # [@param array :fill_color] Fill color. Format: array(GREY) or array(R,G,B) or array(C,M,Y,K). Default value: default color (empty array).
   # [@access public]
   # [@since 2.1.000 (2008-01-08)]
   #
-  def RoundedRect(x, y, w, h, r, round_corner='1111', style='', border_style=nil, fill_color=nil)
+  def RoundedRect(x, y, w, h, r, round_corner='1111', style='', border_style={}, fill_color=[])
     RoundedRectXY(x, y, w, h, r, r, round_corner, style, border_style, fill_color)
   end
   alias_method :rounded_rect, :RoundedRect
@@ -9680,12 +9677,12 @@ public
   # [@param float :ry] the y-axis radius of the ellipse used to round off the corners of the rectangle.
   # [@param string :round_corner] Draws rounded corner or not. String with a 0 (not rounded i-corner) or 1 (rounded i-corner) in i-position. Positions are, in order and begin to 0: top left, top right, bottom right and bottom left. Default value: all rounded corner ("1111").
   # [@param string :style] Style of rendering. See the getPathPaintOperator() function for more information.
-  # [@param array :border_style] Border style of rectangle. Array like for {@link SetLineStyle SetLineStyle}. Default value: default line style (empty array).
+  # [@param hash :border_style] Border style of rectangle. Array like for {@link SetLineStyle SetLineStyle}. Default value: default line style (empty hash).
   # [@param array :fill_color] Fill color. Format: array(GREY) or array(R,G,B) or array(C,M,Y,K). Default value: default color (empty array).
   # [@access public]
   # [@since 4.9.019 (2010-04-22)]
   #
-  def RoundedRectXY(x, y, w, h, rx, ry, round_corner='1111', style='', border_style=nil, fill_color=nil)
+  def RoundedRectXY(x, y, w, h, rx, ry, round_corner='1111', style='', border_style={}, fill_color=[])
     style = '' if style.nil?
     if (round_corner == '0000') or ((rx == ry) and (rx == 0))
       # Not rounded
@@ -9693,14 +9690,14 @@ public
       return
     end
     # Rounded
-    if (nil != style.index('F')) and fill_color
+    if !style.index('F').nil? && fill_color && !fill_color.empty?
       SetFillColorArray(fill_color)
     end
     op = getPathPaintOperator(style)
     if op == 'f'
-      border_style = []
+      border_style = {}
     end
-    if border_style
+    unless border_style.empty?
       SetLineStyle(border_style)
     end
     myArc = 4 / 3.0 * (::Math.sqrt(2) - 1)

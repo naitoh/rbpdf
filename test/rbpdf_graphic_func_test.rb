@@ -78,4 +78,103 @@ class RbpdfPageTest < Test::Unit::TestCase
     assert_equal "226.77 756.85 l", content[before_size + 6] # outLine(x2, y2)
     assert_equal "S", content[before_size + 7]
   end
+
+  test "rect basic test" do
+    pdf = MYPDF.new
+    pdf.add_page()
+    page = pdf.get_page
+    contents = pdf.getPageBuffer(page)
+    before_size = contents.split("\n").size
+    pdf.putshaders
+    style = { 'L' => nil, 'T' => nil, 'R' => nil, 'B' => nil }
+    pdf.rect(30, 40, 60, 60, '', style)
+
+    content = []
+    contents = pdf.getPageBuffer(page)
+    contents.each_line {|line| content.push line.chomp }
+
+    assert_equal "85.04 728.50 170.08 -170.08 re S", content[before_size] # outRect(x, y, w, h, op)
+  end
+
+  test "rect with style & fill_color test" do
+    pdf = MYPDF.new
+    pdf.add_page()
+    page = pdf.get_page
+    contents = pdf.getPageBuffer(page)
+    before_size = contents.split("\n").size
+    pdf.putshaders
+    pdf.rect(30, 40, 60, 60, 'F', {}, [220, 220, 200])
+
+    content = []
+    contents = pdf.getPageBuffer(page)
+    contents.each_line {|line| content.push line.chomp }
+    assert_equal "0.863 0.863 0.784 rg", content[before_size] # SetFillColorArray(fill_color)
+    assert_equal "85.04 728.50 170.08 -170.08 re f", content[before_size + 1] # outRect(x, y, w, h, op)
+  end
+
+  test "rect with border_style 'all' test" do
+    pdf = MYPDF.new
+    pdf.add_page()
+    page = pdf.get_page
+    contents = pdf.getPageBuffer(page)
+    before_size = contents.split("\n").size
+    pdf.putshaders
+
+    style = {'width' => 0.1, 'cap' => 'square', 'join' => 'round', 'dash' => 0, 'color' => [0, 64, 128]}
+    pdf.rect(30, 40, 60, 60, '', { 'all' => style })
+
+    content = []
+    contents = pdf.getPageBuffer(page)
+    contents.each_line {|line| content.push line.chomp }
+
+    # set_line_style start
+    assert_equal "0.28 w", content[before_size] # 'width' => 0.1
+    assert_equal "2 J", content[before_size + 1] # 'cap' => 'square'
+    assert_equal "1 j", content[before_size + 2] # 'join' => 'round'
+    assert_equal "[] 0.00 d", content[before_size + 3] #  'dash' => 0
+    assert_equal "0.000 0.251 0.502 RG ", content[before_size + 4] # 'color' => [0, 255, 0]
+    # set_line_style end
+
+    assert_equal "85.04 728.50 170.08 -170.08 re S", content[before_size + 5] # outRect(x, y, w, h, op)
+  end
+
+  test "rect with border_style 'LTRB' test" do
+    pdf = MYPDF.new
+    pdf.add_page()
+    page = pdf.get_page
+    contents = pdf.getPageBuffer(page)
+    before_size = contents.split("\n").size
+    pdf.putshaders
+
+    style = { 'L' => {'width' => 0.1}, 'T' => {'width' => 0.1}, 'R' => {'width' => 0.1}, 'B' => {'width' => 0.1} }
+    pdf.rect(30, 40, 60, 60, '', style)
+
+    content = []
+    contents = pdf.getPageBuffer(page)
+    contents.each_line {|line| content.push line.chomp }
+
+    assert_equal "85.04 728.50 170.08 -170.08 re S", content[before_size] # outRect(x, y, w, h, op)
+
+    # line start
+    assert_equal "0.28 w", content[before_size + 1] # 'width' => 0.1
+    assert_equal "85.04 728.50 m", content[before_size + 2] # outPoint(x1, y1)
+    assert_equal "85.04 558.43 l", content[before_size + 3] # outLine(x2, y2)
+    assert_equal "S", content[before_size + 4]
+
+    assert_equal "0.28 w", content[before_size + 5] # 'width' => 0.1
+    assert_equal "85.04 728.50 m", content[before_size + 6] # outPoint(x1, y1)
+    assert_equal "255.12 728.50 l", content[before_size + 7] # outLine(x2, y2)
+    assert_equal "S", content[before_size + 8]
+
+    assert_equal "0.28 w", content[before_size + 9] # 'width' => 0.1
+    assert_equal "255.12 728.50 m", content[before_size + 10] # outPoint(x1, y1)
+    assert_equal "255.12 558.43 l", content[before_size + 11] # outLine(x2, y2)
+    assert_equal "S", content[before_size + 12]
+
+    assert_equal "0.28 w", content[before_size + 13] # 'width' => 0.1
+    assert_equal "85.04 558.43 m", content[before_size + 14] # outPoint(x1, y1)
+    assert_equal "255.12 558.43 l", content[before_size + 15] # outLine(x2, y2)
+    assert_equal "S", content[before_size + 16]
+    # line end
+  end
 end
