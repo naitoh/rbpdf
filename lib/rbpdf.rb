@@ -17074,70 +17074,12 @@ public
     end
 
     @svgdir = File.dirname(file)
-    svgdata = ''
-    open(file,'rb') do |f|
-      svgdata = f.read()
-    end
     x = @x if x == ''
     y = @y if y == ''
     k = @k
-    ox = 0
-    oy = 0
-    ow = w
-    oh = h
-    aspect_ratio_align = 'xMidYMid'
-    aspect_ratio_ms = 'meet'
-    # get original image width and height
-    regs = svgdata.scan(/<svg([^\>]*)>/mi)
-    if !regs[0][0].nil? && !regs[0][0].empty?
-      tmp = regs[0][0].scan(/\s+x\s*=\s*["']([^"']*)["']/mi)
-      if tmp[0] && !tmp[0].empty?
-        ox = getHTMLUnitToUnits(tmp[0][0], 0, @svgunit, false)
-      end
-      tmp = regs[0][0].scan(/\s+y\s*=\s*["']([^"']*)["']/mi)
-      if tmp[0] && !tmp[0].empty?
-        oy = getHTMLUnitToUnits(tmp[0][0], 0, @svgunit, false)
-      end
-      tmp = regs[0][0].scan(/\s+width\s*=\s*["']([^"']*)["']/mi)
-      if tmp[0] && !tmp[0].empty?
-        ow = getHTMLUnitToUnits(tmp[0][0], 1, @svgunit, false)
-      end
-      tmp = regs[0][0].scan(/\s+height\s*=\s*["']([^"']*)["']/mi)
-      if tmp[0] && !tmp[0].empty?
-        oh = getHTMLUnitToUnits(tmp[0][0], 1, @svgunit, false)
-      end
-      view_box = []
-      tmp = regs[0][0].scan(/\s+viewBox\s*=\s*["']\s*([-0-9.]+)\s+([-0-9.]+)\s+([0-9.]+)\s+([0-9.]+)\s*["']/mi)
-      if tmp[0] && !tmp[0].empty?
-        if tmp[0].size == 4
-          tmp[0].each_with_index {|val, key|
-            view_box[key] = getHTMLUnitToUnits(val, 0, @svgunit, false)
-          }
-          ox = view_box[0]
-          oy = view_box[1]
-        end
-        # get aspect ratio
-        tmp = regs[0][0].scan(/[\s]+preserveAspectRatio[\s]*=[\s]*"([^"]*)"/mi)
-        if tmp[0] && !tmp[0].empty?
-          aspect_ratio = tmp[0][0].split(/[\s]+/mi)
-          case aspect_ratio.size
-          when 3
-            aspect_ratio_align = aspect_ratio[1]
-            aspect_ratio_ms = aspect_ratio[2]
-          when 2
-            aspect_ratio_align = aspect_ratio[0]
-            aspect_ratio_ms = aspect_ratio[1]
-          when 1
-            aspect_ratio_align = aspect_ratio[0]
-            aspect_ratio_ms = 'meet'
-          end
-        end
-      end
-    end
-    if (view_box[2]&.> 0) && (view_box[3]&.> 0)
-      ow = view_box[2]
-      oh = view_box[3]
-    end
+
+    ox, oy, ow, oh, aspect_ratio_align, aspect_ratio_ms = parse_svg_tag_attributes(file, w, h)
+
     # calculate image width and height on document
     if (w <= 0) && (h <= 0)
       # convert image size to document unit
@@ -17320,6 +17262,72 @@ public
     end
     @endlinex = @img_rb_x
   end
+
+  def parse_svg_tag_attributes(file, w, h)
+    ox = 0
+    oy = 0
+    ow = w
+    oh = h
+    aspect_ratio_align = 'xMidYMid'
+    aspect_ratio_ms = 'meet'
+    open(file,'rb') do |f|
+      parser = REXML::Parsers::PullParser.new(f)
+
+      while parser.has_next?
+        res = parser.pull
+        if (res.event_type == :start_element) && (res[0] == 'svg')
+          attribs = res[1]
+
+          if attribs['x'] && !attribs['x'].empty?
+            ox = getHTMLUnitToUnits(attribs['x'], 0, @svgunit, false)
+          end
+          if attribs['y'] && !attribs['y'].empty?
+            oy = getHTMLUnitToUnits(attribs['y'], 0, @svgunit, false)
+          end
+          if attribs['width'] && !attribs['width'].empty?
+            ow = getHTMLUnitToUnits(attribs['width'], 1, @svgunit, false)
+          end
+          if attribs['height'] && !attribs['height'].empty?
+            oh = getHTMLUnitToUnits(attribs['height'], 1, @svgunit, false)
+          end
+          if attribs['viewBox'] && !attribs['viewBox'].empty?
+            tmp = attribs['viewBox'].strip.split(/[,\s]+/)
+            view_box = []
+            if tmp.size == 4
+              tmp.each_with_index {|val, key|
+                view_box[key] = getHTMLUnitToUnits(val, 0, @svgunit, false)
+              }
+              ox = view_box[0]
+              oy = view_box[1]
+            end
+            if (view_box[2]&.> 0) && (view_box[3]&.> 0)
+              ow = view_box[2]
+              oh = view_box[3]
+            end
+            # get aspect ratio
+            if attribs['preserveAspectRatio'] && attribs['preserveAspectRatio'].empty?
+              aspect_ratio = attribs['preserveAspectRatio'].split
+              case aspect_ratio.size
+              when 3
+                aspect_ratio_align = aspect_ratio[1]
+                aspect_ratio_ms = aspect_ratio[2]
+              when 2
+                aspect_ratio_align = aspect_ratio[0]
+                aspect_ratio_ms = aspect_ratio[1]
+              when 1
+                aspect_ratio_align = aspect_ratio[0]
+                aspect_ratio_ms = 'meet'
+              end
+            end
+          end
+          break
+        end
+      end
+    end
+
+    [ox, oy, ow, oh, aspect_ratio_align, aspect_ratio_ms]
+  end
+  private :parse_svg_tag_attributes
 
 protected
 
