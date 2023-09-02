@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-# Copyright (c) 2011-2018 NAITOH Jun
+# Copyright (c) 2011-2023 NAITOH Jun
 # Released under the MIT license
 # http://www.opensource.org/licenses/MIT
 
@@ -68,6 +68,60 @@ class RbpdfTest < Test::Unit::TestCase
     # BT
     #   31.19 795.17 Td
     #   0 Tr 0.00 w 
+    #   [(abc)] TJ
+    # ET
+  end
+
+  test "getCellCode text-anchor start test" do
+    pdf = RBPDF.new('P', 'mm', 'A4', true, "UTF-8", true)
+    pdf.add_page()
+    content = []
+
+    contents = pdf.send(:getCellCode, 10, 10, 'abc', 'LTRB',0 , '', 0, nil, 0, false, '', '', 'start')
+    contents.each_line {|line| content.push line.chomp }
+
+    assert_equal 2, content.length
+    assert_equal "0.57 w 0 J 0 j [] 0 d 0 G 0 g", content[0]
+    assert_match(/BT 31.1[89] 795.17 Td 0 Tr 0.00 w \[\(abc\)\] TJ ET/, content[1])
+    # BT
+    #   31.19 795.17 Td
+    #   0 Tr 0.00 w
+    #   [(abc)] TJ
+    # ET
+  end
+
+  test "getCellCode text-anchor middle test" do
+    pdf = RBPDF.new('P', 'mm', 'A4', true, "UTF-8", true)
+    pdf.add_page()
+    content = []
+
+    contents = pdf.send(:getCellCode, 10, 10, 'abc', 'LTRB',0 , '', 0, nil, 0, false, '', '', 'middle')
+    contents.each_line {|line| content.push line.chomp }
+
+    assert_equal 2, content.length
+    assert_equal "0.57 w 0 J 0 j [] 0 d 0 G 0 g", content[0]
+    assert_match(/BT 18.68 795.17 Td 0 Tr 0.00 w \[\(abc\)\] TJ ET/, content[1])
+    # BT
+    #   18.68 795.17 Td
+    #   0 Tr 0.00 w
+    #   [(abc)] TJ
+    # ET
+  end
+
+  test "getCellCode text-anchor end test" do
+    pdf = RBPDF.new('P', 'mm', 'A4', true, "UTF-8", true)
+    pdf.add_page()
+    content = []
+
+    contents = pdf.send(:getCellCode, 10, 10, 'abc', 'LTRB',0 , '', 0, nil, 0, false, '', '', 'end')
+    contents.each_line {|line| content.push line.chomp }
+
+    assert_equal 2, content.length
+    assert_equal "0.57 w 0 J 0 j [] 0 d 0 G 0 g", content[0]
+    assert_match(/BT 6.17 795.17 Td 0 Tr 0.00 w \[\(abc\)\] TJ ET/, content[1])
+    # BT
+    #   6.17 795.17 Td
+    #   0 Tr 0.00 w
     #   [(abc)] TJ
     # ET
   end

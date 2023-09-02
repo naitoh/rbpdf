@@ -3458,11 +3458,17 @@ class RBPDF
   #   * T : top
   #   * M : middle
   #   * B : bottom
+  # [@param string :anchor]
+  #   The text-anchor attribute is used to align (start-, middle- or end-alignment) a string.
+  #   * empty string: no anchor mode (default value)
+  #   * start: The rendered characters are aligned such that the start of the text string is at the initial current text position.
+  #   * middle: The rendered characters are aligned such that the middle of the text string is at the current text position.
+  #   * end: The rendered characters are shifted such that the end of the resulting rendered text.
   # [@access public]
   # [@since 1.0]
   # [@see] SetFont(), SetDrawColor(), SetFillColor(), SetTextColor(), SetLineWidth(), AddLink(), Ln(), MultiCell(), Write(), SetAutoPageBreak()
   #
-  def Cell(w, h=0, txt='', border=0, ln=0, align='', fill=0, link=nil, stretch=0, ignore_min_height=false, calign='T', valign='M')
+  def Cell(w, h=0, txt='', border=0, ln=0, align='', fill=0, link=nil, stretch=0, ignore_min_height=false, calign='T', valign='M', anchor='')
     if !ignore_min_height
       min_cell_height = @font_size * @cell_height_ratio
       if h < min_cell_height
@@ -3470,7 +3476,7 @@ class RBPDF
       end
     end
     checkPageBreak(h)
-    out(getCellCode(w, h, txt, border, ln, align, fill, link, stretch, ignore_min_height, calign, valign))
+    out(getCellCode(w, h, txt, border, ln, align, fill, link, stretch, ignore_min_height, calign, valign, anchor))
   rescue => err
     Error('Cell Error.', err)
   end
@@ -3526,11 +3532,17 @@ class RBPDF
   #   * T : top
   #   * M : middle
   #   * B : bottom
+  # [@param string :anchor]
+  #   The text-anchor attribute is used to align (start-, middle- or end-alignment) a string.
+  #   * empty string: no anchor mode (default value)
+  #   * start: The rendered characters are aligned such that the start of the text string is at the initial current text position.
+  #   * middle: The rendered characters are aligned such that the middle of the text string is at the current text position.
+  #   * end: The rendered characters are shifted such that the end of the resulting rendered text.
   # [@access protected]
   # [@since 1.0]
   # [@see] Cell()
   #
-  def getCellCode(w, h=0, txt='', border=0, ln=0, align='', fill=0, link=nil, stretch=0, ignore_min_height=false, calign='T', valign='M')
+  def getCellCode(w, h=0, txt='', border=0, ln=0, align='', fill=0, link=nil, stretch=0, ignore_min_height=false, calign='T', valign='M', anchor='')
     txt = +'' if txt.nil?
     rs = +"" # string to be returned
     txt = removeSHY(txt)
@@ -3786,6 +3798,16 @@ class RBPDF
         end
       else # 'J'
         dx = @c_margin
+      end
+
+      # [note] text-anchor takes precedence over align.
+      case anchor
+      when 'start'
+        dx = @c_margin
+      when 'middle'
+        dx = -width / 2.0
+      when 'end'
+        dx = - width - @c_margin
       end
 
       if @rtl
@@ -18353,6 +18375,7 @@ protected
       svg_transform(tm)
       obstyle = setSVGStyles(svgstyle, prev_svgstyle, x, y, 1, 1)
       set_xy(x, y, true)
+      @svgstyles.push(svgstyle)
     when 'use' # use
       if attribs['xlink:href']
         use = @svgdefs[attribs['xlink:href'][1..-1]]
@@ -18423,8 +18446,10 @@ protected
       @svgstyles.pop
       stop_transform()
     when 'text', 'tspan'
+      anchor = @svgstyles.last['text-anchor']
       # print text
-      cell(0, 0, @svgtext.strip, 0, 0, '', 0, '', 0, false, 'L', 'T')
+      cell(0, 0, @svgtext.strip, 0, 0, '', 0, '', 0, false, 'L', 'T', anchor)
+      @svgstyles.pop
       stop_transform()
     end
   end
