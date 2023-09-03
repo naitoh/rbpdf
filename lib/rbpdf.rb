@@ -8955,6 +8955,7 @@ public
     end
     if !style['dash'].nil?
       dash = style['dash']
+      phase = style['phase'].to_i
       dash_string = ''
       if dash != 0 and dash != ''
         if dash.is_a?(String) && dash =~ /^.+,/
@@ -8969,8 +8970,10 @@ public
           end
           dash_string << sprintf("%.2f", v.to_f)
         }
+      else
+        phase = 0
       end
-      phase = 0
+
       @linestyle_dash = sprintf("[%s] %.2f d", dash_string, phase)
       out(@linestyle_dash)
     end
