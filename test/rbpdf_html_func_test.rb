@@ -154,6 +154,18 @@ class RbpdfTest < Test::Unit::TestCase
 
     color = pdf.convert_html_color_to_dec('cmyk(10,20,30,40)')
     assert_equal([10,20,30,40], color)
+
+    color = pdf.convert_html_color_to_dec_array('#FFFFFF')
+    assert_equal([255,255,255], color)
+
+    color = pdf.convert_html_color_to_dec_array('#01F')
+    assert_equal([0,17,255], color)
+
+    color = pdf.convert_html_color_to_dec_array('rgb(10,20,30)')
+    assert_equal([10,20,30], color)
+
+    color = pdf.convert_html_color_to_dec_array('cmyk(10,20,30,40)')
+    assert_equal([10,20,30,40], color)
   end
 
   test "html func sanitize test 1" do

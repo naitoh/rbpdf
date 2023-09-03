@@ -8672,7 +8672,16 @@ public
   # [@return array] RGB color or empty array in case of error.
   # [@access public]
   #
-  def convertHTMLColorToDec(color = "#FFFFFF")
+  def convert_html_color_to_dec_array(color = "#FFFFFF")
+    returncolor = _convert_html_color_to_dec(color)
+    if returncolor.is_a? Hash
+      returncolor.values
+    else
+      returncolor
+    end
+  end
+
+  private def _convert_html_color_to_dec(color = "#FFFFFF")
     color = color.gsub(/[\s]*/, '') # remove extra spaces
     color = color.downcase
     if !(dotpos = color.index('.')).nil?
@@ -8734,6 +8743,11 @@ public
       returncolor = []
     end
     return returncolor
+  end
+
+  def convertHTMLColorToDec(color = "#FFFFFF")
+    warn("#{__callee__} is deprecated, use convert_html_color_to_dec_array instead.", uplevel: 1)
+    _convert_html_color_to_dec(color)
   end
   alias_method :convert_html_color_to_dec, :convertHTMLColorToDec
 
