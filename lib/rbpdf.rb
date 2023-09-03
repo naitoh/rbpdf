@@ -8682,7 +8682,6 @@ public
     if color.length == 0
       return []
     end
-    returncolor = ActiveSupport::OrderedHash.new
     #  RGB ARRAY
     if color[0,3] == 'rgb'
       codes = color.sub(/^rgb\(/, '')
@@ -8697,6 +8696,7 @@ public
     if color[0,4] == 'cmyk'
       codes = color.sub(/^cmyk\(/, '')
       codes = codes.gsub(')', '')
+      returncolor = codes.split(',', 4)
       returncolor[0] = returncolor[0].to_i
       returncolor[1] = returncolor[1].to_i
       returncolor[2] = returncolor[2].to_i
@@ -8715,6 +8715,7 @@ public
       color_code = color.sub(/^#/, "")
     end
     # RGB VALUE
+    returncolor = {}
     case color_code.length
     when 3
       # three-digit hexadecimal representation
