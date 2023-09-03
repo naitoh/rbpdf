@@ -9077,13 +9077,13 @@ public
   # [@param float :y1] Ordinate of first point
   # [@param float :x2] Abscissa of second point
   # [@param float :y2]] Ordinate of second point
-  # [@param hash :style] Line style. Array like for {@link SetLineStyle SetLineStyle}. Default value: default line style (empty array).
+  # [@param hash :style] Line style. Array like for {@link SetLineStyle SetLineStyle}. Default value: default line style (empty Hash).
   # [@access public]
   # [@since 1.0]
   # [@see] SetLineWidth(), SetDrawColor(), SetLineStyle()
   #
-  def Line(x1, y1, x2, y2, style=nil)
-    if style.is_a? Hash
+  def Line(x1, y1, x2, y2, style={})
+    if style.is_a?(Hash) && !style.empty?
       SetLineStyle(style)
     end
     outPoint(x1, y1)
