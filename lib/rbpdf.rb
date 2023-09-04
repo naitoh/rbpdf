@@ -530,18 +530,9 @@ class RBPDF
     @href ||= {}
     @fontlist ||= []
     getFontsList()
-    @fgcolor = ActiveSupport::OrderedHash.new
-    @fgcolor['R'] = 0
-    @fgcolor['G'] = 0
-    @fgcolor['B'] = 0
-    @strokecolor = ActiveSupport::OrderedHash.new
-    @strokecolor['R'] = 0
-    @strokecolor['G'] = 0
-    @strokecolor['B'] = 0
-    @bgcolor = ActiveSupport::OrderedHash.new
-    @bgcolor['R'] = 255
-    @bgcolor['G'] = 255
-    @bgcolor['B'] = 255
+    @fgcolor = [0, 0, 0]
+    @strokecolor = [0, 0, 0]
+    @bgcolor = [255, 255, 255]
     @extgstates ||= []
 
     # user's rights
@@ -2300,20 +2291,15 @@ class RBPDF
     if (col2 == -1) and (col3 == -1) and (col4 == -1)
       # Grey scale
       @draw_color = sprintf('%.3f G', col1 / 255.0)
-      @strokecolor['G'] = col1
+      @strokecolor = [col1]
     elsif col4 == -1
       # RGB
       @draw_color = sprintf('%.3f %.3f %.3f RG', col1 / 255.0, col2 / 255.0, col3 / 255.0)
-      @strokecolor['R'] = col1
-      @strokecolor['G'] = col2
-      @strokecolor['B'] = col3
+      @strokecolor = [col1, col2, col3]
     else
       # CMYK
       @draw_color = sprintf('%.3f %.3f %.3f %.3f K', col1 / 100.0, col2 / 100.0, col3 / 100.0, col4 / 100.0)
-      @strokecolor['C'] = col1
-      @strokecolor['M'] = col2
-      @strokecolor['Y'] = col3
-      @strokecolor['K'] = col4
+      @strokecolor = [col1, col2, col3, col4]
     end
     if (@page>0)
       out(@draw_color + ' ')
@@ -2373,20 +2359,15 @@ class RBPDF
     if (col2 == -1) and (col3 == -1) and (col4 == -1)
       # Grey scale
       @fill_color = sprintf('%.3f g', col1 / 255.0)
-      @bgcolor['G'] = col1
+      @bgcolor = [col1]
     elsif col4 == -1
       # RGB
       @fill_color = sprintf('%.3f %.3f %.3f rg', col1 / 255.0, col2 / 255.0, col3 / 255.0)
-      @bgcolor['R'] = col1
-      @bgcolor['G'] = col2
-      @bgcolor['B'] = col3
+      @bgcolor = [col1, col2, col3]
     else
       # CMYK
       @fill_color = sprintf('%.3f %.3f %.3f %.3f k', col1 / 100.0, col2 / 100.0, col3 / 100.0, col4 / 100.0)
-      @bgcolor['C'] = col1
-      @bgcolor['M'] = col2
-      @bgcolor['Y'] = col3
-      @bgcolor['K'] = col4
+      @bgcolor = [col1, col2, col3, col4]
     end
 
     @color_flag = (@fill_color != @text_color)
@@ -2463,20 +2444,16 @@ class RBPDF
     if (col2 == -1) and (col3 == -1) and (col4 == -1)
       # Grey scale
       @text_color = sprintf('%.3f g', col1 / 255.0)
-      @fgcolor['G'] = col1
+      @fgcolor = [col1]
     elsif col4 == -1
       # RGB
       @text_color = sprintf('%.3f %.3f %.3f rg', col1 / 255.0, col2 / 255.0, col3 / 255.0)
-      @fgcolor['R'] = col1
-      @fgcolor['G'] = col2
-      @fgcolor['B'] = col3
+      @fgcolor = [col1, col2, col3]
+
     else
       # CMYK
       @text_color = sprintf('%.3f %.3f %.3f %.3f k', col1 / 100.0, col2 / 100.0, col3 / 100.0, col4 / 100.0)
-      @fgcolor['C'] = col1
-      @fgcolor['M'] = col2
-      @fgcolor['Y'] = col3
-      @fgcolor['K'] = col4
+      @fgcolor = [col1, col2, col3, col4]
     end
     @color_flag = (@fill_color != @text_color)
   end
@@ -12878,7 +12855,7 @@ protected
     dom[key]['fill'] = ((@textrendermode % 2) == 0)
     dom[key]['clip'] = (@textrendermode > 3)
     dom[key]['line-height'] = @cell_height_ratio
-    dom[key]['bgcolor'] = ActiveSupport::OrderedHash.new
+    dom[key]['bgcolor'] = []
     dom[key]['fgcolor'] = @fgcolor.dup # color
     dom[key]['strokecolor'] = @strokecolor.dup
 
