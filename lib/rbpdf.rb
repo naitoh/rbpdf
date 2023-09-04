@@ -10665,7 +10665,7 @@ public
       if prop['fillColor'].is_a? Array
         opt['mk']['bg'] = prop['fillColor']
       else
-        opt['mk']['bg'] = convertHTMLColorToDec(prop['fillColor'])
+        opt['mk']['bg'] = convert_html_color_to_dec_array(prop['fillColor'])
       end
     end
     # strokeColor: Specifies the stroke color for a field that is used to stroke the rectangle of the field with a line as large as the line width.
@@ -10673,7 +10673,7 @@ public
       if prop['strokeColor'].is_a? Array
         opt['mk']['bc'] = prop['strokeColor']
       else
-        opt['mk']['bc'] = convertHTMLColorToDec(prop['strokeColor'])
+        opt['mk']['bc'] = convert_html_color_to_dec_array(prop['strokeColor'])
       end
     end
     # rotation: The rotation of a widget in counterclockwise increments.
@@ -13105,13 +13105,13 @@ protected
             end
             # font color
             if !empty_string(dom[key]['style']['color'])
-              dom[key]['fgcolor'] = convertHTMLColorToDec(dom[key]['style']['color'])
+              dom[key]['fgcolor'] = convert_html_color_to_dec_array(dom[key]['style']['color'])
             elsif dom[key]['value'] == 'a'
               dom[key]['fgcolor'] = @html_link_color_array
             end
             # background color
             if !empty_string(dom[key]['style']['background-color'])
-              dom[key]['bgcolor'] = convertHTMLColorToDec(dom[key]['style']['background-color'])
+              dom[key]['bgcolor'] = convert_html_color_to_dec_array(dom[key]['style']['background-color'])
             end
             # text-decoration
             if !dom[key]['style']['text-decoration'].nil?
@@ -13274,17 +13274,17 @@ protected
           end
           # set foreground color attribute
           if !empty_string(dom[key]['attribute']['color'])
-            dom[key]['fgcolor'] = convertHTMLColorToDec(dom[key]['attribute']['color'])
+            dom[key]['fgcolor'] = convert_html_color_to_dec_array(dom[key]['attribute']['color'])
           elsif (dom[key]['style'].nil? or dom[key]['style']['color'].nil?) and (dom[key]['value'] == 'a')
             dom[key]['fgcolor'] = @html_link_color_array
           end
           # set background color attribute
           if !empty_string(dom[key]['attribute']['bgcolor'])
-            dom[key]['bgcolor'] = convertHTMLColorToDec(dom[key]['attribute']['bgcolor'])
+            dom[key]['bgcolor'] = convert_html_color_to_dec_array(dom[key]['attribute']['bgcolor'])
           end
           # set stroke color attribute
           if !empty_string(dom[key]['attribute']['strokecolor'])
-            dom[key]['strokecolor'] = convertHTMLColorToDec(dom[key]['attribute']['strokecolor'])
+            dom[key]['strokecolor'] = convert_html_color_to_dec_array(dom[key]['attribute']['strokecolor'])
           end
           # check for width attribute
           if !dom[key]['attribute']['width'].nil?
