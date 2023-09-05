@@ -8850,7 +8850,7 @@ public
     tm[5] = y - tm[0] * y - tm[1] * x
 
     # generate the transformation matrix
-    Transform(tm)
+    transform(tm)
   end
   alias_method :rotate, :Rotate
 
@@ -8861,7 +8861,7 @@ public
   # [@since 2.1.000 (2008-01-07)]
   # [@see] StartTransform(), StopTransform()
   #
-  def Transform(tm)
+  def transform(tm)
     out(sprintf('%.3f %.3f %.3f %.3f %.3f %.3f cm', tm[0], tm[1], tm[2], tm[3], tm[4], tm[5]))
     # add tranformation matrix
     @transfmatrix[@transfmatrix_key].push 'a' => tm[0], 'b' => tm[1], 'c' => tm[2], 'd' => tm[3], 'e' => tm[4], 'f' => tm[5]
@@ -8870,7 +8870,7 @@ public
       @transfmrk[@page] = @pagelen[@page]
     end
   end
-  protected :Transform
+  protected :transform
 
   # END TRANSFORMATIONS SECTION -------------------------
 
