@@ -18310,7 +18310,7 @@ protected
           start_transform()
           svg_transform(tm)
           obstyle = setSVGStyles(svgstyle, prev_svgstyle, x, y, w, h, 'poly_line', [p, 'CNZ'])
-          poly_line(p, 'D')
+          poly_line(p, obstyle)
           stop_transform()
         else # polygon
           if clipping
