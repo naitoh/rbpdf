@@ -10,6 +10,10 @@ class RbpdfTest < Test::Unit::TestCase
     def parse_svg_tag_attributes(file, w, h)
       super
     end
+
+    def get_styling_properties(prev_svgstyle, attribs)
+      super
+    end
   end
 
   test "SVG parse_svg_tag_attributes empty file test" do
@@ -115,6 +119,25 @@ class RbpdfTest < Test::Unit::TestCase
       assert_equal 28.222222222222218, oh
       assert_equal "xMidYMid", aspect_ratio_align
       assert_equal "meet", aspect_ratio_ms
+    end
+  end
+
+  test "SVG get_styling_properties style test" do
+    datas = [
+      {input: {"style"=>"stroke: black; fill: none"},
+       output: {"fill"=>"none", "stroke"=>"black"}},
+      {input: {"style"=>"stop-color: rgb(83, 25, 113); stop-opacity: 1;"},
+       output: {"stop-color"=>"rgb(83, 25, 113)", "stop-opacity"=>"1"}},
+    ]
+
+    datas.each do |data|
+      pdf = MYPDF.new
+      prev_svgstyle = pdf.instance_variable_get('@svgstyles').last
+      attrs = data[:input]
+      svgstyle = pdf.get_styling_properties(prev_svgstyle, attrs)
+
+      diff = svgstyle.to_a - prev_svgstyle.to_a
+      assert_equal(data[:output], Hash[*diff.flatten])
     end
   end
 end

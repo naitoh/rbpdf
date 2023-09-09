@@ -18074,41 +18074,9 @@ protected
       return
     end
 
-    # get styling properties
     prev_svgstyle = @svgstyles[@svgstyles.size - 1] # previous style
-    svgstyle = {} # current style
-    if attribs['style']
-      attribs['style'] = ';' + attribs['style']
-    end
-    prev_svgstyle.each do |key, val|
-      if attribs[key]
-        if attribs[key] == 'inherit'
-          svgstyle[key] = val
-        else
-          svgstyle[key] = attribs[key]
-        end
-      elsif attribs['style']
-        # CSS style syntax
-        if attribs['style'] =~ /[;"\s]#{key}\s*:\s*([^;"\s]*)/mi
-          if Regexp.last_match[1] == 'inherit'
-            svgstyle[key] = val
-          else
-            svgstyle[key] = Regexp.last_match[1]
-          end
-        else
-          # default value
-          svgstyle[key] = @svgstyles[0][key]
-        end
-      else
-        if @svginheritprop.include? key
-          # inherit previous value
-          svgstyle[key] = val
-        else
-          # default value
-          svgstyle[key] = @svgstyles[0][key]
-        end
-      end
-    end
+    svgstyle = get_styling_properties(prev_svgstyle, attribs) # get styling properties
+
     # transformation matrix
     tm = @svgstyles[@svgstyles.size - 1]['transfmatrix']
     if attribs['transform'] && !attribs['transform'].empty?
@@ -18399,6 +18367,44 @@ protected
       end
     end
   end
+
+  def get_styling_properties(prev_svgstyle, attribs)
+    svgstyle = {} # current style
+    if attribs['style']
+      attribs['style'] = ';' + attribs['style']
+    end
+    prev_svgstyle.each do |key, val|
+      if attribs[key]
+        if attribs[key] == 'inherit'
+          svgstyle[key] = val
+        else
+          svgstyle[key] = attribs[key]
+        end
+      elsif attribs['style']
+        # CSS style syntax
+        if attribs['style'] =~ /[;\s]#{key}\s*:\s*([^;]*)/mi
+          if Regexp.last_match[1] == 'inherit'
+            svgstyle[key] = val
+          else
+            svgstyle[key] = Regexp.last_match[1]
+          end
+        else
+          # default value
+          svgstyle[key] = @svgstyles[0][key]
+        end
+      else
+        if @svginheritprop.include? key
+          # inherit previous value
+          svgstyle[key] = val
+        else
+          # default value
+          svgstyle[key] = @svgstyles[0][key]
+        end
+      end
+    end
+    svgstyle
+  end
+  private :get_styling_properties
 
   #
   # Sets the closing SVG element handler function for the XML parser.
