@@ -177,4 +177,87 @@ class RbpdfPageTest < Test::Unit::TestCase
     assert_equal "S", content[before_size + 16]
     # line end
   end
+
+  test "rounded_rect basic test" do
+    pdf = MYPDF.new
+    pdf.add_page()
+    page = pdf.get_page
+    contents = pdf.getPageBuffer(page)
+    before_size = contents.split("\n").size
+    pdf.putshaders
+    style = { 'L' => nil, 'T' => nil, 'R' => nil, 'B' => nil }
+    pdf.rounded_rect(50, 255, 40, 30, 6.50)
+
+    content = []
+    contents = pdf.getPageBuffer(page)
+    contents.each_line {|line| content.push line.chomp }
+
+    assert_equal "160.16 119.06 m", content[before_size] # outPoint(x + rx, y)
+    assert_equal "236.69 119.06 l", content[before_size + 1] # outLine(xc, y)
+    assert_equal "246.87 119.06 255.12 110.81 255.12 100.63 c", content[before_size + 2] # outCurve(xc + (rx * myArc), yc - ry, xc + rx, yc - (ry * myArc), xc + rx, yc)
+    assert_equal "255.12 52.44 l", content[before_size + 3] # outLine(x + w, yc)
+    assert_equal "255.12 42.27 246.87 34.02 236.69 34.02 c", content[before_size + 4] # outCurve(xc + rx, yc + (ry * myArc), xc + (rx * myArc), yc + ry, xc, yc + ry)
+    assert_equal "160.16 34.02 l", content[before_size + 5] # outLine(xc, y + h)
+    assert_equal "149.98 34.02 141.73 42.27 141.73 52.44 c", content[before_size + 6] # outCurve(xc - (rx * myArc), yc + ry, xc - rx, yc + (ry * myArc), xc - rx, yc)
+    assert_equal "141.73 100.63 l", content[before_size + 7] # outLine(x, yc)
+    assert_equal "141.73 110.81 149.98 119.06 160.16 119.06 c", content[before_size + 8] # outCurve(xc - rx, yc - (ry * myArc), xc - (rx * myArc), yc - ry, xc, yc - ry)
+    assert_equal "S", content[before_size + 9]
+  end
+
+  test "polygon basic test" do
+    pdf = MYPDF.new
+    pdf.add_page()
+    page = pdf.get_page
+    contents = pdf.getPageBuffer(page)
+    before_size = contents.split("\n").size
+    pdf.putshaders
+    style = { 'L' => nil, 'T' => nil, 'R' => nil, 'B' => nil }
+    pdf.polygon([5,135,45,135,15,165])
+
+    content = []
+    contents = pdf.getPageBuffer(page)
+    contents.each_line {|line| content.push line.chomp }
+
+    # draw = true
+    assert_equal "14.17 459.21 m", content[before_size] # outPoint(p[0], p[1])
+    assert_equal "127.56 459.21 l", content[before_size + 1] # outLine(p[i], p[i + 1])
+    assert_equal "42.52 374.17 l", content[before_size + 2] # outLine(p[i], p[i + 1])
+    assert_equal "14.17 459.21 l", content[before_size + 3] # outLine(p[i], p[i + 1])
+    assert_equal "127.56 459.21 l", content[before_size + 4] # outLine(p[i], p[i + 1])
+    assert_equal "S", content[before_size + 5]
+  end
+
+  test "polygon line_style test" do
+    pdf = MYPDF.new
+    pdf.add_page()
+    page = pdf.get_page
+    contents = pdf.getPageBuffer(page)
+    before_size = contents.split("\n").size
+    pdf.putshaders
+    style = { 'L' => nil, 'T' => nil, 'R' => nil, 'B' => nil }
+    style6 = {'width' => 0.5}
+    pdf.polygon([5,135,45,135,15,165], 'D', [style6, 0, 0])
+
+    content = []
+    contents = pdf.getPageBuffer(page)
+    contents.each_line {|line| content.push line.chomp }
+    # draw = true
+    assert_equal "14.17 459.21 m", content[before_size] # outPoint(p[0], p[1])
+    assert_equal "S", content[before_size + 1]
+
+    assert_equal "1.42 w", content[before_size + 2]
+    assert_equal "14.17 459.21 m", content[before_size + 3] # outLine(p[i], p[i + 1])
+    assert_equal "127.56 459.21 l", content[before_size + 4] # outLine(p[i], p[i + 1])
+    assert_equal "S", content[before_size + 5]
+    assert_equal "127.56 459.21 m", content[before_size + 6] # outLine(p[i], p[i + 1])
+    assert_equal "S", content[before_size + 7]
+
+    assert_equal "1.42 w", content[before_size + 8]
+    assert_equal "14.17 459.21 m", content[before_size + 9] # outLine(p[i], p[i + 1])
+    assert_equal "127.56 459.21 l", content[before_size + 10] # outLine(p[i], p[i + 1])
+    assert_equal "S", content[before_size + 11]
+
+    assert_equal "127.56 459.21 m", content[before_size + 12] # outLine(p[i], p[i + 1])
+    assert_equal "S", content[before_size + 13]
+  end
 end

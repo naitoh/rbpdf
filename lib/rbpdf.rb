@@ -9439,9 +9439,9 @@ public
   # Draws a polygonal line
   # [@param array :p] Points 0 to (:np - 1). Array with values (x0, y0, x1, y1,..., x(np-1), y(np - 1))
   # [@param string :style] Style of rendering. See the getPathPaintOperator() function for more information.
-  # [@param hash :line_style]
+  # [@param hash or array :line_style]
   #   Line style of polygon. Hash with keys among the following:
-  #   * all: Line style of all lines. Array like for {@link SetLineStyle SetLineStyle}.
+  #   * all: Line style of all lines. Hash like for {@link SetLineStyle SetLineStyle}.
   #   * 0 to (:np - 1): Line style of each line. Array like for {@link SetLineStyle SetLineStyle}.
   #   If a key is not present or is null, not draws the line. Default value is default line style (empty Hash).
   # [@param array :fill_color] Fill color. Format: array(GREY) or array(R,G,B) or array(C,M,Y,K). Default value: default color (empty array).
@@ -9458,9 +9458,9 @@ public
   # Draws a polygon.
   # [@param array :p] Points 0 to (np - 1). Array with values (x0, y0, x1, y1,..., x(np-1), y(np - 1))
   # [@param string :style] Style of rendering. See the getPathPaintOperator() function for more information.
-  # [@param hash :line_style]
+  # [@param hash or array :line_style]
   #   Line style of polygon. Hash with keys among the following:
-  #   * all: Line style of all lines. Array like for {@link SetLineStyle SetLineStyle}.
+  #   * all: Line style of all lines. Hash like for {@link SetLineStyle SetLineStyle}.
   #   * 0 to (:np - 1): Line style of each line. Array like for {@link SetLineStyle SetLineStyle}.
   # If a key is not present or is null, not draws the line. Default value is default line style (empty Hash).
   # [@param array :fill_color] Fill color. Format: array(GREY) or array(R,G,B) or array(C,M,Y,K). Default value: default color (empty array).
