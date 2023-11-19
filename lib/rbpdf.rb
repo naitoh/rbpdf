@@ -17687,7 +17687,18 @@ protected
       font_style << 'D'
     else # 'none'
     end
-    set_font(font_family, font_style, font_size)
+
+    fontname = nil
+    fontslist = font_family.downcase.split(',')
+    fontslist.each {|font|
+      font = font.downcase.strip
+      if @fontlist.include?(font) or @fontkeys.include?(font)
+        fontname = font
+        break
+      end
+    }
+
+    set_font(fontname || 'helvetica', font_style, font_size)
     objstyle
   end
 
