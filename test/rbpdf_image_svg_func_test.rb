@@ -12,6 +12,42 @@ class RbpdfTest < Test::Unit::TestCase
     end
   end
 
+  test "SVG parse_svg_tag_attributes x y (no width height) test" do
+    tf = Tempfile.open(['test', '.svg']) do |fp|
+      fp.puts '<svg xmlns="http://www.w3.org/2000/svg" x="10" y="20"></svg>'
+      fp
+    end
+
+    pdf = MYPDF.new
+    w, h, ox, oy, ow, oh, aspect_ratio_align, aspect_ratio_ms = pdf.parse_svg_tag_attributes(tf.path, 0, 0)
+    assert_equal 0, w
+    assert_equal 0, h
+    assert_equal 3.5277777777777772, ox
+    assert_equal 7.0555555555555545, oy
+    assert_equal nil, ow
+    assert_equal nil, oh
+    assert_equal "xMidYMid", aspect_ratio_align
+    assert_equal "meet", aspect_ratio_ms
+  end
+
+  test "SVG parse_svg_tag_attributes x y (width height 100%) test" do
+    tf = Tempfile.open(['test', '.svg']) do |fp|
+      fp.puts '<svg xmlns="http://www.w3.org/2000/svg" x="10" y="20" width="100%" height="100%"></svg>'
+      fp
+    end
+
+    pdf = MYPDF.new
+    w, h, ox, oy, ow, oh, aspect_ratio_align, aspect_ratio_ms = pdf.parse_svg_tag_attributes(tf.path, 10, 20)
+    assert_equal 10.0, w
+    assert_equal 20.0, h
+    assert_equal 3.5277777777777772, ox
+    assert_equal 7.0555555555555545, oy
+    assert_equal 10.0, ow
+    assert_equal 20.0, oh
+    assert_equal "xMidYMid", aspect_ratio_align
+    assert_equal "meet", aspect_ratio_ms
+  end
+
   test "SVG parse_svg_tag_attributes x y width height test" do
     tf = Tempfile.open(['test', '.svg']) do |fp|
       fp.puts '<svg xmlns="http://www.w3.org/2000/svg" x="10" y="20" width="200" height="200"></svg>'
@@ -19,7 +55,9 @@ class RbpdfTest < Test::Unit::TestCase
     end
 
     pdf = MYPDF.new
-    ox, oy, ow, oh, aspect_ratio_align, aspect_ratio_ms = pdf.parse_svg_tag_attributes(tf.path, 0, 0)
+    w, h, ox, oy, ow, oh, aspect_ratio_align, aspect_ratio_ms = pdf.parse_svg_tag_attributes(tf.path, 0, 0)
+    assert_equal 70.55555555555554, w
+    assert_equal 70.55555555555554, h
     assert_equal 3.5277777777777772, ox
     assert_equal 7.0555555555555545, oy
     assert_equal 70.55555555555554, ow
@@ -40,7 +78,9 @@ class RbpdfTest < Test::Unit::TestCase
         fp
       end
       pdf = MYPDF.new
-      ox, oy, ow, oh, aspect_ratio_align, aspect_ratio_ms = pdf.parse_svg_tag_attributes(tf.path, 0, 0)
+      w, h, ox, oy, ow, oh, aspect_ratio_align, aspect_ratio_ms = pdf.parse_svg_tag_attributes(tf.path, 0, 0)
+      assert_equal 22.577777777777776, w
+      assert_equal 28.222222222222218, h
       assert_equal 0, ox
       assert_equal 0, oy
       assert_equal 22.577777777777776, ow

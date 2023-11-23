@@ -17078,17 +17078,17 @@ public
     y = @y if y == ''
     k = @k
 
-    ox, oy, ow, oh, aspect_ratio_align, aspect_ratio_ms = parse_svg_tag_attributes(file, w, h)
+    width, height, ox, oy, ow, oh, aspect_ratio_align, aspect_ratio_ms = parse_svg_tag_attributes(file, w, h)
 
     # calculate image width and height on document
     if (w <= 0) && (h <= 0)
       # convert image size to document unit
-      w = ow
-      h = oh
+      w = width
+      h = height
     elsif w <= 0
-      w = h * ow / oh
+      w = h * width / height
     elsif h <= 0
-      h = w * oh / ow
+      h = w * height / width
     end
     # Check whether we need a new page first as this does not fit
     prev_x = @x
@@ -17266,8 +17266,8 @@ public
   def parse_svg_tag_attributes(file, w, h)
     ox = 0
     oy = 0
-    ow = w
-    oh = h
+    ow = nil
+    oh = nil
     aspect_ratio_align = 'xMidYMid'
     aspect_ratio_ms = 'meet'
     open(file,'rb') do |f|
@@ -17278,18 +17278,6 @@ public
         if (res.event_type == :start_element) && (res[0] == 'svg')
           attribs = res[1]
 
-          if attribs['x'] && !attribs['x'].empty?
-            ox = getHTMLUnitToUnits(attribs['x'], 0, @svgunit, false)
-          end
-          if attribs['y'] && !attribs['y'].empty?
-            oy = getHTMLUnitToUnits(attribs['y'], 0, @svgunit, false)
-          end
-          if attribs['width'] && !attribs['width'].empty?
-            ow = getHTMLUnitToUnits(attribs['width'], 1, @svgunit, false)
-          end
-          if attribs['height'] && !attribs['height'].empty?
-            oh = getHTMLUnitToUnits(attribs['height'], 1, @svgunit, false)
-          end
           if attribs['viewBox'] && !attribs['viewBox'].empty?
             tmp = attribs['viewBox'].strip.split(/[,\s]+/)
             view_box = []
@@ -17320,12 +17308,33 @@ public
               end
             end
           end
+
+          if attribs['x'] && !attribs['x'].empty?
+            ox = getHTMLUnitToUnits(attribs['x'], 0, @svgunit, false)
+          end
+          if attribs['y'] && !attribs['y'].empty?
+            oy = getHTMLUnitToUnits(attribs['y'], 0, @svgunit, false)
+          end
+          if attribs['width'] && !attribs['width'].empty?
+            refsize = (w == 0) ? (ow.nil? ? 1 : ow) : w
+            w = getHTMLUnitToUnits(attribs['width'], refsize, @svgunit, false)
+            ow ||= w
+          elsif !ow.nil?
+            w = ow
+          end
+          if attribs['height'] && !attribs['height'].empty?
+            refsize = (h == 0) ? (oh.nil? ? 1 : oh) : h
+            h = getHTMLUnitToUnits(attribs['height'], refsize, @svgunit, false)
+            oh ||= h
+          elsif !oh.nil?
+            h = oh
+          end
           break
         end
       end
     end
 
-    [ox, oy, ow, oh, aspect_ratio_align, aspect_ratio_ms]
+    [w, h, ox, oy, ow, oh, aspect_ratio_align, aspect_ratio_ms]
   end
   private :parse_svg_tag_attributes
 
