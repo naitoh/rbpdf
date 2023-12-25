@@ -530,18 +530,9 @@ class RBPDF
     @href ||= {}
     @fontlist ||= []
     getFontsList()
-    @fgcolor = ActiveSupport::OrderedHash.new
-    @fgcolor['R'] = 0
-    @fgcolor['G'] = 0
-    @fgcolor['B'] = 0
-    @strokecolor = ActiveSupport::OrderedHash.new
-    @strokecolor['R'] = 0
-    @strokecolor['G'] = 0
-    @strokecolor['B'] = 0
-    @bgcolor = ActiveSupport::OrderedHash.new
-    @bgcolor['R'] = 255
-    @bgcolor['G'] = 255
-    @bgcolor['B'] = 255
+    @fgcolor = [0, 0, 0]
+    @strokecolor = [0, 0, 0]
+    @bgcolor = [255, 255, 255]
     @extgstates ||= []
 
     # user's rights
@@ -2300,20 +2291,15 @@ class RBPDF
     if (col2 == -1) and (col3 == -1) and (col4 == -1)
       # Grey scale
       @draw_color = sprintf('%.3f G', col1 / 255.0)
-      @strokecolor['G'] = col1
+      @strokecolor = [col1]
     elsif col4 == -1
       # RGB
       @draw_color = sprintf('%.3f %.3f %.3f RG', col1 / 255.0, col2 / 255.0, col3 / 255.0)
-      @strokecolor['R'] = col1
-      @strokecolor['G'] = col2
-      @strokecolor['B'] = col3
+      @strokecolor = [col1, col2, col3]
     else
       # CMYK
       @draw_color = sprintf('%.3f %.3f %.3f %.3f K', col1 / 100.0, col2 / 100.0, col3 / 100.0, col4 / 100.0)
-      @strokecolor['C'] = col1
-      @strokecolor['M'] = col2
-      @strokecolor['Y'] = col3
-      @strokecolor['K'] = col4
+      @strokecolor = [col1, col2, col3, col4]
     end
     if (@page>0)
       out(@draw_color + ' ')
@@ -2373,20 +2359,15 @@ class RBPDF
     if (col2 == -1) and (col3 == -1) and (col4 == -1)
       # Grey scale
       @fill_color = sprintf('%.3f g', col1 / 255.0)
-      @bgcolor['G'] = col1
+      @bgcolor = [col1]
     elsif col4 == -1
       # RGB
       @fill_color = sprintf('%.3f %.3f %.3f rg', col1 / 255.0, col2 / 255.0, col3 / 255.0)
-      @bgcolor['R'] = col1
-      @bgcolor['G'] = col2
-      @bgcolor['B'] = col3
+      @bgcolor = [col1, col2, col3]
     else
       # CMYK
       @fill_color = sprintf('%.3f %.3f %.3f %.3f k', col1 / 100.0, col2 / 100.0, col3 / 100.0, col4 / 100.0)
-      @bgcolor['C'] = col1
-      @bgcolor['M'] = col2
-      @bgcolor['Y'] = col3
-      @bgcolor['K'] = col4
+      @bgcolor = [col1, col2, col3, col4]
     end
 
     @color_flag = (@fill_color != @text_color)
@@ -2463,20 +2444,16 @@ class RBPDF
     if (col2 == -1) and (col3 == -1) and (col4 == -1)
       # Grey scale
       @text_color = sprintf('%.3f g', col1 / 255.0)
-      @fgcolor['G'] = col1
+      @fgcolor = [col1]
     elsif col4 == -1
       # RGB
       @text_color = sprintf('%.3f %.3f %.3f rg', col1 / 255.0, col2 / 255.0, col3 / 255.0)
-      @fgcolor['R'] = col1
-      @fgcolor['G'] = col2
-      @fgcolor['B'] = col3
+      @fgcolor = [col1, col2, col3]
+
     else
       # CMYK
       @text_color = sprintf('%.3f %.3f %.3f %.3f k', col1 / 100.0, col2 / 100.0, col3 / 100.0, col4 / 100.0)
-      @fgcolor['C'] = col1
-      @fgcolor['M'] = col2
-      @fgcolor['Y'] = col3
-      @fgcolor['K'] = col4
+      @fgcolor = [col1, col2, col3, col4]
     end
     @color_flag = (@fill_color != @text_color)
   end
@@ -8672,7 +8649,16 @@ public
   # [@return array] RGB color or empty array in case of error.
   # [@access public]
   #
-  def convertHTMLColorToDec(color = "#FFFFFF")
+  def convert_html_color_to_dec_array(color = "#FFFFFF")
+    returncolor = _convert_html_color_to_dec(color)
+    if returncolor.is_a? Hash
+      returncolor.values
+    else
+      returncolor
+    end
+  end
+
+  private def _convert_html_color_to_dec(color = "#FFFFFF")
     color = color.gsub(/[\s]*/, '') # remove extra spaces
     color = color.downcase
     if !(dotpos = color.index('.')).nil?
@@ -8682,7 +8668,6 @@ public
     if color.length == 0
       return []
     end
-    returncolor = ActiveSupport::OrderedHash.new
     #  RGB ARRAY
     if color[0,3] == 'rgb'
       codes = color.sub(/^rgb\(/, '')
@@ -8697,6 +8682,7 @@ public
     if color[0,4] == 'cmyk'
       codes = color.sub(/^cmyk\(/, '')
       codes = codes.gsub(')', '')
+      returncolor = codes.split(',', 4)
       returncolor[0] = returncolor[0].to_i
       returncolor[1] = returncolor[1].to_i
       returncolor[2] = returncolor[2].to_i
@@ -8715,6 +8701,7 @@ public
       color_code = color.sub(/^#/, "")
     end
     # RGB VALUE
+    returncolor = {}
     case color_code.length
     when 3
       # three-digit hexadecimal representation
@@ -8733,6 +8720,11 @@ public
       returncolor = []
     end
     return returncolor
+  end
+
+  def convertHTMLColorToDec(color = "#FFFFFF")
+    warn("#{__callee__} is deprecated, use convert_html_color_to_dec_array instead.", uplevel: 1)
+    _convert_html_color_to_dec(color)
   end
   alias_method :convert_html_color_to_dec, :convertHTMLColorToDec
 
@@ -8858,7 +8850,7 @@ public
     tm[5] = y - tm[0] * y - tm[1] * x
 
     # generate the transformation matrix
-    Transform(tm)
+    transform(tm)
   end
   alias_method :rotate, :Rotate
 
@@ -8869,7 +8861,7 @@ public
   # [@since 2.1.000 (2008-01-07)]
   # [@see] StartTransform(), StopTransform()
   #
-  def Transform(tm)
+  def transform(tm)
     out(sprintf('%.3f %.3f %.3f %.3f %.3f %.3f cm', tm[0], tm[1], tm[2], tm[3], tm[4], tm[5]))
     # add tranformation matrix
     @transfmatrix[@transfmatrix_key].push 'a' => tm[0], 'b' => tm[1], 'c' => tm[2], 'd' => tm[3], 'e' => tm[4], 'f' => tm[5]
@@ -8878,7 +8870,7 @@ public
       @transfmrk[@page] = @pagelen[@page]
     end
   end
-  protected :Transform
+  protected :transform
 
   # END TRANSFORMATIONS SECTION -------------------------
 
@@ -8955,6 +8947,7 @@ public
     end
     if !style['dash'].nil?
       dash = style['dash']
+      phase = style['phase'].to_i
       dash_string = ''
       if dash != 0 and dash != ''
         if dash.is_a?(String) && dash =~ /^.+,/
@@ -8969,8 +8962,10 @@ public
           end
           dash_string << sprintf("%.2f", v.to_f)
         }
+      else
+        phase = 0
       end
-      phase = 0
+
       @linestyle_dash = sprintf("[%s] %.2f d", dash_string, phase)
       out(@linestyle_dash)
     end
@@ -9074,13 +9069,13 @@ public
   # [@param float :y1] Ordinate of first point
   # [@param float :x2] Abscissa of second point
   # [@param float :y2]] Ordinate of second point
-  # [@param hash :style] Line style. Array like for {@link SetLineStyle SetLineStyle}. Default value: default line style (empty array).
+  # [@param hash :style] Line style. Array like for {@link SetLineStyle SetLineStyle}. Default value: default line style (empty Hash).
   # [@access public]
   # [@since 1.0]
   # [@see] SetLineWidth(), SetDrawColor(), SetLineStyle()
   #
-  def Line(x1, y1, x2, y2, style=nil)
-    if style.is_a? Hash
+  def Line(x1, y1, x2, y2, style={})
+    if style.is_a?(Hash) && !style.empty?
       SetLineStyle(style)
     end
     outPoint(x1, y1)
@@ -10647,7 +10642,7 @@ public
       if prop['fillColor'].is_a? Array
         opt['mk']['bg'] = prop['fillColor']
       else
-        opt['mk']['bg'] = convertHTMLColorToDec(prop['fillColor'])
+        opt['mk']['bg'] = convert_html_color_to_dec_array(prop['fillColor'])
       end
     end
     # strokeColor: Specifies the stroke color for a field that is used to stroke the rectangle of the field with a line as large as the line width.
@@ -10655,7 +10650,7 @@ public
       if prop['strokeColor'].is_a? Array
         opt['mk']['bc'] = prop['strokeColor']
       else
-        opt['mk']['bc'] = convertHTMLColorToDec(prop['strokeColor'])
+        opt['mk']['bc'] = convert_html_color_to_dec_array(prop['strokeColor'])
       end
     end
     # rotation: The rotation of a widget in counterclockwise increments.
@@ -12860,7 +12855,7 @@ protected
     dom[key]['fill'] = ((@textrendermode % 2) == 0)
     dom[key]['clip'] = (@textrendermode > 3)
     dom[key]['line-height'] = @cell_height_ratio
-    dom[key]['bgcolor'] = ActiveSupport::OrderedHash.new
+    dom[key]['bgcolor'] = []
     dom[key]['fgcolor'] = @fgcolor.dup # color
     dom[key]['strokecolor'] = @strokecolor.dup
 
@@ -13087,13 +13082,13 @@ protected
             end
             # font color
             if !empty_string(dom[key]['style']['color'])
-              dom[key]['fgcolor'] = convertHTMLColorToDec(dom[key]['style']['color'])
+              dom[key]['fgcolor'] = convert_html_color_to_dec_array(dom[key]['style']['color'])
             elsif dom[key]['value'] == 'a'
               dom[key]['fgcolor'] = @html_link_color_array
             end
             # background color
             if !empty_string(dom[key]['style']['background-color'])
-              dom[key]['bgcolor'] = convertHTMLColorToDec(dom[key]['style']['background-color'])
+              dom[key]['bgcolor'] = convert_html_color_to_dec_array(dom[key]['style']['background-color'])
             end
             # text-decoration
             if !dom[key]['style']['text-decoration'].nil?
@@ -13256,17 +13251,17 @@ protected
           end
           # set foreground color attribute
           if !empty_string(dom[key]['attribute']['color'])
-            dom[key]['fgcolor'] = convertHTMLColorToDec(dom[key]['attribute']['color'])
+            dom[key]['fgcolor'] = convert_html_color_to_dec_array(dom[key]['attribute']['color'])
           elsif (dom[key]['style'].nil? or dom[key]['style']['color'].nil?) and (dom[key]['value'] == 'a')
             dom[key]['fgcolor'] = @html_link_color_array
           end
           # set background color attribute
           if !empty_string(dom[key]['attribute']['bgcolor'])
-            dom[key]['bgcolor'] = convertHTMLColorToDec(dom[key]['attribute']['bgcolor'])
+            dom[key]['bgcolor'] = convert_html_color_to_dec_array(dom[key]['attribute']['bgcolor'])
           end
           # set stroke color attribute
           if !empty_string(dom[key]['attribute']['strokecolor'])
-            dom[key]['strokecolor'] = convertHTMLColorToDec(dom[key]['attribute']['strokecolor'])
+            dom[key]['strokecolor'] = convert_html_color_to_dec_array(dom[key]['attribute']['strokecolor'])
           end
           # check for width attribute
           if !dom[key]['attribute']['width'].nil?
