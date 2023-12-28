@@ -18139,9 +18139,10 @@ protected
         @svggradients[@svggradientid]['gradientTransform'] = getSVGTransformMatrix(attribs['gradientTransform'])
       end
       @svggradients[@svggradientid]['coords'] = [x1, y1, x2, y2]
-      if attribs['xlink:href'] && !attribs['xlink:href'].empty?
+      if (attribs['href'] && !attribs['href'].empty?) || (attribs['xlink:href'] && !attribs['xlink:href'].empty?)
+        href = attribs['href'] ? 'href' : 'xlink:href'
         # gradient is defined on another place
-        @svggradients[@svggradientid]['xref'] = attribs['xlink:href'][1..-1]
+        @svggradients[@svggradientid]['xref'] = attribs[href][1..-1]
       end
     when 'radialGradient'
       @svggradientid = attribs['id']
@@ -18168,9 +18169,10 @@ protected
         @svggradients[@svggradientid]['gradientTransform'] = getSVGTransformMatrix(attribs['gradientTransform'])
       end
       @svggradients[@svggradientid]['coords'] = [cx, cy, fx, fy, r]
-      if attribs['xlink:href'] && !attribs['xlink:href'].empty?
+      if (attribs['href'] && !attribs['href'].empty?) || (attribs['xlink:href'] && !attribs['xlink:href'].empty?)
+        href = attribs['href'] ? 'href' : 'xlink:href'
         # gradient is defined on another place
-        @svggradients[@svggradientid]['xref'] = attribs['xlink:href'][1..-1]
+        @svggradients[@svggradientid]['xref'] = attribs[href][1..-1]
       end
     when 'stop'
       # gradient stops
@@ -18328,12 +18330,13 @@ protected
         end
       end
     when 'image' # image
-      if attribs['xlink:href'] && !attribs['xlink:href'].empty?
+      if (attribs['href'] && !attribs['href'].empty?) || (attribs['xlink:href'] && !attribs['xlink:href'].empty?)
+        href = attribs['href'] ? 'href' : 'xlink:href'
         x = attribs['x'] ? getHTMLUnitToUnits(attribs['x'], 0, @svgunit, false) : 0
         y = attribs['y'] ? getHTMLUnitToUnits(attribs['y'], 0, @svgunit, false) : 0
         w = attribs['width'] ? getHTMLUnitToUnits(attribs['width'], 0, @svgunit, false) : 0
         h = attribs['height'] ? getHTMLUnitToUnits(attribs['height'], 0, @svgunit, false) : 0
-        img = attribs['xlink:href']
+        img = attribs[href]
         unless clipping
           start_transform()
           svg_transform(tm)
@@ -18374,15 +18377,14 @@ protected
       set_xy(x, y, true)
       @svgstyles.push(svgstyle)
     when 'use' # use
-      if attribs['xlink:href']
-        use = @svgdefs[attribs['xlink:href'][1..-1]]
-        if attribs['xlink:href']
-          attribs.delete('xlink:href')
+      if attribs['href'] || attribs['xlink:href']
+        href = attribs['href'] ? 'href' : 'xlink:href'
+        use = @svgdefs[attribs[href][1..-1]]
+        # Most attributes (except for x, y, width, height and (xlink:)href) do not override those set in the ancestor.
+        ['x', 'y', 'width', 'height', 'hred', 'xlink:href'].each do |attr|
+          use['attribs'].delete(attr) if attribs[attr]
         end
-        if use['id']
-          use.delete('id')
-        end
-        attribs = use['attribs'].merge(attribs)
+        attribs = attribs.merge(use['attribs'])
         startSVGElementHandler(use['name'], use['attribs'])
       end
     end
