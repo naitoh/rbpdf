@@ -18088,9 +18088,9 @@ protected
       @svgclippaths[@svgclipid] << {'name' => name, 'attribs' => attribs}
       return
     end
-    if @svgdefsmode && !['clipPath', 'linearGradient', 'radialGradient', 'stop'].include?(name)
+    unless ['clipPath', 'linearGradient', 'radialGradient', 'stop'].include?(name)
       @svgdefs[attribs['id']] = {'name' => name, 'attribs' => attribs}
-      return
+      return if @svgdefsmode
     end
 
     prev_svgstyle = @svgstyles[@svgstyles.size - 1] # previous style
@@ -18379,8 +18379,8 @@ protected
         if attribs['xlink:href']
           attribs.delete('xlink:href')
         end
-        if attribs['id']
-          attribs.delete('id')
+        if use['id']
+          use.delete('id')
         end
         attribs = use['attribs'].merge(attribs)
         startSVGElementHandler(use['name'], use['attribs'])
