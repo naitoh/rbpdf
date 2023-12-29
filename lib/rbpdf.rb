@@ -17149,8 +17149,19 @@ public
     # store SVG position and scale factors
     svgoffset_x = (ximg - ox) * @k
     svgoffset_y = -(y - oy) * @k
-    svgscale_x = w / ow
-    svgscale_y = h / oh
+
+    if ow.nil?
+      ow = w
+      svgscale_x = 1
+    else
+      svgscale_x = w / ow
+    end
+    if oh.nil?
+      oh = h
+      svgscale_y = 1
+    else
+      svgscale_y = h / oh
+    end
     # scaling and alignment
     if aspect_ratio_align != 'none'
       # store current scaling values

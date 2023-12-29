@@ -22,6 +22,24 @@ class RbpdfTest < Test::Unit::TestCase
     assert_raise(RBPDFError) {pdf.parse_svg_tag_attributes(tf.path, 0, 0)}
   end
 
+  test "SVG parse_svg_tag_attributes (no x y width height viewBox) test" do
+    tf = Tempfile.open(['test', '.svg']) do |fp|
+      fp.puts '<svg xmlns="http://www.w3.org/2000/svg"></svg>'
+      fp
+    end
+
+    pdf = MYPDF.new
+    w, h, ox, oy, ow, oh, aspect_ratio_align, aspect_ratio_ms = pdf.parse_svg_tag_attributes(tf.path, 0, 0)
+    assert_equal 0, w
+    assert_equal 0, h
+    assert_equal 0, ox
+    assert_equal 0, oy
+    assert_equal nil, ow
+    assert_equal nil, oh
+    assert_equal "xMidYMid", aspect_ratio_align
+    assert_equal "meet", aspect_ratio_ms
+  end
+
   test "SVG parse_svg_tag_attributes x y (no width height) test" do
     tf = Tempfile.open(['test', '.svg']) do |fp|
       fp.puts '<svg xmlns="http://www.w3.org/2000/svg" x="10" y="20"></svg>'
