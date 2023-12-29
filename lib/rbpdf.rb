@@ -18188,7 +18188,7 @@ protected
       opacity = svgstyle['stop-opacity'] ? svgstyle['stop-opacity'].to_f : 1
       @svggradients[@svggradientid]['stops'] << {'offset' => offset, 'color' => stop_color, 'opacity' => opacity}
     when 'path' # paths
-      d = attribs['d'].strip
+      d = attribs['d'].to_s.strip
       if clipping
         svg_transform(tm)
         svg_path(d, 'CNZ')
