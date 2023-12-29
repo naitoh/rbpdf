@@ -18441,10 +18441,14 @@ protected
     when 'clipPath' # clipPath
       @svgclipmode = false
     when 'g'
+      return if @svgdefsmode
+
       # ungroup: remove last style from array
       @svgstyles.pop
       stop_transform()
     when 'text', 'tspan'
+      return if @svgdefsmode
+
       anchor = @svgstyles.last['text-anchor']
       # print text
       cell(0, 0, @svgtext.strip, 0, 0, '', 0, '', 0, false, 'L', 'T', anchor)
