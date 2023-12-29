@@ -12,6 +12,16 @@ class RbpdfTest < Test::Unit::TestCase
     end
   end
 
+  test "SVG parse_svg_tag_attributes empty file test" do
+    tf = Tempfile.open(['test', '.svg']) do |fp|
+      fp.puts ''
+      fp
+    end
+
+    pdf = MYPDF.new
+    assert_raise(RBPDFError) {pdf.parse_svg_tag_attributes(tf.path, 0, 0)}
+  end
+
   test "SVG parse_svg_tag_attributes x y (no width height) test" do
     tf = Tempfile.open(['test', '.svg']) do |fp|
       fp.puts '<svg xmlns="http://www.w3.org/2000/svg" x="10" y="20"></svg>'

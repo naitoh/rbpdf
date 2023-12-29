@@ -17078,6 +17078,7 @@ public
     y = @y if y == ''
     k = @k
 
+    # start parsing an XML SVG header
     width, height, ox, oy, ow, oh, aspect_ratio_align, aspect_ratio_ms = parse_svg_tag_attributes(file, w, h)
 
     # calculate image width and height on document
@@ -17199,6 +17200,7 @@ public
     f = (@h - oy) * @k * (1 - svgscale_y)
     out(sprintf('%.3f %.3f %.3f %.3f %.3f %.3f cm', svgscale_x, 0, 0, svgscale_y, e + svgoffset_x, f + svgoffset_y))
 
+    # start parsing an XML document
     open(file,'rb') do |f|
       parser = REXML::Parsers::PullParser.new(f)
       while parser.has_next?
@@ -17220,12 +17222,6 @@ public
         end
       end
     end
-
-    # start parsing an XML document
-    #if !xml_parse(@parser, svgdata)
-    #  error_message = sprintf("SVG Error: %s at line %d", xml_error_string(xml_get_error_code(@parser)), xml_get_current_line_number(@parser))
-    #  error(error_message)
-    #end
 
     # restore previous graphic state
     out("#{@epsmarker}Q")
@@ -17270,12 +17266,14 @@ public
     oh = nil
     aspect_ratio_align = 'xMidYMid'
     aspect_ratio_ms = 'meet'
+    svg_check = false
     open(file,'rb') do |f|
       parser = REXML::Parsers::PullParser.new(f)
 
       while parser.has_next?
         res = parser.pull
         if (res.event_type == :start_element) && (res[0] == 'svg')
+          svg_check = true
           attribs = res[1]
 
           if attribs['viewBox'] && !attribs['viewBox'].empty?
@@ -17333,6 +17331,8 @@ public
         end
       end
     end
+
+    error("SVG tag not found in SVG file: #{file}") unless svg_check
 
     [w, h, ox, oy, ow, oh, aspect_ratio_align, aspect_ratio_ms]
   end
