@@ -1,3 +1,6 @@
+1.21.3 2023-07-15
+       - Javascript Form & XHTML Form support (#84)
+
 1.21.2 2023-06-27
        - Resolving infinite loops when rtl == true. (#89)
        - Ruby 2.4 is not compatible with loofah 2.21 or higher (#87)

@@ -7,5 +7,5 @@ source 'https://rubygems.org'
 # Specify your gem's dependencies in rbpdf.gemspec
 gemspec
 
-gem "actionpack", "~> 7.0.4.2"
+gem "actionpack", "~> 7.1.2"
 gem "rmagick"

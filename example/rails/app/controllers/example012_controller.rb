@@ -142,10 +142,10 @@ class Example012Controller < ApplicationController
     pdf.text(185, 249, 'Arrows')
     pdf.set_line_style(style5)
     pdf.set_fill_color(255, 0, 0)
-    pdf.Arrow(x0=200, y0=280, x1=185, y1=266, head_style=0, arm_size=5, arm_angle=15)
-    pdf.Arrow(x0=200, y0=280, x1=190, y1=263, head_style=1, arm_size=5, arm_angle=15)
-    pdf.Arrow(x0=200, y0=280, x1=195, y1=261, head_style=2, arm_size=5, arm_angle=15)
-    pdf.Arrow(x0=200, y0=280, x1=200, y1=260, head_style=3, arm_size=5, arm_angle=15)
+    pdf.arrow(x0=200, y0=280, x1=185, y1=266, head_style=0, arm_size=5, arm_angle=15)
+    pdf.arrow(x0=200, y0=280, x1=190, y1=263, head_style=1, arm_size=5, arm_angle=15)
+    pdf.arrow(x0=200, y0=280, x1=195, y1=261, head_style=2, arm_size=5, arm_angle=15)
+    pdf.arrow(x0=200, y0=280, x1=200, y1=260, head_style=3, arm_size=5, arm_angle=15)
     
     # - . - . - . - . - . - . - . - . - . - . - . - . - . - . -
     

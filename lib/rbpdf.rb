@@ -234,7 +234,7 @@ class RBPDF
   # This is the class constructor.
   # It allows to set up the page format, the orientation and
   # the measure unit used in all the methods (except for the font sizes).
-  # @since 1.0
+  # [@since 1.0]
   # [@param string :orientation]
   #   page orientation. Possible values are (case insensitive):
   #   * P or Portrait (default)
@@ -330,13 +330,16 @@ class RBPDF
     @listindent ||= 0
     @listindentlevel ||= 0
     @lispacer ||= ""
+    @li_position_x = nil
 
     # bookmark
     @outlines ||= []
 
     # --- javascript and form ---
     @javascript ||= ''
-    @js_objects ||= []
+    @js_objects ||= {}
+    @js_start_obj_id ||= 300000
+    @js_obj_id ||= 300000
 
     @dpi = 72.0
     @newpagegroup ||= []
@@ -394,6 +397,7 @@ class RBPDF
     @page_obj_id ||= []
     @embedded_start_obj_id ||= 100000
     @form_obj_id ||= []
+    @default_form_prop ||= {'lineWidth'=>1, 'borderStyle'=>'solid', 'fillColor'=>[255, 255, 255], 'strokeColor'=>[128, 128, 128]}
     @apxo_start_obj_id ||= 400000
     @apxo_obj_id ||= 400000
     @annotation_fonts ||= {}
@@ -446,6 +450,7 @@ class RBPDF
     else
       @buffer ||= ''
     end
+    @tmp_buffer = nil
     @pages ||= []
     @prev_pages ||= []
     @state ||= 0
@@ -525,18 +530,9 @@ class RBPDF
     @href ||= {}
     @fontlist ||= []
     getFontsList()
-    @fgcolor = ActiveSupport::OrderedHash.new
-    @fgcolor['R'] = 0
-    @fgcolor['G'] = 0
-    @fgcolor['B'] = 0
-    @strokecolor = ActiveSupport::OrderedHash.new
-    @strokecolor['R'] = 0
-    @strokecolor['G'] = 0
-    @strokecolor['B'] = 0
-    @bgcolor = ActiveSupport::OrderedHash.new
-    @bgcolor['R'] = 255
-    @bgcolor['G'] = 255
-    @bgcolor['B'] = 255
+    @fgcolor = [0, 0, 0]
+    @strokecolor = [0, 0, 0]
+    @bgcolor = [255, 255, 255]
     @extgstates ||= []
 
     # user's rights
@@ -1452,7 +1448,7 @@ class RBPDF
   #
   # Defines the title of the document.
   # [@param string :title] The title.
-  # [@access public$
+  # [@access public]
   # [@since 1.2]
   # [@see] SetAuthor(), SetCreator(), SetKeywords(), SetSubject()
   #
@@ -2295,20 +2291,15 @@ class RBPDF
     if (col2 == -1) and (col3 == -1) and (col4 == -1)
       # Grey scale
       @draw_color = sprintf('%.3f G', col1 / 255.0)
-      @strokecolor['G'] = col1
+      @strokecolor = [col1]
     elsif col4 == -1
       # RGB
       @draw_color = sprintf('%.3f %.3f %.3f RG', col1 / 255.0, col2 / 255.0, col3 / 255.0)
-      @strokecolor['R'] = col1
-      @strokecolor['G'] = col2
-      @strokecolor['B'] = col3
+      @strokecolor = [col1, col2, col3]
     else
       # CMYK
       @draw_color = sprintf('%.3f %.3f %.3f %.3f K', col1 / 100.0, col2 / 100.0, col3 / 100.0, col4 / 100.0)
-      @strokecolor['C'] = col1
-      @strokecolor['M'] = col2
-      @strokecolor['Y'] = col3
-      @strokecolor['K'] = col4
+      @strokecolor = [col1, col2, col3, col4]
     end
     if (@page>0)
       out(@draw_color + ' ')
@@ -2368,20 +2359,15 @@ class RBPDF
     if (col2 == -1) and (col3 == -1) and (col4 == -1)
       # Grey scale
       @fill_color = sprintf('%.3f g', col1 / 255.0)
-      @bgcolor['G'] = col1
+      @bgcolor = [col1]
     elsif col4 == -1
       # RGB
       @fill_color = sprintf('%.3f %.3f %.3f rg', col1 / 255.0, col2 / 255.0, col3 / 255.0)
-      @bgcolor['R'] = col1
-      @bgcolor['G'] = col2
-      @bgcolor['B'] = col3
+      @bgcolor = [col1, col2, col3]
     else
       # CMYK
       @fill_color = sprintf('%.3f %.3f %.3f %.3f k', col1 / 100.0, col2 / 100.0, col3 / 100.0, col4 / 100.0)
-      @bgcolor['C'] = col1
-      @bgcolor['M'] = col2
-      @bgcolor['Y'] = col3
-      @bgcolor['K'] = col4
+      @bgcolor = [col1, col2, col3, col4]
     end
 
     @color_flag = (@fill_color != @text_color)
@@ -2458,20 +2444,16 @@ class RBPDF
     if (col2 == -1) and (col3 == -1) and (col4 == -1)
       # Grey scale
       @text_color = sprintf('%.3f g', col1 / 255.0)
-      @fgcolor['G'] = col1
+      @fgcolor = [col1]
     elsif col4 == -1
       # RGB
       @text_color = sprintf('%.3f %.3f %.3f rg', col1 / 255.0, col2 / 255.0, col3 / 255.0)
-      @fgcolor['R'] = col1
-      @fgcolor['G'] = col2
-      @fgcolor['B'] = col3
+      @fgcolor = [col1, col2, col3]
+
     else
       # CMYK
       @text_color = sprintf('%.3f %.3f %.3f %.3f k', col1 / 100.0, col2 / 100.0, col3 / 100.0, col4 / 100.0)
-      @fgcolor['C'] = col1
-      @fgcolor['M'] = col2
-      @fgcolor['Y'] = col3
-      @fgcolor['K'] = col4
+      @fgcolor = [col1, col2, col3, col4]
     end
     @color_flag = (@fill_color != @text_color)
   end
@@ -4025,7 +4007,9 @@ class RBPDF
       ccode = getCellCode(w, h, '', border, 1, '', fill, '', 0, true)
       @lasth = prevLastH
 
-      if (border != 0) or (fill == 1)
+      if @tmp_buffer
+        @tmp_buffer = "#{ccode}\n#{@tmp_buffer}"
+      elsif (border != 0) or (fill == 1)
         if !@transfmrk[@page].nil?
           pagemark = @transfmrk[@page]
           @transfmrk[@page] += (ccode + "\n").length
@@ -4081,7 +4065,7 @@ class RBPDF
   #   * T: top
   #   * R: right
   #   * B: bottom
-  # [@param string multicell position: 'start', 'middle', 'end'
+  # [@param string multicell :position] 'start', 'middle', 'end'
   # [@return mixed] border mode
   # [@access protected]
   # [@since 4.4.002 (2008-12-09)]
@@ -6033,21 +6017,20 @@ protected
             annots << ' /FT /Btn'
             annots << ' /Ff 49152'
             annots << ' /Kids ['
+            defval = nil
             @radiobutton_groups[n][pl['txt']].each {|data|
-              annots << ' ' + data['kid'] + ' 0 R'
+              annots << " #{data['kid']} 0 R"
               if data['def'] != 'Off'
                 defval = data['def']
               end
             }
             annots << ' ]'
-            if defval
-              annots << ' /V /' + defval
-            end
+            annots << " /V /#{defval}" if defval
             annots << ' >>'
             @annot_obj_id += 1
             @offsets[@annot_obj_id] = @bufferlen
-            out(@annot_obj_id + ' 0 obj ' + annots + ' endobj')
-            @form_obj_id.push = @annot_obj_id
+            out("#{@annot_obj_id} 0 obj #{annots} endobj")
+            @form_obj_id << @annot_obj_id
             # store object id to be used on Parent entry of Kids
             @radiobutton_groups[n][pl['txt']] = @annot_obj_id
           end
@@ -6105,7 +6088,7 @@ protected
             else
               val = pl['opt']['f'].to_i
             end
-            annots << ' /F ' + val.to_i
+            annots << " /F #{val}"
           end
           # annots << ' /AP '
           # annots << ' /AS '
@@ -6114,24 +6097,23 @@ protected
           end
           if pl['opt']['ap']
             # appearance stream
-            annots << ' /AP << ' + pl['opt']['ap'] + ' >>'
             annots << ' /AP <<'
             if pl['opt']['ap'].is_a?(Hash)
               pl['opt']['ap'].each {|apmode, apdef|
                 # apmode can be: n = normal; r = rollover; d = down
                 annots << ' /' + apmode.upcase
-                if apdef.is_a?(Array)
+                if apdef.is_a?(Hash)
                   annots << ' <<'
                   apdef.each {|apstate, stream|
                     # reference to XObject that define the appearance for this mode-state
                     apsobjid = putAPXObject(c, d, stream)
-                    annots << ' /' + apstate + ' ' + apsobjid + ' 0 R'
+                    annots << " /#{apstate} #{apsobjid} 0 R"
                   }
                   annots << ' >>'
                 else
                   # reference to XObject that define the appearance for this mode
                   apsobjid = putAPXObject(c, d, apdef)
-                  annots << ' ' + apsobjid + ' 0 R'
+                  annots << " #{apsobjid} 0 R"
                 end
               }
             else
@@ -6143,7 +6125,7 @@ protected
             annots << ' /BS <<'
             annots << ' /Type /Border'
             if !pl['opt']['bs']['w'].nil?
-              annots << ' /W ' + pl['opt']['bs']['w'].to_i
+              annots << " /W #{pl['opt']['bs']['w']}"
             end
             bstyles = ['S', 'D', 'B', 'I', 'U']
             if !pl['opt']['bs']['s'].nil? and bstyles.include?(pl['opt']['bs']['s'])
@@ -6205,7 +6187,7 @@ protected
             if !pl['opt']['t'].nil? and pl['opt']['t'].is_a?(String)
               annots << ' /T ' + textannobjstring(pl['opt']['t'])
             end
-            # annots .= ' /Popup '
+            # annots << ' /Popup '
             if !pl['opt']['ca'].nil?
               annots << ' /CA ' + sprintf("%.4f", pl['opt']['ca'].to_f)
             end
@@ -6420,9 +6402,9 @@ protected
             end # end MK
 
             # --- Entries for field dictionaries ---
-            if @radiobutton_groups[n][pl['txt']]
+            if @radiobutton_groups[n] and @radiobutton_groups[n][pl['txt']]
               # set parent
-              annots << ' /Parent ' + @radiobutton_groups[n][pl['txt']] + ' 0 R'
+              annots << " /Parent #{@radiobutton_groups[n][pl['txt']]} 0 R"
             end
             if pl['opt']['t'] and pl['opt']['t'].is_a?(String)
               annots << ' /T ' + dataannobjstring(pl['opt']['t'])
@@ -6443,7 +6425,7 @@ protected
               else
                 flag = pl['opt']['ff'].to_i
               end
-              annots << ' /Ff ' + flag
+              annots << " /Ff #{flag}"
             end
             if pl['opt']['maxlen']
               annots << ' /MaxLen ' + pl['opt']['maxlen'].to_i.to_s
@@ -6529,9 +6511,9 @@ protected
           @offsets[@annot_obj_id] = @bufferlen
           out(@annot_obj_id.to_s + ' 0 obj ' + annots + ' endobj')
 
-          if formfield and ! @radiobutton_groups[n][pl['txt']]
+          if formfield and !(@radiobutton_groups[n] and @radiobutton_groups[n][pl['txt']])
             # store reference of form object
-            @form_obj_id.push = @annot_obj_id
+            @form_obj_id << @annot_obj_id
           end
         }
       end # end for each page
@@ -6563,7 +6545,7 @@ protected
     rect = sprintf('%.2f %.2f', w, h)
     out << ' /BBox [0 0 ' + rect + ']'
     out << ' /Matrix [1 0 0 1 0 0]'
-    out << ' /Resources <</ProcSet [/PDF]>>'
+    out << ' /Resources 2 0 R'
     out << ' /Length ' + stream.length.to_s
     out << ' >>'
     out << ' ' + getstream(stream)
@@ -7163,7 +7145,7 @@ protected
         out(out)
       end
     end
-    @fontkeys.each do |k|
+    @fontkeys.each_with_index do |k, i|
       #Font objects
       setFontSubBuffer(k, 'n', @n + 1)
       font = getFontBuffer(k)
@@ -7181,7 +7163,7 @@ protected
         end
         if name.downcase == 'helvetica'
           # add default font for annotations
-          @annotation_fonts['helvetica'] = k
+          @annotation_fonts['helvetica'] = i
         end
         out << ' >> endobj'
         out(out)
@@ -7232,9 +7214,9 @@ protected
           Error('Unsupported font type: ' + type)
         end
         obj_id = self.send(mtd,font)
-        # store object ID for current font
-        @font_obj_ids[k] = obj_id
       end
+      # store object ID for current font
+      @font_obj_ids[k] = obj_id
     end
   end
 
@@ -7496,7 +7478,7 @@ protected
 
   #
   # Output Spot Colors Resources.
-  # [@access protected[
+  # [@access protected]
   # [@since 4.0.024 (2008-09-12)]
   #
   def putspotcolors()
@@ -7547,23 +7529,28 @@ protected
       end
     }
     out << ' >>'
-=begin
+
     # gradient patterns
     if @gradients and !@gradients.empty?
       out << ' /Pattern <<'
-      @gradients.each_with_index  {|grad, id|
-        out << ' /p' + id + ' ' + grad['pattern'] + ' 0 R'
-      }
+      @gradients.each_with_index do |grad, id|
+        next unless grad
+
+        out << " /p#{id} #{grad['pattern']} 0 R"
+      end
       out << ' >>'
     end
     # gradient shadings
     if @gradients and !@gradients.empty?
       out << ' /Shading <<'
-      @gradients.each_with_index  {|grad, id|
-        out << ' /Sh' + id + ' ' + grad['id'] + ' 0 R'
-      }
+      @gradients.each_with_index do |grad, id|
+        next unless grad
+
+        out << " /Sh#{id} #{grad['id']} 0 R"
+      end
       out << ' >>'
     end
+=begin
     # spot colors
     if @spot_colors and !@spot_colors.empty?
       out << ' /ColorSpace <<'
@@ -7585,16 +7572,18 @@ protected
     mapLinksToHtmlAnchors()
     putextgstates()
     putocg()
-    putfonts();
-    putimages();
+    putfonts()
+    putimages()
     putspotcolors()
+    putshaders()
 
     #Resource dictionary
     @offsets[2]=@bufferlen
-    putresourcedict();
+    putresourcedict()
     putbookmarks()
     putEmbeddedFiles()
     putannotsobjs()
+    putjavascript()
     # encryption
 
     ### T.B.D ### TCPDF 5.0.000 ###
@@ -7653,11 +7642,11 @@ protected
     newobj()
     out = '<< /Type /Catalog'
     out << ' /Pages 1 0 R'
-    if (@zoom_mode=='fullpage')
+    if @zoom_mode == 'fullpage'
       out << ' /OpenAction [3 0 R /Fit]'
-    elsif (@zoom_mode=='fullwidth')
+    elsif @zoom_mode == 'fullwidth'
       out << ' /OpenAction [3 0 R /FitH null]'
-    elsif (@zoom_mode=='real')
+    elsif @zoom_mode == 'real'
       out << ' /OpenAction [3 0 R /XYZ null null 1]'
     elsif @zoom_mode.is_a?(Numeric)
       out << ' /OpenAction [3 0 R /XYZ null null ' + (@zoom_mode/100.0).to_s + ']'
@@ -7674,7 +7663,7 @@ protected
     end
     out << ' /Names <<'
     if !@javascript.empty? or !@js_objects.empty?
-      out << ' /JavaScript ' + @n_js + ' 0 R'
+      out << " /JavaScript #{@n_js} 0 R"
     end
     out << ' >>'
 
@@ -7687,9 +7676,43 @@ protected
     v = @n_ocg_view.to_s + ' 0 R'
     as = '<</Event /Print /OCGs [' + p + ' ' + v + '] /Category [/Print]>> <</Event /View /OCGs [' + p + ' ' + v + '] /Category [/View]>>'
     out << ' /OCProperties <</OCGs [' + p + ' ' + v + '] /D <</ON [' + p + '] /OFF [' + v + '] /AS [' + as + ']>>>>'
+    # AcroForm
+    if !@form_obj_id.empty? || (@sign && @signature_data['cert_type'])
+      out << ' /AcroForm<<'
+      objrefs = ''
+      if @sign && @signature_data['cert_type']
+          objrefs << "#{@sig_obj_id} 0 R"
+      end
+      @form_obj_id.each{|objid|
+        objrefs << " #{objid} 0 R"
+      }
+      out << " /Fields [#{objrefs}]"
+      if @sign && @signature_data['cert_type']
+        out << ' /SigFlags 3'
+      end
 
-    ### T.B.D ### TCPDF 5.0.000 ###
-
+      #out << ' /CO '
+      unless @annotation_fonts.empty?
+        out << ' /DR <<'
+        out << ' /Font <<'
+        @annotation_fonts.each {|font, fontkey|
+          out << " /F#{fontkey + 1} #{@font_obj_ids[font]} 0 R"
+        }
+        out << ' >> >>'
+      end
+      out << " /DA (/F#{@fontkeys.index('helvetica') + 1} 0 Tf 0 g)"
+      out << ' /Q ' + (@rtl ? '2' : '0')
+      #out << ' /XFA '
+      out << ' >>'
+      # signatures
+      if @sign && @signature_data['cert_type']
+        if @signature_data['cert_type'] > 0
+          out << " /Perms<</DocMDP #{@sig_obj_id + 1} 0 R>>"
+        else
+          out << " /Perms<</UR3 #{@sig_obj_id + 1} 0 R>>"
+        end
+      end
+    end
     out << ' >> endobj'
     out(out)
   end
@@ -7830,6 +7853,20 @@ protected
     if @annot_obj_id > @annots_start_obj_id
       out((@annots_start_obj_id + 1).to_s + ' ' + (@annot_obj_id - @annots_start_obj_id).to_s)
       (@annots_start_obj_id + 1).upto(@annot_obj_id) do |i|
+        out(sprintf('%010d 00000 n ', @offsets[i]))
+      end
+    end
+    # Javascript Objects
+    if @js_obj_id > @js_start_obj_id
+      out((@js_start_obj_id + 1).to_s + ' ' + (@js_obj_id - @js_start_obj_id).to_s)
+      (@js_start_obj_id + 1).upto(@js_obj_id) do |i|
+        out(sprintf('%010d 00000 n ', @offsets[i]))
+      end
+    end
+    # Appearance streams XObjects
+    if @apxo_obj_id > @apxo_start_obj_id
+      out((@apxo_start_obj_id + 1).to_s + ' ' + (@apxo_obj_id - @apxo_start_obj_id).to_s)
+      (@apxo_start_obj_id + 1).upto(@apxo_obj_id) do |i|
         out(sprintf('%010d 00000 n ', @offsets[i]))
       end
     end
@@ -8024,7 +8061,6 @@ protected
   # [@access protected]
   #
   def escape(s)
-    # Add \ before \, ( and )
     s.gsub('\\','\\\\\\').gsub('(','\\(').gsub(')','\\)').gsub(13.chr, '\r')
   end
 
@@ -8108,9 +8144,9 @@ protected
 
   #
   # get raw output stream.
-  # @param string :s string to output.
-  # @param int :n object reference for encryption mode
-  # @access protected
+  # [@param string :s] string to output.
+  # [@param int :n] object reference for encryption mode
+  # [@access protected]
   #
   def getrawstream(s, n=0)
     if n <= 0
@@ -8122,9 +8158,9 @@ protected
 
   #
   # Format output stream
-  # @param string :s string to output.
-  # @param int :n object reference for encryption mode
-  # @access protected
+  # [@param string :s] string to output.
+  # [@param int :n] object reference for encryption mode
+  # [@access protected]
   #
   def getstream(s, n=0)
     "stream\n" + getrawstream(s, n=0) + "\nendstream"
@@ -8147,7 +8183,10 @@ protected
   #
   def out(s)
     s.force_encoding('ASCII-8BIT') if s.respond_to?(:force_encoding)
-    if (@state==2)
+
+    if @tmp_buffer
+      @tmp_buffer << "#{s}\n"
+    elsif (@state==2)
       if !@in_footer and !@footerlen[@page].nil? and (@footerlen[@page] > 0)
         # puts data before page footer
         pagebuff = getPageBuffer(@page)
@@ -8610,7 +8649,16 @@ public
   # [@return array] RGB color or empty array in case of error.
   # [@access public]
   #
-  def convertHTMLColorToDec(color = "#FFFFFF")
+  def convert_html_color_to_dec_array(color = "#FFFFFF")
+    returncolor = _convert_html_color_to_dec(color)
+    if returncolor.is_a? Hash
+      returncolor.values
+    else
+      returncolor
+    end
+  end
+
+  private def _convert_html_color_to_dec(color = "#FFFFFF")
     color = color.gsub(/[\s]*/, '') # remove extra spaces
     color = color.downcase
     if !(dotpos = color.index('.')).nil?
@@ -8620,7 +8668,6 @@ public
     if color.length == 0
       return []
     end
-    returncolor = ActiveSupport::OrderedHash.new
     #  RGB ARRAY
     if color[0,3] == 'rgb'
       codes = color.sub(/^rgb\(/, '')
@@ -8635,6 +8682,7 @@ public
     if color[0,4] == 'cmyk'
       codes = color.sub(/^cmyk\(/, '')
       codes = codes.gsub(')', '')
+      returncolor = codes.split(',', 4)
       returncolor[0] = returncolor[0].to_i
       returncolor[1] = returncolor[1].to_i
       returncolor[2] = returncolor[2].to_i
@@ -8653,6 +8701,7 @@ public
       color_code = color.sub(/^#/, "")
     end
     # RGB VALUE
+    returncolor = {}
     case color_code.length
     when 3
       # three-digit hexadecimal representation
@@ -8671,6 +8720,11 @@ public
       returncolor = []
     end
     return returncolor
+  end
+
+  def convertHTMLColorToDec(color = "#FFFFFF")
+    warn("#{__callee__} is deprecated, use convert_html_color_to_dec_array instead.", uplevel: 1)
+    _convert_html_color_to_dec(color)
   end
   alias_method :convert_html_color_to_dec, :convertHTMLColorToDec
 
@@ -8796,7 +8850,7 @@ public
     tm[5] = y - tm[0] * y - tm[1] * x
 
     # generate the transformation matrix
-    Transform(tm)
+    transform(tm)
   end
   alias_method :rotate, :Rotate
 
@@ -8807,7 +8861,7 @@ public
   # [@since 2.1.000 (2008-01-07)]
   # [@see] StartTransform(), StopTransform()
   #
-  def Transform(tm)
+  def transform(tm)
     out(sprintf('%.3f %.3f %.3f %.3f %.3f %.3f cm', tm[0], tm[1], tm[2], tm[3], tm[4], tm[5]))
     # add tranformation matrix
     @transfmatrix[@transfmatrix_key].push 'a' => tm[0], 'b' => tm[1], 'c' => tm[2], 'd' => tm[3], 'e' => tm[4], 'f' => tm[5]
@@ -8816,7 +8870,7 @@ public
       @transfmrk[@page] = @pagelen[@page]
     end
   end
-  protected :Transform
+  protected :transform
 
   # END TRANSFORMATIONS SECTION -------------------------
 
@@ -8893,6 +8947,7 @@ public
     end
     if !style['dash'].nil?
       dash = style['dash']
+      phase = style['phase'].to_i
       dash_string = ''
       if dash != 0 and dash != ''
         if dash.is_a?(String) && dash =~ /^.+,/
@@ -8907,8 +8962,10 @@ public
           end
           dash_string << sprintf("%.2f", v.to_f)
         }
+      else
+        phase = 0
       end
-      phase = 0
+
       @linestyle_dash = sprintf("[%s] %.2f d", dash_string, phase)
       out(@linestyle_dash)
     end
@@ -9012,13 +9069,13 @@ public
   # [@param float :y1] Ordinate of first point
   # [@param float :x2] Abscissa of second point
   # [@param float :y2]] Ordinate of second point
-  # [@param hash :style] Line style. Array like for {@link SetLineStyle SetLineStyle}. Default value: default line style (empty array).
+  # [@param hash :style] Line style. Array like for {@link SetLineStyle SetLineStyle}. Default value: default line style (empty Hash).
   # [@access public]
   # [@since 1.0]
   # [@see] SetLineWidth(), SetDrawColor(), SetLineStyle()
   #
-  def Line(x1, y1, x2, y2, style=nil)
-    if style.is_a? Hash
+  def Line(x1, y1, x2, y2, style={})
+    if style.is_a?(Hash) && !style.empty?
       SetLineStyle(style)
     end
     outPoint(x1, y1)
@@ -9283,8 +9340,8 @@ public
   #   * all: Line style of all lines. Array like for {@link SetLineStyle SetLineStyle}.
   #   * 0 to (:np - 1): Line style of each line. Array like for {@link SetLineStyle SetLineStyle}.
   #   If a key is not present or is null, not draws the line. Default value is default line style (empty array).
-  # [@param array :fill_color Fill color. Format: array(GREY) or array(R,G,B) or array(C,M,Y,K). Default value: default color (empty array).
-  # [@param boolean :closed if true the polygon is closes, otherwise will remain open
+  # [@param array :fill_color] Fill color. Format: array(GREY) or array(R,G,B) or array(C,M,Y,K). Default value: default color (empty array).
+  # [@param boolean :closed] if true the polygon is closes, otherwise will remain open
   # [@access public]
   # [@since 4.8.003 (2009-09-15)]
   #
@@ -10307,7 +10364,7 @@ public
 
   #
   # Create a bookmark PDF string.
-  # [@access private]
+  # [@access protected]
   # [@author] Olivier Plathey, Nicola Asuni
   # [@since 2.1.002 (2008-02-12)]
   #
@@ -10370,7 +10427,925 @@ public
   protected :putbookmarks
 
   # --- JAVASCRIPT ------------------------------------------------------
+  #
+  # Adds a javascript
+  # [@param string :script] Javascript code
+  # [@access public]
+  # [@author Johannes G�ntert, Nicola Asuni]
+  # [@since 2.1.002 (2008-02-12)]
+  #
+  def IncludeJS(script)
+    @javascript << script
+  end
+
+  #
+  # Adds a javascript object and return object ID
+  # [@param string :script] Javascript code
+  # [@param boolean :onload] if true executes this object when opening the document
+  # [@return int] internal object ID
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-07)]
+  #
+  def addJavascriptObject(script, onload = false)
+    @js_obj_id += 1
+    @js_objects[@js_obj_id] = {'js' => script, 'onload' => onload}
+    @js_obj_id
+  end
+
+  #
+  # Create a javascript PDF string.
+  # [@access protected]
+  # [@author Johannes G�ntert, Nicola Asuni]
+  # [@since 2.1.002 (2008-02-12)]
+  #
+  def putjavascript()
+    return if @javascript.empty? && @js_objects.empty?
+
+    if @javascript.index 'this.addField'
+      # @setUserRights() unless @ur
+
+      # the following two lines are used to avoid form fields duplication after saving
+      # The addField method only works on Acrobat Writer, unless the document is signed with Adobe private key (UR3)
+      jsa = sprintf("ftcpdfdocsaved=this.addField('%s','%s',%d,[%.2f,%.2f,%.2f,%.2f]);", 'tcpdfdocsaved', 'text', 0, 0, 1, 0, 1)
+      jsb = "getField('tcpdfdocsaved').value='saved';"
+      @javascript = "#{jsa}\n#{@javascript}\n#{jsb}"
+    end
+    @n_js = newobj()
+    out = ' << /Names ['
+    unless @javascript.empty?
+      out << " (EmbeddedJS) #{@n + 1} 0 R"
+    end
+    unless @js_objects.empty?
+      @js_objects.each{|key, val|
+        out << " (JS#{key}) #{key} 0 R" if val['onload']
+      }
+    end
+    out << ' ] >> endobj'
+    out(out)
+    # default Javascript object
+    unless @javascript.empty?
+      newobj()
+      out = '<< /S /JavaScript'
+      out << " /JS #{textstring(@javascript)}"
+      out << ' >> endobj'
+      out(out)
+    end
+    # additional Javascript objects
+    unless @js_objects.empty?
+      @js_objects.each {|key, val|
+        @offsets[key] = @bufferlen
+        out = "#{key} 0 obj\n << /S /JavaScript /JS #{textstring(val['js'])} >> endobj"
+        out(out)
+      }
+    end
+  end
+  protected :putjavascript
+
+  #
+  # Convert color to javascript color.
+  # [@param string :color] color name or #RRGGBB
+  # [@access protected]
+  # [@author Denis Van Nuffelen, Nicola Asuni]
+  # [@since 2.1.002 (2008-02-12)]
+  #
+  def JScolor(color)
+    aColors = ['transparent', 'black', 'white', 'red', 'green', 'blue', 'cyan', 'magenta', 'yellow', 'dkGray', 'gray', 'ltGray']
+    if color[0] == '#'
+      return sprintf("['RGB',%.3f,%.3f,%.3f]", color[1, 2].to_i(16) / 255, color[3, 2].to_i(16) / 255, color[5, 2].to_i(16) / 255)
+    end
+
+    unless aColors.include? color
+      Error('Invalid color: ' + color)
+    end
+    'color.' + color
+  end
+  protected :JScolor
+
+  #
+  # Adds a javascript form field.
+  # [@param string :type] field type
+  # [@param string :name] field name
+  # [@param int :x] horizontal position
+  # [@param int :y] vertical position
+  # [@param int :w] width
+  # [@param int :h] height
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@access protected]
+  # [@author Denis Van Nuffelen, Nicola Asuni]
+  # [@since 2.1.002 (2008-02-12)]
+  #
+  def addfield(type, name, x, y, w, h, prop)
+    x = x - w if @rtl
+
+    # the followind avoid fields duplication after saving the document
+    @javascript << "if(getField('tcpdfdocsaved').value != 'saved') {"
+    k = @k
+    @javascript << "f#{name}=this.addField('#{name}','#{type}',#{PageNo() - 1},[#{sprintf("%.2f,%.2f,%.2f,%.2f", x * k, (@h - y) * k + 1, (x + w) * k, (@h - y - h) * k + 1)}]);\n"
+    @javascript << "f#{name}.textSize=#{@font_size_pt};\n"
+    prop.each {|k, v|
+      val = k[-5..-1] == 'Color' ? JScolor(v) : "'#{v}'"
+      @javascript << "f#{name}.#{k}=#{val};\n"
+    }
+    if @rtl
+      @x -= w
+    else
+      @x += w
+    end
+    @javascript << '}'
+  end
+  protected :addfield
+
   # --- FORM FIELDS -----------------------------------------------------
+
+  #
+  # Convert JavaScript form fields properties array to Annotation Properties array.
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@return array of annotation properties]
+  # [@access protected]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-06)]
+  #
+  def getAnnotOptFromJSProp(prop)
+    # the annotation options area already defined
+    return prop['aopt'] if prop['aopt'].is_a?(Array)
+
+    opt = {} # value to be returned
+    # alignment: Controls how the text is laid out within the text field.
+    if prop['alignment']
+      opt['q'] = case prop['alignment']
+                 when 'left'; 0
+                 when 'center'; 1
+                 when 'right'; 2
+                 else @rtl ? 2 : 0
+                 end
+    end
+    # lineWidth: Specifies the thickness of the border when stroking the perimeter of a field's rectangle.
+    if prop['lineWidth']
+      linewidth = prop['lineWidth'].to_i
+    else
+      linewidth = 1
+    end
+    # borderStyle: The border style for a field.
+    case prop['borderStyle']
+    when 'border.d', 'dashed'
+      opt['border'] = [0, 0, linewidth, [3, 2]]
+      opt['bs'] = {'w'=>linewidth, 's'=>'D', 'd'=>[3, 2]}
+    when 'border.b', 'beveled'
+      opt['border'] = [0, 0, linewidth]
+      opt['bs'] = {'w'=>linewidth, 's'=>'B'}
+    when 'border.i', 'inset'
+      opt['border'] = [0, 0, linewidth]
+      opt['bs'] = {'w'=>linewidth, 's'=>'I'}
+    when 'border.u', 'underline'
+      opt['border'] = [0, 0, linewidth]
+      opt['bs'] = {'w'=>linewidth, 's'=>'U'}
+    else # 'border.s', 'solid'
+      opt['border'] = [0, 0, linewidth]
+      opt['bs'] = {'w'=>linewidth, 's'=>'S'}
+    end
+
+    opt['border'] = prop['border'] if prop['border'].is_a?(Array)
+    opt['mk'] ||= {}
+    opt['mk']['if'] ||= {}
+    opt['mk']['if']['a'] = [0.5, 0.5]
+    # buttonAlignX: Controls how space is distributed from the left of the button face with respect to the icon.
+    opt['mk']['if']['a'][0] = prop['buttonAlignX'] if prop['buttonAlignX']
+    # buttonAlignY: Controls how unused space is distributed from the bottom of the button face with respect to the icon.
+    opt['mk']['if']['a'][1] = prop['buttonAlignY'] if prop['buttonAlignY']
+    # buttonFitBounds: If true, the extent to which the icon may be scaled is set to the bounds of the button field.
+    opt['mk']['if']['fb'] = true if prop['buttonFitBounds'] && (prop['buttonFitBounds'] == 'true')
+    # buttonScaleHow: Controls how the icon is scaled (if necessary) to fit inside the button face.
+    case prop['buttonScaleHow']
+    when 'scaleHow.proportional'; opt['mk']['if']['s'] = 'P'
+    when 'scaleHow.anamorphic';   opt['mk']['if']['s'] = 'A'
+    end
+    # buttonScaleWhen: Controls when an icon is scaled to fit inside the button face.
+    case prop['buttonScaleWhen']
+    when 'scaleWhen.always';   opt['mk']['if']['sw'] = 'A'
+    when 'scaleWhen.never';    opt['mk']['if']['sw'] = 'N'
+    when 'scaleWhen.tooBig';   opt['mk']['if']['sw'] = 'B'
+    when 'scaleWhen.tooSmall'; opt['mk']['if']['sw'] = 'S'
+    end
+    # buttonPosition: Controls how the text and the icon of the button are positioned with respect to each other within the button face.
+    case prop['buttonPosition']
+    when 0, 'position.textOnly';  opt['mk']['tp'] = 0
+    when 1, 'position.iconOnly';  opt['mk']['tp'] = 1
+    when 2, 'position.iconTextV'; opt['mk']['tp'] = 2
+    when 3, 'position.textIconV'; opt['mk']['tp'] = 3
+    when 4, 'position.iconTextH'; opt['mk']['tp'] = 4
+    when 5, 'position.textIconH'; opt['mk']['tp'] = 5
+    when 6, 'position.overlay';   opt['mk']['tp'] = 6
+    end
+    # fillColor: Specifies the background color for a field.
+    if prop['fillColor']
+      if prop['fillColor'].is_a? Array
+        opt['mk']['bg'] = prop['fillColor']
+      else
+        opt['mk']['bg'] = convert_html_color_to_dec_array(prop['fillColor'])
+      end
+    end
+    # strokeColor: Specifies the stroke color for a field that is used to stroke the rectangle of the field with a line as large as the line width.
+    if prop['strokeColor']
+      if prop['strokeColor'].is_a? Array
+        opt['mk']['bc'] = prop['strokeColor']
+      else
+        opt['mk']['bc'] = convert_html_color_to_dec_array(prop['strokeColor'])
+      end
+    end
+    # rotation: The rotation of a widget in counterclockwise increments.
+    opt['mk']['r'] = prop['rotation'] if prop['rotation']
+    # charLimit: Limits the number of characters that a user can type into a text field.
+    opt['maxlen'] = prop['charLimit'].to_i if prop['charLimit']
+
+    ff ||= 0
+    # readonly: The read-only characteristic of a field. If a field is read-only, the user can see the field but cannot change it.
+    ff |= 1 << 0 if prop['readonly'] == 'true'
+    # required: Specifies whether a field requires a value.
+    ff |= 1 << 1 if prop['required'] == 'true'
+    # multiline: Controls how text is wrapped within the field.
+    ff |= 1 << 12 if prop['multiline'] == 'true'
+    # password: Specifies whether the field should display asterisks when data is entered in the field.
+    ff |= 1 << 13 if prop['password'] == 'true'
+    # NoToggleToOff: If set, exactly one radio button shall be selected at all times; selecting the currently selected button has no effect.
+    ff |= 1 << 14 if prop['NoToggleToOff'] == 'true'
+    # Radio: If set, the field is a set of radio buttons.
+    ff |= 1 << 15 if prop['Radio'] == 'true'
+    # Pushbutton: If set, the field is a pushbutton that does not retain a permanent value.
+    ff |= 1 << 16 if prop['Pushbutton'] == 'true'
+    # Combo: If set, the field is a combo box; if clear, the field is a list box.
+    ff |= 1 << 17 if prop['Combo'] == 'true'
+    # editable: Controls whether a combo box is editable.
+    ff |= 1 << 18 if prop['editable'] == 'true'
+    # Sort: If set, the field's option items shall be sorted alphabetically.
+    ff |= 1 << 19 if prop['Sort'] == 'true'
+    # fileSelect: If true, sets the file-select flag in the Options tab of the text field (Field is Used for File Selection).
+    ff |= 1 << 20 if prop['fileSelect'] == 'true'
+    # multipleSelection: If true, indicates that a list box allows a multiple selection of items.
+    ff |= 1 << 21 if prop['multipleSelection'] == 'true'
+    # doNotSpellCheck: If true, spell checking is not performed on this editable text field.
+    ff |= 1 << 22 if prop['doNotSpellCheck'] == 'true'
+    # doNotScroll: If true, the text field does not scroll and the user, therefore, is limited by the rectangular region designed for the field.
+    ff |= 1 << 23 if prop['doNotScroll'] == 'true'
+    # comb: If set to true, the field background is drawn as series of boxes (one for each character in the value of the field) and each character of the content is drawn within those boxes. The number of boxes drawn is determined from the charLimit property. It applies only to text fields. The setter will also raise if any of the following field properties are also set multiline, password, and fileSelect. A side-effect of setting this property is that the doNotScroll property is also set.
+    ff |= 1 << 24 if prop['comb'] == 'true'
+    # radiosInUnison: If false, even if a group of radio buttons have the same name and export value, they behave in a mutually exclusive fashion, like HTML radio buttons.
+    ff |= 1 << 25 if prop['radiosInUnison'] == 'true'
+    # richText: If true, the field allows rich text formatting.
+    ff |= 1 << 25 if prop['richText'] == 'true'
+    # commitOnSelChange: Controls whether a field value is committed after a selection change.
+    ff |= 1 << 26 if prop['commitOnSelChange'] == 'true'
+    opt['ff'] = ff
+
+    # defaultValue: The default value of a field - that is, the value that the field is set to when the form is reset.
+    opt['dv'] = prop['defaultValue'] if prop['defaultValue']
+    f = 1 << 2 # default value for annotation flags
+    # readonly: The read-only characteristic of a field. If a field is read-only, the user can see the field but cannot change it.
+    if prop['readonly'] == 'true'
+      f |= 1 << 6
+    end
+    # display: Controls whether the field is hidden or visible on screen and in print.
+    case prop['display']
+    when 'display.visible'
+      #
+    when 'display.hidden'
+      f |= 1 << 1
+    when 'display.noPrint'
+      f &= ~(1 << 2)
+    when 'display.noView'
+      f |= 1 << 5
+    end
+    opt['f'] = f
+
+    # currentValueIndices: Reads and writes single or multiple values of a list box or combo box.
+    opt['i'] = prop['currentValueIndices'] if prop['currentValueIndices'].is_a?(Array)
+    # value: The value of the field data that the user has entered.
+    if prop['value']
+      if prop['value'].is_a?(Array)
+        opt['opt'] = []
+        prop['value'].each_with_index {|v, i|
+          # exportValues: An array of strings representing the export values for the field.
+          if prop['exportValues'] && prop['exportValues'][i]
+            opt['opt'][i] = [prop['exportValues'][i], v]
+          else
+            opt['opt'][i] = v
+          end
+        }
+      else
+        opt['v'] = prop['value']
+      end
+    end
+    # richValue: This property specifies the text contents and formatting of a rich text field.
+    opt['rv'] = prop['richValue'] if prop['richValue']
+    # submitName: If nonempty, used during form submission instead of name. Only applicable if submitting in HTML format (that is, URL-encoded).
+    opt['tm'] = prop['submitName'] if prop['submitName']
+    # name: Fully qualified field name.
+    opt['t'] = prop['name'] if prop['name']
+    # userName: The user name (short description string) of the field.
+    opt['tu'] = prop['userName'] if prop['userName']
+    # highlight: Defines how a button reacts when a user clicks it.
+    case prop['highlight']
+    when 'none',    'highlight.n'; opt['h'] = 'N'
+    when 'invert',  'highlight.i'; opt['h'] = 'i'
+    when 'push',    'highlight.p'; opt['h'] = 'P'
+    when 'outline', 'highlight.o'; opt['h'] = 'O'
+    end
+    # Unsupported options:
+    # - calcOrderIndex: Changes the calculation order of fields in the document.
+    # - delay: Delays the redrawing of a field's appearance.
+    # - defaultStyle: This property defines the default style attributes for the form field.
+    # - style: Allows the user to set the glyph style of a check box or radio button.
+    # - textColor, textFont, textSize
+    opt
+  end
+  protected :getAnnotOptFromJSProp
+
+  #
+  # Set default properties for form fields.
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-06)]
+  #
+  def setFormDefaultProp(prop = [])
+    @default_form_prop = prop
+  end
+  alias_method :set_form_default_prop, :setFormDefaultProp
+
+  #
+  # Return the default properties for form fields.
+  # [@return array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-06)]
+  #
+  def getFormDefaultProp()
+    @default_form_prop
+  end
+  alias_method :get_form_default_prop, :getFormDefaultProp
+
+  #
+  # Creates a text field
+  # [@param string :name] field name
+  # [@param float :w] Width of the rectangle
+  # [@param float :h] Height of the rectangle
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@param array :opt] annotation parameters. Possible values are described on official PDF32000_2008 reference.
+  # [@param float :x] Abscissa of the upper-left corner of the rectangle
+  # [@param float :y] Ordinate of the upper-left corner of the rectangle
+  # [@param boolean :js] if true put the field using JavaScript (requires Acrobat Writer to be rendered).
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-07)]
+  #
+  def TextField(name, w, h, prop = {}, opt = {}, x = '', y = '', js = false)
+    x = @x if x == ''
+    y = @y if y == ''
+
+    if js
+      addfield('text', name, x, y, w, h, prop)
+      return
+    end
+    # get default style
+    prop = getFormDefaultProp.merge prop
+    # get annotation data
+    popt = getAnnotOptFromJSProp(prop)
+    # set default appearance stream
+    font = @font_family
+    fontkey = @fontkeys.index font
+    unless @annotation_fonts.include? fontkey
+      @annotation_fonts[font] = fontkey
+    end
+    fontstyle = sprintf("/F%d %.2f Tf %s", fontkey + 1, @font_size_pt, @text_color)
+    popt['da'] = fontstyle
+    popt['ap'] = {}
+
+    if opt['v'] && !empty_string(opt['v'])
+      # set Appearances
+      popt['ap']['n'] = "/Tx BMC q #{fontstyle} "
+      gvars = getGraphicVars()
+      @h = h
+      @w = w
+      @t_margin = 0
+      @c_margin = 0.2
+
+      @tmp_buffer = ''
+      multi_cell(w, h, opt['v'], 0, '', 0, 0, 0.2, 0, true, 0, false, true, 0)
+      popt['ap']['n'] << @tmp_buffer
+      @tmp_buffer = nil
+      popt['ap']['n'] << 'Q EMC'
+
+      # restore previous values
+      setGraphicVars(gvars, true)
+    else
+      popt['ap']['n'] = "q BT #{fontstyle} ET Q"
+    end
+
+    # merge options
+    opt = popt.merge opt
+    # remove some conflicting options
+    opt.delete :bs
+    # set remaining annotation data
+    opt['Subtype'] = 'Widget'
+    opt['ft'] = 'Tx'
+    opt['t'] = name
+    #
+    # Additional annotation's parameters (check _putannotsobj() method):
+    # opt['f']
+    # opt['ap']
+    # opt['as']
+    # opt['bs']
+    # opt['be']
+    # opt['c']
+    # opt['border']
+    # opt['h']
+    # opt['mk']
+    # opt['mk']['r']
+    # opt['mk']['bc']
+    # opt['mk']['bg']
+    # opt['mk']['ca']
+    # opt['mk']['rc']
+    # opt['mk']['ac']
+    # opt['mk']['i']
+    # opt['mk']['ri']
+    # opt['mk']['ix']
+    # opt['mk']['if']
+    # opt['mk']['if']['sw']
+    # opt['mk']['if']['s']
+    # opt['mk']['if']['a']
+    # opt['mk']['if']['fb']
+    # opt['mk']['tp']
+    # opt['tu']
+    # opt['tm']
+    # opt['ff']
+    # opt['v']
+    # opt['dv']
+    # opt['a']
+    # opt['aa']
+    # opt['q']
+    Annotation(x, y, w, h, name, opt, 0)
+    if @rtl
+      @x -= w
+    else
+      @x += w
+    end
+  end
+  alias_method :text_field, :TextField
+
+  #
+  # Creates a RadioButton field
+  # [@param string :name] field name
+  # [@param int :w] width
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@param array :opt] annotation parameters. Possible values are described on official PDF32000_2008 reference.
+  # [@param string :onvalue] value to be returned if selected.
+  # [@param boolean :checked] define the initial state.
+  # [@param float :x] Abscissa of the upper-left corner of the rectangle
+  # [@param float :y] Ordinate of the upper-left corner of the rectangle
+  # [@param boolean :js] if true put the field using JavaScript (requires Acrobat Writer to be rendered).
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-07)]
+  #
+  def RadioButton(name, w, prop = {}, opt = {}, onvalue = 'On', checked = false, x = '', y = '', js = false)
+    x = @x if x == ''
+    y = @y if y == ''
+
+    if js
+      addfield('radiobutton', name, x, y, w, w, prop)
+      return
+    end
+
+    onvalue = 'On' if empty_string(onvalue)
+    defval = checked ? onvalue : 'Off'
+    # set data for parent group
+    @radiobutton_groups[@page] ||= {}
+    unless @radiobutton_groups[@page][name]
+      @radiobutton_groups[@page][name] = []
+      @annot_obj_id += 1
+      @radio_groups << @annot_obj_id
+    end
+    # save object ID to be added on Kids entry on parent object
+    @radiobutton_groups[@page][name] << {'kid' => @annot_obj_id + 1, 'def' => defval}
+    # get default style
+    prop = getFormDefaultProp.merge prop
+    prop['NoToggleToOff'] = 'true'
+    prop['Radio'] = 'true'
+    prop['borderStyle'] = 'inset'
+    # get annotation data
+    popt = getAnnotOptFromJSProp(prop)
+    # set additional default values
+    font = 'zapfdingbats'
+    AddFont(font)
+    fontkey = @fontkeys.index font
+    unless @annotation_fonts.include? fontkey
+      @annotation_fonts[font] = fontkey
+    end
+    fontstyle = sprintf('/F%d %.2f Tf', fontkey + 1, @font_size_pt)
+    popt['da'] = "#{fontstyle} #{@text_color}"
+    popt['ap'] = {}
+    popt['ap']['n'] = {}
+    popt['ap']['n'][onvalue] = "q #{@text_color} BT #{fontstyle} 0 0 Td (n) Tj ET Q"
+    popt['ap']['n']['Off'] = "q #{@text_color} BT #{fontstyle} 0 0 Td (o) Tj ET Q"
+    popt['mk'] ||= {}
+    popt['mk']['ca'] = '(l)'
+    # merge options
+    opt = popt.merge opt
+    # set remaining annotation data
+    opt['Subtype'] = 'Widget'
+    opt['ft'] = 'Btn'
+    if checked
+      opt['v'] = ["/#{onvalue}"]
+      opt['as'] = onvalue
+    else
+      opt['as'] = 'Off'
+    end
+    Annotation(x, y, w, w, name, opt, 0)
+    if @rtl
+      @x -= w
+    else
+      @x += w
+    end
+  end
+  alias_method :radio_button, :RadioButton
+
+  #
+  # Creates a List-box field
+  # [@param string :name] field name
+  # [@param int :w] width
+  # [@param int :h] height
+  # [@param array :values] array containing the list of values.
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@param array :opt] annotation parameters. Possible values are described on official PDF32000_2008 reference.
+  # [@param float :x] Abscissa of the upper-left corner of the rectangle
+  # [@param float :y] Ordinate of the upper-left corner of the rectangle
+  # [@param boolean :js] if true put the field using JavaScript (requires Acrobat Writer to be rendered).
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-07)]
+  #
+  def ListBox(name, w, h, values, prop = {}, opt = {}, x = '', y = '', js = false)
+    x = @x if x == ''
+    y = @y if y == ''
+
+    if js
+      addfield('listbox', name, x, y, w, h, prop)
+      s = ''
+      values.each {|v|
+        if v.is_a?(Array)
+          s << "['#{v[0]}','#{v[1]}'],"
+        else
+          s << "'#{v}',"
+        end
+      }
+      @javascript << "f#{name}.setItems([#{s[0...-1]}]);\n"
+      return
+    end
+    # get default style
+    prop = getFormDefaultProp.merge prop
+    # get annotation data
+    popt = getAnnotOptFromJSProp(prop)
+    # set additional default values
+    font = @font_family
+    fontkey = @fontkeys.index font
+    unless @annotation_fonts.include? fontkey
+      @annotation_fonts[font] = fontkey
+    end
+    s = ''
+    values.each {|v|
+      if v.is_a?(Array)
+        s << "#{v[1]}\n"
+      else
+        s << "#{v}\n"
+      end
+    }
+
+    fontstyle = sprintf('/F%d %.2f Tf %s', fontkey + 1, @font_size_pt, @text_color)
+    popt['da'] = fontstyle
+    popt['ap'] = {}
+    # set Appearances
+    popt['ap']['n'] = "/Tx BMC q #{fontstyle} "
+    gvars = getGraphicVars()
+    @h = h
+    @w = w
+    @t_margin = 0
+    @c_margin = 0.2
+
+    @tmp_buffer = ''
+    multi_cell(w, h, s, 0, '', 0, 0, 0.2, 0, true, 0, false, true, 0)
+    popt['ap']['n'] << @tmp_buffer
+    popt['ap']['n'] << 'Q EMC'
+    @tmp_buffer = nil
+
+    # restore previous values
+    setGraphicVars(gvars, true)
+
+    # merge options
+    opt = popt.merge opt
+    # set remaining annotation data
+    opt['Subtype'] = 'Widget'
+    opt['ft'] = 'Ch'
+    opt['t'] = name
+    opt['opt'] = values
+    Annotation(x, y, w, h, name, opt, 0)
+    if @rtl
+      @x -= w
+    else
+      @x += w
+    end
+  end
+  alias_method :list_box, :ListBox
+
+  #
+  # Creates a Combo-box field
+  # [@param string :name] field name
+  # [@param int :w] width
+  # [@param int :h] height
+  # [@param array :values] array containing the list of values.
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@param array :opt] annotation parameters. Possible values are described on official PDF32000_2008 reference.
+  # [@param float :x] Abscissa of the upper-left corner of the rectangle
+  # [@param float :y] Ordinate of the upper-left corner of the rectangle
+  # [@param boolean :js] if true put the field using JavaScript (requires Acrobat Writer to be rendered).
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-07)]
+  #
+  def ComboBox(name, w, h, values, prop = {}, opt = {}, x = '', y = '', js = false)
+    x = @x if x == ''
+    y = @y if y == ''
+
+    if js
+      addfield('combobox', name, x, y, w, h, prop)
+      s = ''
+      values.each {|v|
+        if v.is_a?(Array)
+          s << "['#{v[0]}','#{v[1]}'],"
+        else
+          s << "'#{v}',"
+        end
+      }
+      @javascript << "f#{name}.setItems([#{s[0...-1]}]);\n"
+      return
+    end
+    # get default style
+    prop = getFormDefaultProp.merge prop
+    prop['Combo'] = 'true'
+    # get annotation data
+    popt = getAnnotOptFromJSProp(prop)
+    # set additional default options
+    font = @font_family
+    fontkey = @fontkeys.index font
+    unless @annotation_fonts.include? fontkey
+      @annotation_fonts[font] = fontkey
+    end
+
+    s = ''
+    values.each {|v|
+      if v.is_a?(Array)
+        s << "#{v[1]}\n"
+      else
+        s << "#{v}\n"
+      end
+    }
+    fontstyle = sprintf('/F%d %.2f Tf %s', fontkey + 1, @font_size_pt, @text_color)
+    popt['da'] = fontstyle
+    popt['ap'] = {}
+    # set Appearances
+    popt['ap']['n'] = "/Tx BMC q #{fontstyle} "
+    gvars = getGraphicVars()
+    @h = h
+    @w = w
+    @t_margin = 0
+    @c_margin = 0.2
+
+    @tmp_buffer = ''
+    multi_cell(w, h, s, 0, '', 0, 0, 0.2, 0, true, 0, false, true, 0)
+    popt['ap']['n'] << @tmp_buffer
+    popt['ap']['n'] << 'Q EMC'
+    @tmp_buffer = nil
+
+    # restore previous values
+    setGraphicVars(gvars, true)
+
+    # merge options
+    opt = popt.merge opt
+    # set remaining annotation data
+    opt['Subtype'] = 'Widget'
+    opt['ft'] = 'Ch'
+    opt['t'] = name
+    opt['opt'] = values
+    Annotation(x, y, w, h, name, opt, 0)
+    if @rtl
+      @x -= w
+    else
+      @x += w
+    end
+  end
+  alias_method :combo_box, :ComboBox
+
+  #
+  # Creates a CheckBox field
+  # [@param string :name] field name
+  # [@param int :w] width
+  # [@param boolean :checked] define the initial state.
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@param array :opt] annotation parameters. Possible values are described on official PDF32000_2008 reference.
+  # [@param string :onvalue] value to be returned if selected.
+  # [@param float :x] Abscissa of the upper-left corner of the rectangle
+  # [@param float :y] Ordinate of the upper-left corner of the rectangle
+  # [@param boolean :js] if true put the field using JavaScript (requires Acrobat Writer to be rendered).
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-07)]
+  #
+  def CheckBox(name, w, checked=false, prop = {}, opt = {}, onvalue = 'Yes', x = '', y = '', js = false)
+    x = @x if x == ''
+    y = @y if y == ''
+
+    if js
+      addfield('checkbox', name, x, y, w, w, prop)
+      return
+    end
+
+    prop['value'] ||= ['Yes']
+    # get default style
+    prop = getFormDefaultProp.merge prop
+    prop['borderStyle'] = 'inset'
+    # get annotation data
+    popt = getAnnotOptFromJSProp(prop)
+    # set additional default options
+    font = 'zapfdingbats'
+    AddFont(font)
+    fontkey = @fontkeys.index font
+    unless @annotation_fonts.include? fontkey
+      @annotation_fonts[font] = fontkey
+    end
+    fontstyle = sprintf('/F%d %.2f Tf', fontkey + 1, @font_size_pt)
+    popt['da'] = "#{fontstyle} #{@text_color}"
+    popt['ap'] = {}
+    popt['ap']['n'] = {}
+    popt['ap']['n']['Yes'] = "q #{@text_color} BT #{fontstyle} 0 0 Td (n) Tj ET Q"
+    popt['ap']['n']['Off'] = "q #{@text_color} BT #{fontstyle} 0 0 Td (o) Tj ET Q"
+
+    # merge options
+    opt = popt.merge opt
+    # set remaining annotation data
+    opt['Subtype'] = 'Widget'
+    opt['ft'] = 'Btn'
+    opt['t'] = name
+    if empty_string(onvalue)
+      onvalue = 'Yes'
+    end
+    opt['opt'] = [onvalue]
+    if checked
+      opt['v'] = ['/Yes']
+      opt['as'] = 'Yes'
+    else
+      opt['v'] = ['/Off']
+      opt['as'] = 'Off'
+    end
+    Annotation(x, y, w, w, name, opt, 0)
+    if @rtl
+      @x -= w
+    else
+      @x += w
+    end
+  end
+  alias_method :check_box, :CheckBox
+
+  #
+  # Creates a button field
+  # [@param string :name] field name
+  # [@param int :w] width
+  # [@param int :h] height
+  # [@param string :caption] caption.
+  # [@param mixed :action] action triggered by pressing the button. Use a string to specify a javascript action. Use an array to specify a form action options as on section 12.7.5 of PDF32000_2008.
+  # [@param array :prop] javascript field properties. Possible values are described on official Javascript for Acrobat API reference.
+  # [@param array :opt] annotation parameters. Possible values are described on official PDF32000_2008 reference.
+  # [@param float :x] Abscissa of the upper-left corner of the rectangle
+  # [@param float :y] Ordinate of the upper-left corner of the rectangle
+  # [@param boolean :js] if true put the field using JavaScript (requires Acrobat Writer to be rendered).
+  # [@access public]
+  # [@author Nicola Asuni]
+  # [@since 4.8.000 (2009-09-07)]
+  #
+  def Button(name, w, h, caption, action, prop = {}, opt = {}, x = '', y = '', js = false)
+    x = @x if x == ''
+    y = @y if y == ''
+
+    if js
+      addfield('button', name, x, y, w, h, prop)
+      @javascript << "f#{name}.buttonSetCaption('#{caption}');\n"
+      @javascript << "f#{name}.setAction('MouseUp','#{action}');\n"
+      @javascript << "f#{name}.highlight='push';\n"
+      @javascript << "f#{name}.print=false;\n"
+      return
+    end
+    # get default style
+    prop = getFormDefaultProp.merge prop
+    prop['Pushbutton'] = 'true'
+    prop['highlight'] = 'push'
+    prop['display'] = 'display.noPrint'
+    # get annotation data
+    popt = getAnnotOptFromJSProp(prop)
+    # set additional default options
+    popt['mk'] ||= {}
+    popt['mk']['ca'] = textstring(caption)
+    popt['mk']['rc'] = textstring(caption)
+    popt['mk']['ac'] = textstring(caption)
+    font = @font_family
+    fontkey = @fontkeys.index font
+    unless @annotation_fonts.include? fontkey
+      @annotation_fonts[font] = fontkey
+    end
+    fontstyle = sprintf('/F%d %.2f Tf %s', fontkey + 1, @font_size_pt, @text_color)
+    popt['da'] = fontstyle
+    popt['ap'] = {}
+    # set Appearances
+    popt['ap']['n'] = "/Tx BMC q #{fontstyle} 0.800 g\n"
+
+    gvars = getGraphicVars()
+    @h = h
+    @w = w
+    @c_margin *= 1.6
+
+    @tmp_buffer = ''
+    SetLineStyle({'width' => 1.0, 'cap' => 'butt', 'join' => 'miter', 'dash' => 0, 'color' => [231]})
+    SetFillColor(204)
+    multi_cell(w, h, caption, 1, 'C', 1, 0, 0, 0, true)
+    popt['ap']['n'] << @tmp_buffer
+    popt['ap']['n'] << 'Q EMC'
+    @tmp_buffer = nil
+
+    # restore previous values
+    setGraphicVars(gvars, true)
+
+    # merge options
+    opt = popt.merge opt
+    # set remaining annotation data
+    opt['Subtype'] = 'Widget'
+    opt['ft'] = 'Btn'
+    opt['t'] = caption
+    opt['v'] = name
+    unless action.empty?
+      if action.is_a?(Hash)
+        # form action options as on section 12.7.5 of PDF32000_2008.
+        opt['aa'] = '/D <<'
+        bmode = ['SubmitForm', 'ResetForm', 'ImportData']
+        action.each {|key, val|
+          if (key == 'S') && bmode.include?(val)
+            opt['aa'] << " /S /#{val}"
+          elsif (key == 'F') && !val.empty?
+            opt['aa'] << " /F #{datastring(val)}"
+          elsif (key == 'Fields') && val.is_a?(Array) && !val.empty?
+            opt['aa'] << ' /Fields ['
+            val.each {|field|
+              opt['aa'] << " #{textstring(field)}"
+            }
+            opt['aa'] << ']'
+          elsif key == 'Flags'
+            ff = 0
+            if val.is_a?(Array)
+              val.each {|flag|
+                case flag
+                when 'Include/Exclude';      ff |= 1 << 0
+                when 'IncludeNoValueFields'; ff |= 1 << 1
+                when 'ExportFormat';         ff |= 1 << 2
+                when 'GetMethod';            ff |= 1 << 3
+                when 'SubmitCoordinates';    ff |= 1 << 4
+                when 'XFDF';                 ff |= 1 << 5
+                when 'IncludeAppendSaves';   ff |= 1 << 6
+                when 'IncludeAnnotations';   ff |= 1 << 7
+                when 'SubmitPDF';            ff |= 1 << 8
+                when 'CanonicalFormat';      ff |= 1 << 9
+                when 'ExclNonUserAnnots';    ff |= 1 << 10
+                when 'ExclFKey';             ff |= 1 << 11
+                when 'EmbedForm';            ff |= 1 << 13
+                end
+              }
+            else
+              ff = val.to_i
+            end
+            opt['aa'] << " /Flags #{ff}"
+          end
+        }
+        opt['aa'] << ' >>'
+      else
+        # Javascript action or raw action command
+        js_obj_id = addJavascriptObject(action)
+        opt['aa'] = "/D #{js_obj_id} 0 R"
+      end
+    end
+    Annotation(x, y, w, h, name, opt, 0)
+    if @rtl
+      @x -= w
+    else
+      @x += w
+    end
+  end
+  alias_method :button, :Button
+
   # --- END FORMS FIELDS ------------------------------------------------
 
   #
@@ -10760,6 +11735,434 @@ public
     @viewer_preferences = preferences
   end
   alias_method :set_viewer_preferences, :setViewerPreferences
+
+  #
+  # Paints a linear colour gradient.
+  # [@param float :x] abscissa of the top left corner of the rectangle.
+  # [@param float :y] ordinate of the top left corner of the rectangle.
+  # [@param float :w] width of the rectangle.
+  # [@param float :h] height of the rectangle.
+  # [@param array :col1] first color (Grayscale, RGB or CMYK components).
+  # [@param array :col2] second color (Grayscale, RGB or CMYK components).
+  # [@param array :coords] array of the form (x1, y1, x2, y2) which defines the gradient vector (see linear_gradient_coords.jpg). The default value is from left to right (x1=0, y1=0, x2=1, y2=0).
+  # [@since 3.1.000 (2008-06-09)]
+  # [@access public]
+  #
+  def LinearGradient(x, y, w, h, col1=[], col2=[], coords=[0,0,1,0])
+    Clip(x, y, w, h)
+    Gradient(2, coords, [{'color' => col1, 'offset' => 0, 'exponent' => 1}, {'color' => col2, 'offset' => 1, 'exponent' => 1}], [], false)
+  end
+  alias_method :linear_gradient, :LinearGradient
+
+  #
+  # Paints a radial colour gradient.
+  # [@param float :x] abscissa of the top left corner of the rectangle.
+  # [@param float :y] ordinate of the top left corner of the rectangle.
+  # [@param float :w] width of the rectangle.
+  # [@param float :h] height of the rectangle.
+  # [@param array :col1] first color (Grayscale, RGB or CMYK components).
+  # [@param array :col2] second color (Grayscale, RGB or CMYK components).
+  # [@param array :coords] array of the form (fx, fy, cx, cy, r) where (fx, fy) is the starting point of the gradient with color1, (cx, cy) is the center of the circle with color2, and r is the radius of the circle (see radial_gradient_coords.jpg). (fx, fy) should be inside the circle, otherwise some areas will not be defined.
+  # [@since 3.1.000 (2008-06-09)]
+  # [@access public]
+  #
+  def RadialGradient(x, y, w, h, col1=[], col2=[], coords=[0.5,0.5,0.5,0.5,1])
+    Clip(x, y, w, h)
+    Gradient(3, coords, [{'color' => col1, 'offset' => 0, 'exponent' => 1}, {'color' => col2, 'offset' => 1, 'exponent' => 1}], [], false)
+  end
+  alias_method :radial_gradient, :RadialGradient
+
+  #
+  # Paints a coons patch mesh.
+  # [@param float :x] abscissa of the top left corner of the rectangle.
+  # [@param float :y] ordinate of the top left corner of the rectangle.
+  # [@param float :w] width of the rectangle.
+  # [@param float :h] height of the rectangle.
+  # [@param array :col1] first color (lower left corner) (RGB components).
+  # [@param array :col2] second color (lower right corner) (RGB components).
+  # [@param array :col3] third color (upper right corner) (RGB components).
+  # [@param array :col4] fourth color (upper left corner) (RGB components).
+  # [@param array :coords] <ul><li>for one patch mesh: array(float x1, float y1, .... float x12, float y12): 12 pairs of coordinates (normally from 0 to 1) which specify the Bezier control points that define the patch. First pair is the lower left edge point, next is its right control point (control point 2). Then the other points are defined in the order: control point 1, edge point, control point 2 going counter-clockwise around the patch. Last (x12, y12) is the first edge point's left control point (control point 1).</li><li>for two or more patch meshes: array[number of patches]: arrays with the following keys for each patch: f: where to put that patch (0 = first patch, 1, 2, 3 = right, top and left of precedent patch - I didn't figure this out completely - just try and error ;-) points: 12 pairs of coordinates of the Bezier control points as above for the first patch, 8 pairs of coordinates for the following patches, ignoring the coordinates already defined by the precedent patch (I also didn't figure out the order of these - also: try and see what's happening) colors: must be 4 colors for the first patch, 2 colors for the following patches</li></ul>
+  # [@param array :coords_min] minimum value used by the coordinates. If a coordinate's value is smaller than this it will be cut to coords_min. default: 0
+  # [@param array :coords_max] maximum value used by the coordinates. If a coordinate's value is greater than this it will be cut to coords_max. default: 1
+  # [@param boolean :antialias] A flag indicating whether to filter the shading function to prevent aliasing artifacts.
+  # [@since 3.1.000 (2008-06-09)]
+  # [@access public]
+  #
+  def CoonsPatchMesh(x, y, w, h, col1=[], col2=[], col3=[], col4=[], coords=[0.00,0.0,0.33,0.00,0.67,0.00,1.00,0.00,1.00,0.33,1.00,0.67,1.00,1.00,0.67,1.00,0.33,1.00,0.00,1.00,0.00,0.67,0.00,0.33], coords_min=0, coords_max=1, antialias=false)
+    Clip(x, y, w, h)
+    n = @gradients.size + 1
+    @gradients[n] = {}
+    @gradients[n]['type'] = 6 #coons patch mesh
+    @gradients[n]['coords'] = []
+    @gradients[n]['antialias'] = antialias
+    @gradients[n]['colors'] = []
+    @gradients[n]['transparency'] = false
+    # check the coords array if it is the simple array or the multi patch array
+    if coords[0].is_a? Hash
+      # multi patch array
+      patch_array = coords
+    else
+      # simple array -> convert to multi patch array
+      if col1[1].nil?
+        col1[1] = col1[2] = col1[0]
+      end
+      if col2[1].nil?
+        col2[1] = col2[2] = col2[0]
+      end
+      if col3[1].nil?
+        col3[1] = col3[2] = col3[0]
+      end
+      if col4[1].nil?
+        col4[1] = col4[2] = col4[0]
+      end
+      patch_array = []
+      patch_array[0] = {}
+      patch_array[0]['f'] = 0
+      patch_array[0]['points'] = coords
+      patch_array[0]['colors'] = []
+      patch_array[0]['colors'][0] = {}
+      patch_array[0]['colors'][0]['r'] = col1[0]
+      patch_array[0]['colors'][0]['g'] = col1[1]
+      patch_array[0]['colors'][0]['b'] = col1[2]
+      patch_array[0]['colors'][1] = {}
+      patch_array[0]['colors'][1]['r'] = col2[0]
+      patch_array[0]['colors'][1]['g'] = col2[1]
+      patch_array[0]['colors'][1]['b'] = col2[2]
+      patch_array[0]['colors'][2] = {}
+      patch_array[0]['colors'][2]['r'] = col3[0]
+      patch_array[0]['colors'][2]['g'] = col3[1]
+      patch_array[0]['colors'][2]['b'] = col3[2]
+      patch_array[0]['colors'][3] = {}
+      patch_array[0]['colors'][3]['r'] = col4[0]
+      patch_array[0]['colors'][3]['g'] = col4[1]
+      patch_array[0]['colors'][3]['b'] = col4[2]
+    end
+    bpcd = 65535 #16 bits per coordinate
+    # build the data stream
+    @gradients[n]['stream'] = ''
+    count_patch = patch_array.size
+    count_patch.times do |i|
+      @gradients[n]['stream'] << (patch_array[i]['f']).chr # start with the edge flag as 8 bit
+      count_points = patch_array[i]['points'].size
+      count_points.times do |j|
+        # each point as 16 bit
+        patch_array[i]['points'][j] = ((patch_array[i]['points'][j] - coords_min) / (coords_max - coords_min)) * bpcd
+        if patch_array[i]['points'][j] < 0
+          patch_array[i]['points'][j] = 0
+        end
+        if patch_array[i]['points'][j] > bpcd
+          patch_array[i]['points'][j] = bpcd
+        end
+        @gradients[n]['stream'] << ((patch_array[i]['points'][j] / 256.0).floor).chr
+        @gradients[n]['stream'] << ((patch_array[i]['points'][j] % 256.0).floor).chr
+      end
+      count_cols = patch_array[i]['colors'].size
+      count_cols.times do |j|
+        # each color component as 8 bit
+        @gradients[n]['stream'] << (patch_array[i]['colors'][j]['r']).chr
+        @gradients[n]['stream'] << (patch_array[i]['colors'][j]['g']).chr
+        @gradients[n]['stream'] << (patch_array[i]['colors'][j]['b']).chr
+      end
+    end
+    # paint the gradient
+    out("/Sh#{n} sh")
+    # restore previous Graphic State
+    out('Q')
+  end
+  alias_method :coons_patch_mesh, :CoonsPatchMesh
+
+  #
+  # Set a rectangular clipping area.
+  # [@param float :x] abscissa of the top left corner of the rectangle (or top right corner for RTL mode).
+  # [@param float :y] ordinate of the top left corner of the rectangle.
+  # [@param float :w] width of the rectangle.
+  # [@param float :h] height of the rectangle.
+  # [@since 3.1.000 (2008-06-09)]
+  # [@access protected]
+  #
+  def Clip(x, y, w, h)
+    x = @w - x - w if @rtl
+
+    # save current Graphic State
+    s = 'q'
+    # set clipping area
+    s << sprintf(' %.2f %.2f %.2f %.2f re W n', x * @k, (@h - y) * @k, w * @k, -h * @k)
+    # set up transformation matrix for gradient
+    s << sprintf(' %.3f 0 0 %.3f %.3f %.3f cm', w * @k, h * @k, x * @k, (@h - (y + h)) * @k)
+    out(s)
+  end
+  protected :Clip
+
+	#
+  # Output gradient.
+  # [@param int :type] type of gradient (1 Function-based shading; 2 Axial shading; 3 Radial shading; 4 Free-form Gouraud-shaded triangle mesh; 5 Lattice-form Gouraud-shaded triangle mesh; 6 Coons patch mesh; 7 Tensor-product patch mesh). (Not all types are currently supported)
+  # [@param array :coords] array of coordinates.
+  # [@param array :stops] array gradient color components: color = array of GRAY, RGB or CMYK color components; offset = (0 to 1) represents a location along the gradient vector; exponent = exponent of the exponential interpolation function (default = 1).
+  # [@param array :background] An array of colour components appropriate to the colour space, specifying a single background colour value.
+  # [@param boolean :antialias] A flag indicating whether to filter the shading function to prevent aliasing artifacts.
+  # [@since 3.1.000 (2008-06-09)]
+  # [@access public]
+  #
+  def Gradient(type, coords, stops, background=[], antialias=false)
+    n = @gradients.size + 1
+    @gradients[n] = {}
+    @gradients[n]['type'] = type
+    @gradients[n]['coords'] = coords
+    @gradients[n]['antialias'] = antialias
+    @gradients[n]['colors'] = []
+    @gradients[n]['transparency'] = false
+    # color space
+    numcolspace = stops[0]['color'].size
+    bcolor = background
+    case numcolspace
+    when 4 # CMYK
+      @gradients[n]['colspace'] = 'DeviceCMYK'
+      unless background.empty?
+        @gradients[n]['background'] = sprintf('%.3f %.3f %.3f %.3f', bcolor[0]/100.0, bcolor[1]/100.0, bcolor[2]/100.0, bcolor[3]/100.0)
+      end
+    when 3 # RGB
+      @gradients[n]['colspace'] = 'DeviceRGB'
+      unless background.empty?
+        @gradients[n]['background'] = sprintf('%.3f %.3f %.3f', bcolor[0]/255.0, bcolor[1]/255.0, bcolor[2]/255.0)
+      end
+    when 1 # Gray scale
+      @gradients[n]['colspace'] = 'DeviceGray'
+      unless background.empty?
+        @gradients[n]['background'] = sprintf('%.3f', bcolor[0]/255.0)
+      end
+    end
+    num_stops = stops.size
+    last_stop_id = num_stops - 1
+    stops.each_with_index do |stop, key|
+      @gradients[n]['colors'][key] = {}
+      # offset represents a location along the gradient vector
+      if stop['offset']
+        @gradients[n]['colors'][key]['offset'] = stop['offset']
+      else
+        if key == 0
+          @gradients[n]['colors'][key]['offset'] = 0
+        elsif key == last_stop_id
+          @gradients[n]['colors'][key]['offset'] = 1
+        else
+          offsetstep = (1 - @gradients[n]['colors'][key - 1]['offset']) / (num_stops - key)
+          @gradients[n]['colors'][key]['offset'] = @gradients[n]['colors'][key - 1]['offset'] + offsetstep
+        end
+      end
+      if stop['opacity']
+        @gradients[n]['colors'][key]['opacity'] = stop['opacity']
+        if stop['opacity'] < 1
+          @gradients[n]['transparency'] = true
+        end
+      else
+        @gradients[n]['colors'][key]['opacity'] = 1
+      end
+      # exponent for the exponential interpolation function
+      if stop['exponent']
+        @gradients[n]['colors'][key]['exponent'] = stop['exponent']
+      else
+        @gradients[n]['colors'][key]['exponent'] = 1
+      end
+      # set colors
+      color = stop['color']
+      case numcolspace
+      when 4 # CMYK
+        @gradients[n]['colors'][key]['color'] = sprintf('%.3f %.3f %.3f %.3f', color[0]/100.0, color[1]/100.0, color[2]/100.0, color[3]/100.0)
+      when 3 # RGB
+        @gradients[n]['colors'][key]['color'] = sprintf('%.3f %.3f %.3f', color[0]/255.0, color[1]/255.0, color[2]/255.0)
+      when 1 # Gray scale
+        @gradients[n]['colors'][key]['color'] = sprintf('%.3f', color[0]/255.0)
+      end
+    end
+    if @gradients[n]['transparency']
+      # paint luminosity gradient
+      out("/TGS#{n} gs")
+    end
+    # paint the gradient
+    out("/Sh#{n} sh")
+    # restore previous Graphic State
+    out('Q')
+  end
+  alias_method :gradient, :Gradient
+
+  #
+  # Output gradient shaders.
+  # [@since 3.1.000 (2008-06-09)]
+  # [@access protected]
+  #
+  def putshaders()
+    idt = @gradients.size #index for transparency gradients
+    @gradients.each_with_index do |grad, id|
+      next unless grad
+
+      if (grad['type'] == 2) || (grad['type'] == 3)
+        newobj()
+        fc = @n
+        out = '<<'
+        out << ' /FunctionType 3'
+        out << ' /Domain [0 1]'
+        functions = ''
+        bounds = ''
+        encode = ''
+        i = 1
+        num_cols = grad['colors'].size
+        lastcols = num_cols - 1
+        1.upto(num_cols - 1) do |i|
+          functions << "#{fc + i} 0 R "
+          if i < lastcols
+            bounds << sprintf('%.3f ', grad['colors'][i]['offset'])
+          end
+          encode << '0 1 '
+        end
+        out << " /Functions [#{functions.strip}]"
+        out << " /Bounds [#{bounds.strip}]"
+        out << " /Encode [#{encode.strip}]"
+        out << ' >>'
+        out << ' endobj'
+        out(out)
+        1.upto(num_cols - 1) do |i|
+          newobj()
+          out = '<<'
+          out << ' /FunctionType 2'
+          out << ' /Domain [0 1]'
+          out << " /C0 [#{grad['colors'][i - 1]['color']}]"
+          out << " /C1 [#{grad['colors'][i]['color']}]"
+          out << " /N #{grad['colors'][i]['exponent']}"
+          out << ' >>'
+          out << ' endobj'
+          out(out)
+        end
+        # set transparency fuctions
+        if grad['transparency']
+          newobj()
+          ft = @n
+          out = '<<'
+          out << ' /FunctionType 3'
+          out << ' /Domain [0 1]'
+          functions = ''
+          i = 1
+          num_cols = grad['colors'].size
+          1.upto(num_cols - 1) do |i|
+            functions << "#{ft + i} 0 R "
+          end
+          out << " /Functions [#{functions.strip}]"
+          out << " /Bounds [#{bounds.strip}]"
+          out << " /Encode [#{encode.strip}]"
+          out << ' >>'
+          out << ' endobj'
+          out(out)
+          1.upto(num_cols - 1) do |i|
+            newobj()
+            out = '<<'
+            out << ' /FunctionType 2'
+            out << ' /Domain [0 1]'
+            out << " /C0 [#{grad['colors'][(i - 1)]['opacity']}]"
+            out << " /C1 [#{grad['colors'][i]['opacity']}]"
+            out << " /N #{grad['colors'][i]['exponent']}"
+            out << ' >>'
+            out << ' endobj'
+            out(out)
+          end
+        end
+      end
+      # set shading object
+      newobj()
+      out = "<< /ShadingType #{grad['type']}"
+      if grad['colspace']
+        out << " /ColorSpace /#{grad['colspace']}"
+      else
+        out << ' /ColorSpace /DeviceRGB'
+      end
+      if grad['background'] && !grad['background'].empty?
+        out << " /Background [#{grad['background']}]"
+      end
+      if grad['antialias'] == true
+        out << ' /AntiAlias true'
+      end
+      case grad['type']
+      when 2
+        out << sprintf(' /Coords [%.3f %.3f %.3f %.3f]', grad['coords'][0], grad['coords'][1], grad['coords'][2], grad['coords'][3])
+        out << ' /Domain [0 1]'
+        out << " /Function #{fc} 0 R"
+        out << ' /Extend [true true]'
+        out << ' >>'
+      when 3
+        # x0, y0, r0, x1, y1, r1
+        # at this this time radius of inner circle is 0
+        out << sprintf(' /Coords [%.3f %.3f 0 %.3f %.3f %.3f]', grad['coords'][0], grad['coords'][1], grad['coords'][2], grad['coords'][3], grad['coords'][4])
+        out << ' /Domain [0 1]'
+        out << " /Function #{fc} 0 R"
+        out << ' /Extend [true true]'
+        out << ' >>'
+      when 6
+        out << ' /BitsPerCoordinate 16'
+        out << ' /BitsPerComponent 8'
+        out << ' /Decode[0 1 0 1 0 1 0 1 0 1]'
+        out << ' /BitsPerFlag 8'
+        out << " /Length #{grad['stream'].length} >> "
+        out << getstream(grad['stream'])
+      end
+      out << ' endobj'
+      out(out)
+      if grad['transparency']
+        shading_transparency = out.gsub(%r{/ColorSpace /[^\s]+}mi, '/ColorSpace /DeviceGray')
+        shading_transparency = shading_transparency.gsub(%r{/Function [0-9]+ }mi, "/Function #{ft} ")
+      end
+      @gradients[id]['id'] = @n
+      # set pattern object
+      newobj()
+      out = '<< /Type /Pattern /PatternType 2'
+      out << " /Shading #{@gradients[id]['id']} 0 R"
+      out << ' >> endobj'
+      out(out)
+      @gradients[id]['pattern'] = @n
+      # set shading and pattern for transparency mask
+      if grad['transparency']
+        # luminosity pattern
+        idgs = id + idt
+        newobj()
+        out(shading_transparency)
+        @gradients[idgs] = {}
+        @gradients[idgs]['id'] = @n
+        newobj()
+        out = '<< /Type /Pattern /PatternType 2'
+        out << " /Shading #{@gradients[idgs]['id']} 0 R"
+        out << ' >> endobj'
+        out(out)
+        @gradients[idgs]['pattern'] = @n
+        # luminosity XObject
+        newobj()
+        filter = ''
+        stream = "q /a0 gs /Pattern cs /p#{idgs} scn 0 0 #{@w_pt} #{@h_pt} re f Q"
+        if @compress
+          filter = ' /Filter /FlateDecode'
+          stream = Zlib::Deflate.deflate(stream)
+        end
+        out = "<< /Type /XObject /Subtype /Form /FormType 1#{filter}"
+        out << " /Length #{stream.length}"
+        out << " /BBox [0 0 #{@w_pt} #{@h_pt}]"
+        out << ' /Group << /Type /Group /S /Transparency /CS /DeviceGray >>'
+        out << ' /Resources <<'
+        out << ' /ExtGState << /a0 << /ca 1 /CA 1 >> >>'
+        out << " /Pattern << /p#{idgs} #{@gradients[idgs]['pattern']} 0 R >>"
+        out << ' >>'
+        out << ' >> '
+        out << getstream(stream)
+        out << ' endobj'
+        out(out)
+        # SMask
+        newobj()
+        out = "<< /Type /Mask /S /Luminosity /G #{@n - 1} 0 R >> endobj"
+        out(out)
+        # ExtGState
+        newobj()
+        out = "<< /Type /ExtGState /SMask #{@n - 1} 0 R /AIS false >> endobj"
+        out(out)
+        @extgstates << {'n' => @n, 'name' => "TGS#{id}"}
+      end
+    end
+  end
+  protected :putshaders
 
   #
   # Draw the sector of a circle.
@@ -11380,7 +12783,39 @@ protected
       html = html_a + html_b + html[(pos + 6)..-1]
       offset = (html_a + html_b).length
     end
+
+    offset = 0
+    while (offset < html.length) && (pos = html.index('</textarea>', offset))
+      html_a = html[0, offset]
+      html_b = html[offset, pos - offset + 11]
+      while html_b =~ %r@<textarea([^\>]*)>(.*?)\n(.*?)</textarea>@mi
+        # preserve newlines on <textarea> tag
+        html_b.gsub!(%r@<textarea([^\>]*)>(.*?)\n(.*?)</textarea>@mi, "<textarea\\1>\\2<TBR>\\3</textarea>")
+        html_b.gsub!(%r@<textarea([^\>]*)>(.*?)[\"](.*?)</textarea>@mi, "<textarea\\1>\\2''\\3</textarea>")
+      end
+      html = html_a + html_b + html[(pos + 11)..-1]
+      offset = html_a.length + html_b.length
+    end
+    html.gsub!(/([\s]*)<option/mi, "<option")
+    html.gsub!(%r@</option>([\s]*)@mi, "</option>")
+    offset = 0
+    while (offset < html.length) && (pos = html.index('</option>', offset))
+      html_a = html[0, offset]
+      html_b = html[offset, pos - offset + 9]
+      while html_b =~ %r@<option([^\>]*)>(.*?)</option>@mi
+        html_b.gsub!(%r@<option([\s]+)value=\"([^\"]*)\"([^\>]*)>(.*?)</option>@mi, "\\2\t\\4\r")
+        html_b.gsub!(%r@<option([^\>]*)>(.*?)</option>@mi, "\\2\r")
+      end
+      html = html_a + html_b + html[(pos + 9)..-1]
+      offset = html_a.length + html_b.length
+    end
+    html.gsub!(/<select([^\>]*)>/mi, "<select\\1 opt=\"")
+    html.gsub!(%r@([\s]+)</select>@mi, "\" />")
     html.gsub!(/[\n]/, " ")
+
+    # restore textarea newlines
+    html.gsub!('<TBR>', "\n")
+
     # remove extra spaces from code
     html.gsub!(/[\s]+<\/(table|tr|td|th|ul|ol|li|dl|dt|dd)>/, '</\\1>')
     html.gsub!(/[\s]+<(tr|td|th|ul|ol|li|dl|dt|dd|br)/, '<\\1')
@@ -11391,6 +12826,8 @@ protected
     html.gsub!(/[\s]*<img/, ' <img')
     html.gsub!(/<img([^\>]*)>/xi, '<img\\1><span><marker style="font-size:0"/></span>')
     html.gsub!(/<xre/, '<pre') # restore pre tag
+    html.gsub!(/<textarea([^\>]*)>/xi, '<textarea\\1 value="')
+    html.gsub!(/<\/textarea>/, '" />')
 
     # trim string
     html.gsub!(/^[\s]+/, '')
@@ -11420,7 +12857,7 @@ protected
     dom[key]['fill'] = ((@textrendermode % 2) == 0)
     dom[key]['clip'] = (@textrendermode > 3)
     dom[key]['line-height'] = @cell_height_ratio
-    dom[key]['bgcolor'] = ActiveSupport::OrderedHash.new
+    dom[key]['bgcolor'] = []
     dom[key]['fgcolor'] = @fgcolor.dup # color
     dom[key]['strokecolor'] = @strokecolor.dup
 
@@ -11522,7 +12959,7 @@ protected
           # *** opening html tag
           dom[key]['opening'] = true
           dom[key]['parent'] = level[-1]
-          if element[-1, 1] == '/' or (dom[key]['value'] =~ /(br|img|hr)/)
+          if element[-1, 1] == '/' or (dom[key]['value'] =~ /(br|img|hr|input)/)
             # self-closing tag
             dom[key]['self'] = true
           else
@@ -11548,7 +12985,7 @@ protected
             dom[key]['text-indent'] = dom[parentkey]['text-indent']
           end
           # get attributes
-          attr_array = element.scan(/([^=\s]*)[\s]*=[\s]*"([^"]*)"/)
+          attr_array = element.scan(/([^=\s]+)[\s]*(?:=[\s]*"([^"]*)")*/)[1..-1]
           dom[key]['attribute'] = {} # reset attribute array
           attr_array.each do |name, value|
             dom[key]['attribute'][name.downcase] = value
@@ -11647,13 +13084,13 @@ protected
             end
             # font color
             if !empty_string(dom[key]['style']['color'])
-              dom[key]['fgcolor'] = convertHTMLColorToDec(dom[key]['style']['color'])
+              dom[key]['fgcolor'] = convert_html_color_to_dec_array(dom[key]['style']['color'])
             elsif dom[key]['value'] == 'a'
               dom[key]['fgcolor'] = @html_link_color_array
             end
             # background color
             if !empty_string(dom[key]['style']['background-color'])
-              dom[key]['bgcolor'] = convertHTMLColorToDec(dom[key]['style']['background-color'])
+              dom[key]['bgcolor'] = convert_html_color_to_dec_array(dom[key]['style']['background-color'])
             end
             # text-decoration
             if !dom[key]['style']['text-decoration'].nil?
@@ -11816,17 +13253,17 @@ protected
           end
           # set foreground color attribute
           if !empty_string(dom[key]['attribute']['color'])
-            dom[key]['fgcolor'] = convertHTMLColorToDec(dom[key]['attribute']['color'])
+            dom[key]['fgcolor'] = convert_html_color_to_dec_array(dom[key]['attribute']['color'])
           elsif (dom[key]['style'].nil? or dom[key]['style']['color'].nil?) and (dom[key]['value'] == 'a')
             dom[key]['fgcolor'] = @html_link_color_array
           end
           # set background color attribute
           if !empty_string(dom[key]['attribute']['bgcolor'])
-            dom[key]['bgcolor'] = convertHTMLColorToDec(dom[key]['attribute']['bgcolor'])
+            dom[key]['bgcolor'] = convert_html_color_to_dec_array(dom[key]['attribute']['bgcolor'])
           end
           # set stroke color attribute
           if !empty_string(dom[key]['attribute']['strokecolor'])
-            dom[key]['strokecolor'] = convertHTMLColorToDec(dom[key]['attribute']['strokecolor'])
+            dom[key]['strokecolor'] = convert_html_color_to_dec_array(dom[key]['attribute']['strokecolor'])
           end
           # check for width attribute
           if !dom[key]['attribute']['width'].nil?
@@ -11984,8 +13421,9 @@ public
   def sanitize_html(html)
     # Escape '<' character for not tag case.
     html = html.gsub(%r{(<+)([^/a-zA-Z])}){CGI.escapeHTML($1) + $2}.gsub(%r{</([^a-zA-Z])}){'&lt;/' +  $1}
-
-    html = "%s" % sanitize(html, :tags=> %w(a b blockquote body br dd del div dl dt em font h1 h2 h3 h4 h5 h6 hr i img li ol p pre small span strong sub sup table td th thead tr tt u ins ul), :attributes => %w(cellspacing cellpadding bgcolor color value width height src size colspan rowspan style align border face href name dir class id nobr stroke strokecolor fill nested tablehead))
+    "%s" % sanitize(html,
+            :tags=> %w(a b blockquote body br dd del div dl dt em font form h1 h2 h3 h4 h5 h6 hr i img input label li ol option p pre select small span strong sub sup table td textarea th thead tr tt u ins ul),
+            :attributes => %w(cellspacing cellpadding bgcolor color value width height src size colspan rowspan style align border face href name dir class id nobr stroke strokecolor fill nested tablehead cols rows type action enctype method maxlength onclick multiple checked disabled))
   end
   protected :sanitize_html
 
@@ -12085,6 +13523,7 @@ public
     prev_listordered = @listordered
     prev_listcount = @listcount
     prev_lispacer = @lispacer
+    prev_li_position_x = @li_position_x
     @listnum = 0
     @listordered = []
     @listcount = []
@@ -13157,6 +14596,7 @@ public
     @listordered = prev_listordered
     @listcount = prev_listcount
     @lispacer = prev_lispacer
+    @li_position_x = prev_li_position_x
     dom = nil
   rescue => err
     Error('writeHTML Error.', err)
@@ -13473,6 +14913,7 @@ public
           @lispacer = '!'
         end
       end
+      @li_position_x = @x
     when 'blockquote'
       if @rtl
         @r_margin += @listindent
@@ -13496,6 +14937,166 @@ public
       SetXY(GetX(), GetY() + ((0.3 * @font_size_pt) / @k))
     when 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'
       addHTMLVertSpace(hbz, hb, cell, firstorlast)
+
+    # Form fields (since 4.8.000 - 2009-09-07)
+    when 'form'
+      if tag['attribute']['action']
+        @form_action = tag['attribute']['action']
+      else
+        @form_action = @@k_path_url + request&.base_url.to_s
+      end
+      if tag['attribute']['enctype']
+        @form_enctype = tag['attribute']['enctype']
+      else
+        @form_enctype = 'application/x-www-form-urlencoded'
+      end
+      if tag['attribute']['method']
+        @form_mode = tag['attribute']['method']
+      else
+        @form_mode = 'post'
+      end
+    when 'input'
+      if tag['attribute']['type'] == 'checkbox' || (tag['attribute']['name'] && !empty_string(tag['attribute']['name']))
+        name = tag['attribute']['name'] || rand.to_s
+        prop = {}
+        opt = {}
+        if tag['attribute']['value'] && !empty_string(tag['attribute']['value'])
+          value = tag['attribute']['value']
+        end
+        if tag['attribute']['maxlength'] && !empty_string(tag['attribute']['maxlength'])
+          opt['maxlen'] = tag['attribute']['maxlength'].to_i
+        end
+        h = @font_size * @cell_height_ratio
+        if tag['attribute']['size'] && !empty_string(tag['attribute']['size'])
+          w = tag['attribute']['size'].to_i * GetStringWidth(32.chr) * 2
+        else
+          w = h
+        end
+        if tag['attribute'].key? 'disabled'
+          prop['readonly'] = 'true'
+        end
+        if tag['attribute'].key? 'checked'
+          checked = true
+        else
+          checked = false
+        end
+
+        case tag['attribute']['type']
+        when 'text'
+          opt['v'] = value if value
+          TextField(name, w, h, prop, opt, '', '', false)
+        when 'password'
+          opt['v'] = value if value
+          prop['password'] = 'true'
+          TextField(name, w, h, prop, opt, '', '', false)
+        when 'checkbox'
+          CheckBox(name, w, checked, prop, opt, value, '', '', false)
+        when 'radio'
+          RadioButton(name, w, prop, opt, value, checked, '', '', false)
+        when 'submit'
+          w = GetStringWidth(value) * 1.5
+          h *= 1.6
+          prop = {'lineWidth'=>1, 'borderStyle'=>'beveled', 'fillColor'=>[196, 196, 196], 'strokeColor'=>[255, 255, 255]}
+          action = {}
+          action['S'] = 'SubmitForm'
+          action['F'] = @form_action
+          action['Flags'] = ['ExportFormat'] unless @form_enctype == 'FDF'
+          action['Flags'] = ['GetMethod'] if @form_mode == 'get'
+          Button(name, w, h, value, action, prop, opt, '', '', false)
+        when 'reset'
+          w = GetStringWidth(value) * 1.5
+          h *= 1.6
+          prop = {'lineWidth'=>1, 'borderStyle'=>'beveled', 'fillColor'=>[196, 196, 196], 'strokeColor'=>[255, 255, 255]}
+          Button(name, w, h, value, {'S'=>'ResetForm'}, prop, opt, '', '', false)
+        when 'file'
+          prop['fileSelect'] = 'true'
+          TextField(name, w, h, prop, opt, '', '', false)
+          value ||= '*'
+          w = GetStringWidth(value) * 2
+          h *= 1.2
+          prop = {'lineWidth'=>1, 'borderStyle'=>'beveled', 'fillColor'=>[196, 196, 196], 'strokeColor'=>[255, 255, 255]}
+          jsaction = "var f=this.getField('#{name}'); f.browseForFileToSubmit();"
+          Button('FB_' + name, w, h, value, jsaction, prop, opt, '', '', false)
+        when 'hidden'
+          opt['v'] = value if value
+          opt['f'] = ['invisible', 'hidden']
+          TextField(name, 0, 0, prop, opt, '', '', false)
+        when 'image'
+          # THIS TYPE MUST BE FIXED
+          if tag['attribute']['src'] && !empty_string(tag['attribute']['src'])
+            img = tag['attribute']['src']
+            value = 'img'
+            #opt['mk'] = {'i'=>img, 'tp'=>1, 'if'=>{'sw'=>'A', 's'=>'A', 'fb'=>false}}
+            if tag['attribute']['onclick'] && !tag['attribute']['onclick'].empty?
+              jsaction = tag['attribute']['onclick']
+            else
+              jsaction = ''
+            end
+            Button(name, w, h, value, jsaction, prop, opt, '', '', false)
+          end
+        when 'button'
+          w = GetStringWidth(value) * 1.5
+          h *= 1.6
+          prop = {'lineWidth'=>1, 'borderStyle'=>'beveled', 'fillColor'=>[196, 196, 196], 'strokeColor'=>[255, 255, 255]}
+          if tag['attribute']['onclick'] && !tag['attribute']['onclick'].empty?
+            jsaction = tag['attribute']['onclick']
+          else
+            jsaction = ''
+          end
+          Button(name, w, h, value, jsaction, prop, opt, '', '', false)
+        end
+      end
+    when 'textarea'
+      if tag['attribute']['name'] && !empty_string(tag['attribute']['name'])
+        prop = {}
+        opt = {}
+        name = tag['attribute']['name']
+        if tag['attribute']['value'] && !empty_string(tag['attribute']['value'])
+          opt['v'] = tag['attribute']['value']
+        end
+        if tag['attribute']['cols'] && !empty_string(tag['attribute']['cols'])
+          w = tag['attribute']['cols'].to_i * GetStringWidth(32.chr) * 2
+        else
+          w = 40
+        end
+        if tag['attribute']['rows'] && !empty_string(tag['attribute']['rows'])
+          h = tag['attribute']['rows'].to_i * @font_size * @cell_height_ratio
+        else
+          h = 10
+        end
+        prop['multiline'] = 'true'
+        TextField(name, w, h, prop, opt, '', '', false)
+      end
+    when 'select'
+      if tag['attribute']['name'] && !empty_string(tag['attribute']['name']) && tag['attribute']['opt'] && !empty_string(tag['attribute']['opt'])
+        h = @font_size * @cell_height_ratio
+        if tag['attribute']['size'] && !empty_string(tag['attribute']['size'])
+          h *= (tag['attribute']['size'].to_i + 1)
+        end
+        prop = {}
+        opt = {}
+        name = tag['attribute']['name']
+        w = 0
+        options = tag['attribute']['opt'].split("\r")
+        values = []
+        options.each {|val|
+          if val.index("\t")
+            opts = val.split("\t")
+            values << opts
+            w = [w, GetStringWidth(opts[1])].max
+          else
+            values << val
+            w = [w, GetStringWidth(val)].max
+          end
+        }
+        w *= 2
+        if tag['attribute'].key? 'multiple'
+          prop['multipleSelection'] = 'true'
+          ListBox(name, w, h, values, prop, opt, '', '', false)
+        else
+          ComboBox(name, w, h, values, prop, opt, '', '', false)
+        end
+      end
     end
 
     if dom[key]['self'] and dom[key]['attribute']['pagebreakafter']
@@ -13571,317 +15172,325 @@ public
     end
     # Closing tag
     case (tag['value'])
-      when 'tr'
-        table_el = dom[(dom[key]['parent'])]['parent']
-        if parent['endy'].nil?
-          dom[(dom[key]['parent'])]['endy'] = @y
-          parent['endy'] = @y
-        end
-        if parent['endpage'].nil?
-          dom[(dom[key]['parent'])]['endpage'] = @page
-          parent['endpage'] = @page
-        end
-        # update row-spanned cells
-        if !dom[table_el]['rowspans'].nil?
-          dom[table_el]['rowspans'].each_with_index { |trwsp, k|
-            dom[table_el]['rowspans'][k]['rowspan'] -= 1
-            if dom[table_el]['rowspans'][k]['rowspan'] == 0
-              if dom[table_el]['rowspans'][k]['endpage'] == parent['endpage']
-                dom[(dom[key]['parent'])]['endy'] = [dom[table_el]['rowspans'][k]['endy'], parent['endy']].max
-              elsif dom[table_el]['rowspans'][k]['endpage'] > parent['endpage']
-                dom[(dom[key]['parent'])]['endy'] = dom[table_el]['rowspans'][k]['endy']
-                dom[(dom[key]['parent'])]['endpage'] = dom[table_el]['rowspans'][k]['endpage']
-              end
-            end
-          }
-          # report new endy and endpage to the rowspanned cells
-          dom[table_el]['rowspans'].each_with_index { |trwsp, k|
-            if dom[table_el]['rowspans'][k]['rowspan'] == 0
-              dom[table_el]['rowspans'][k]['endpage'] = [dom[table_el]['rowspans'][k]['endpage'], dom[(dom[key]['parent'])]['endpage']].max
-              dom[(dom[key]['parent'])]['endpage'] = dom[table_el]['rowspans'][k]['endpage']
-              dom[table_el]['rowspans'][k]['endy'] = [dom[table_el]['rowspans'][k]['endy'], dom[(dom[key]['parent'])]['endy']].max
+    when 'tr'
+      table_el = dom[(dom[key]['parent'])]['parent']
+      if parent['endy'].nil?
+        dom[(dom[key]['parent'])]['endy'] = @y
+        parent['endy'] = @y
+      end
+      if parent['endpage'].nil?
+        dom[(dom[key]['parent'])]['endpage'] = @page
+        parent['endpage'] = @page
+      end
+      # update row-spanned cells
+      if !dom[table_el]['rowspans'].nil?
+        dom[table_el]['rowspans'].each_with_index { |trwsp, k|
+          dom[table_el]['rowspans'][k]['rowspan'] -= 1
+          if dom[table_el]['rowspans'][k]['rowspan'] == 0
+            if dom[table_el]['rowspans'][k]['endpage'] == parent['endpage']
+              dom[(dom[key]['parent'])]['endy'] = [dom[table_el]['rowspans'][k]['endy'], parent['endy']].max
+            elsif dom[table_el]['rowspans'][k]['endpage'] > parent['endpage']
               dom[(dom[key]['parent'])]['endy'] = dom[table_el]['rowspans'][k]['endy']
-            end
-          }
-          # update remaining rowspanned cells
-          dom[table_el]['rowspans'].each_with_index { |trwsp, k|
-            if dom[table_el]['rowspans'][k]['rowspan'] == 0
-              dom[table_el]['rowspans'][k]['endpage'] = dom[(dom[key]['parent'])]['endpage']
-              dom[table_el]['rowspans'][k]['endy'] = dom[(dom[key]['parent'])]['endy']
-            end
-          }
-        end
-        if (@num_columns > 1) and (dom[(dom[key]['parent'])]['endy'] >= (@page_break_trigger - @lasth)) and (@y < dom[(dom[key]['parent'])]['endy'])
-          Ln(0, cell)
-        else
-          setPage(dom[(dom[key]['parent'])]['endpage']);
-          @y = dom[(dom[key]['parent'])]['endy']
-          if !dom[table_el]['attribute']['cellspacing'].nil?
-            cellspacing = getHTMLUnitToUnits(dom[table_el]['attribute']['cellspacing'], 1, 'px')
-            @y += cellspacing
-          end
-          Ln(0, cell)
-          @x = parent['startx']
-          # account for booklet mode
-          if parent['startpage'] and @page > parent['startpage']
-            if @rtl and (@pagedim[@page]['orm'] != @pagedim[parent['startpage']]['orm'])
-              @x -= @pagedim[@page]['orm'] - @pagedim[parent['startpage']]['orm']
-            elsif !@rtl and (@pagedim[@page]['olm'] != @pagedim[parent['startpage']]['olm'])
-              @x += @pagedim[@page]['olm'] - @pagedim[parent['startpage']]['olm']
+              dom[(dom[key]['parent'])]['endpage'] = dom[table_el]['rowspans'][k]['endpage']
             end
           end
+        }
+        # report new endy and endpage to the rowspanned cells
+        dom[table_el]['rowspans'].each_with_index { |trwsp, k|
+          if dom[table_el]['rowspans'][k]['rowspan'] == 0
+            dom[table_el]['rowspans'][k]['endpage'] = [dom[table_el]['rowspans'][k]['endpage'], dom[(dom[key]['parent'])]['endpage']].max
+            dom[(dom[key]['parent'])]['endpage'] = dom[table_el]['rowspans'][k]['endpage']
+            dom[table_el]['rowspans'][k]['endy'] = [dom[table_el]['rowspans'][k]['endy'], dom[(dom[key]['parent'])]['endy']].max
+            dom[(dom[key]['parent'])]['endy'] = dom[table_el]['rowspans'][k]['endy']
+          end
+        }
+        # update remaining rowspanned cells
+        dom[table_el]['rowspans'].each_with_index { |trwsp, k|
+          if dom[table_el]['rowspans'][k]['rowspan'] == 0
+            dom[table_el]['rowspans'][k]['endpage'] = dom[(dom[key]['parent'])]['endpage']
+            dom[table_el]['rowspans'][k]['endy'] = dom[(dom[key]['parent'])]['endy']
+          end
+        }
+      end
+      if (@num_columns > 1) and (dom[(dom[key]['parent'])]['endy'] >= (@page_break_trigger - @lasth)) and (@y < dom[(dom[key]['parent'])]['endy'])
+        Ln(0, cell)
+      else
+        setPage(dom[(dom[key]['parent'])]['endpage']);
+        @y = dom[(dom[key]['parent'])]['endy']
+        if !dom[table_el]['attribute']['cellspacing'].nil?
+          cellspacing = getHTMLUnitToUnits(dom[table_el]['attribute']['cellspacing'], 1, 'px')
+          @y += cellspacing
         end
-      when 'table'
-        if dom[(dom[key]['parent'])]['attribute']['tablehead'] and dom[(dom[key]['parent'])]['attribute']['tablehead'] == "1"
-          # closing tag used for the thead part
-          in_table_head = true
-          @in_thead = false
+        Ln(0, cell)
+        @x = parent['startx']
+        # account for booklet mode
+        if parent['startpage'] and @page > parent['startpage']
+          if @rtl and (@pagedim[@page]['orm'] != @pagedim[parent['startpage']]['orm'])
+            @x -= @pagedim[@page]['orm'] - @pagedim[parent['startpage']]['orm']
+          elsif !@rtl and (@pagedim[@page]['olm'] != @pagedim[parent['startpage']]['olm'])
+            @x += @pagedim[@page]['olm'] - @pagedim[parent['startpage']]['olm']
+          end
         end
+      end
+    when 'table'
+      if dom[(dom[key]['parent'])]['attribute']['tablehead'] and dom[(dom[key]['parent'])]['attribute']['tablehead'] == "1"
+        # closing tag used for the thead part
+        in_table_head = true
+        @in_thead = false
+      end
 
-        table_el = parent
-        # draw borders
-        if (!table_el['attribute']['border'].nil? and (table_el['attribute']['border'].to_i > 0)) or (!table_el['style'].nil? and !table_el['style']['border'].nil? and (table_el['style']['border'].to_i > 0))
-          border = 1
-        else
-          border = 0
-        end
+      table_el = parent
+      # draw borders
+      if (!table_el['attribute']['border'].nil? and (table_el['attribute']['border'].to_i > 0)) or (!table_el['style'].nil? and !table_el['style']['border'].nil? and (table_el['style']['border'].to_i > 0))
+        border = 1
+      else
+        border = 0
+      end
 
-        startpage = 0
-        end_page = 0
-        # fix bottom line alignment of last line before page break
-        dom[(dom[key]['parent'])]['trids'].each_with_index { |trkey, j|
+      startpage = 0
+      end_page = 0
+      # fix bottom line alignment of last line before page break
+      dom[(dom[key]['parent'])]['trids'].each_with_index { |trkey, j|
+        # update row-spanned cells
+        if !dom[(dom[key]['parent'])]['rowspans'].nil?
+          dom[(dom[key]['parent'])]['rowspans'].each_with_index { |trwsp, k|
+            if trwsp['trid'] == trkey
+              dom[(dom[key]['parent'])]['rowspans'][k]['mrowspan'] -= 1
+            end
+            if defined?(prevtrkey) and (trwsp['trid'] == prevtrkey) and (trwsp['mrowspan'] >= 0)
+              dom[(dom[key]['parent'])]['rowspans'][k]['trid'] = trkey
+            end
+          }
+        end
+        if defined?(prevtrkey) and (dom[trkey]['startpage'] > dom[prevtrkey]['endpage'])
+          pgendy = @pagedim[dom[prevtrkey]['endpage']]['hk'] - @pagedim[dom[prevtrkey]['endpage']]['bm']
+          dom[prevtrkey]['endy'] = pgendy
           # update row-spanned cells
           if !dom[(dom[key]['parent'])]['rowspans'].nil?
             dom[(dom[key]['parent'])]['rowspans'].each_with_index { |trwsp, k|
-              if trwsp['trid'] == trkey
-                dom[(dom[key]['parent'])]['rowspans'][k]['mrowspan'] -= 1
-              end
-              if defined?(prevtrkey) and (trwsp['trid'] == prevtrkey) and (trwsp['mrowspan'] >= 0)
-                dom[(dom[key]['parent'])]['rowspans'][k]['trid'] = trkey
+              if (trwsp['trid'] == trkey) and (trwsp['mrowspan'] > 1) and (trwsp['endpage'] == dom[prevtrkey]['endpage'])
+                dom[(dom[key]['parent'])]['rowspans'][k]['endy'] = pgendy
+                dom[(dom[key]['parent'])]['rowspans'][k]['mrowspan'] = -1
               end
             }
           end
-          if defined?(prevtrkey) and (dom[trkey]['startpage'] > dom[prevtrkey]['endpage'])
-            pgendy = @pagedim[dom[prevtrkey]['endpage']]['hk'] - @pagedim[dom[prevtrkey]['endpage']]['bm']
-            dom[prevtrkey]['endy'] = pgendy
-            # update row-spanned cells
-            if !dom[(dom[key]['parent'])]['rowspans'].nil?
-              dom[(dom[key]['parent'])]['rowspans'].each_with_index { |trwsp, k|
-                if (trwsp['trid'] == trkey) and (trwsp['mrowspan'] > 1) and (trwsp['endpage'] == dom[prevtrkey]['endpage'])
-                  dom[(dom[key]['parent'])]['rowspans'][k]['endy'] = pgendy
-                  dom[(dom[key]['parent'])]['rowspans'][k]['mrowspan'] = -1
-                end
-              }
-            end
+        end
+        prevtrkey = trkey
+        table_el = dom[(dom[key]['parent'])].dup
+      }
+      # for each row
+      table_el['trids'].each_with_index { |trkey, j|
+        parent = dom[trkey]
+        # for each cell on the row
+        parent['cellpos'].each_with_index { |cellpos, k|
+          if !cellpos['rowspanid'].nil? and (cellpos['rowspanid'] >= 0)
+            cellpos['startx'] = table_el['rowspans'][(cellpos['rowspanid'])]['startx']
+            cellpos['endx'] = table_el['rowspans'][(cellpos['rowspanid'])]['endx']
+            endy = table_el['rowspans'][(cellpos['rowspanid'])]['endy']
+            startpage = table_el['rowspans'][(cellpos['rowspanid'])]['startpage']
+            end_page = table_el['rowspans'][(cellpos['rowspanid'])]['endpage']
+          else
+            endy = parent['endy']
+            startpage = parent['startpage']
+            end_page = parent['endpage']
           end
-          prevtrkey = trkey
-          table_el = dom[(dom[key]['parent'])].dup
-        }
-        # for each row
-        table_el['trids'].each_with_index { |trkey, j|
-          parent = dom[trkey]
-          # for each cell on the row
-          parent['cellpos'].each_with_index { |cellpos, k|
-            if !cellpos['rowspanid'].nil? and (cellpos['rowspanid'] >= 0)
-              cellpos['startx'] = table_el['rowspans'][(cellpos['rowspanid'])]['startx']
-              cellpos['endx'] = table_el['rowspans'][(cellpos['rowspanid'])]['endx']
-              endy = table_el['rowspans'][(cellpos['rowspanid'])]['endy']
-              startpage = table_el['rowspans'][(cellpos['rowspanid'])]['startpage']
-              end_page = table_el['rowspans'][(cellpos['rowspanid'])]['endpage']
-            else
-              endy = parent['endy']
-              startpage = parent['startpage']
-              end_page = parent['endpage']
-            end
-            cellpos['startx'] ||= 0
-            if end_page > startpage
-              # design borders around HTML cells.
-              startpage.upto(end_page) do |page|
-                setPage(page)
-                if page == startpage
-                  @y = parent['starty'] # put cursor at the beginning of row on the first page
-                  ch = getPageHeight() - parent['starty'] - getBreakMargin()
-                  cborder = getBorderMode(border, position='start')
-                elsif page == end_page
-                  @y = @t_margin # put cursor at the beginning of last page
-                  ch = endy - @t_margin
-                  cborder = getBorderMode(border, position='end')
-                else
-                  @y = @t_margin # put cursor at the beginning of the current page
-                  ch = getPageHeight() - @t_margin - getBreakMargin()
-                  cborder = getBorderMode(border, position='middle')
-                end
-                if !cellpos['bgcolor'].nil? and (cellpos['bgcolor'] != false)
-                  SetFillColorArray(cellpos['bgcolor'])
-                  fill = 1
-                else
-                  fill = 0
-                end
-                cw = (cellpos['endx'] - cellpos['startx']).abs
-                @x = cellpos['startx']
-                # account for margin changes
-                if page > startpage
-                  if @rtl and (@pagedim[page]['orm'] != @pagedim[startpage]['orm'])
-                    @x -= @pagedim[page]['orm'] - @pagedim[startpage]['orm']
-                  elsif !@rtl and (@pagedim[page]['lm'] != @pagedim[startpage]['olm'])
-                    @x += @pagedim[page]['olm'] - @pagedim[startpage]['olm']
-                  end
-                end
-
-                prevLastH = @lasth
-                # design a cell around the text
-                ccode = @fill_color + "\n" + getCellCode(cw, ch, '', cborder, 1, '', fill, '', 0, true)
-                @lasth = prevLastH
-
-                if (cborder != 0) or (fill == 1)
-                  pagebuff = getPageBuffer(@page)
-                  pstart = pagebuff[0, @intmrk[@page]]
-                  pend = pagebuff[@intmrk[@page]..-1]
-                  setPageBuffer(@page, pstart + ccode + "\n" + pend)
-                  @intmrk[@page] += (ccode + "\n").length
-                end
+          cellpos['startx'] ||= 0
+          if end_page > startpage
+            # design borders around HTML cells.
+            startpage.upto(end_page) do |page|
+              setPage(page)
+              if page == startpage
+                @y = parent['starty'] # put cursor at the beginning of row on the first page
+                ch = getPageHeight() - parent['starty'] - getBreakMargin()
+                cborder = getBorderMode(border, position='start')
+              elsif page == end_page
+                @y = @t_margin # put cursor at the beginning of last page
+                ch = endy - @t_margin
+                cborder = getBorderMode(border, position='end')
+              else
+                @y = @t_margin # put cursor at the beginning of the current page
+                ch = getPageHeight() - @t_margin - getBreakMargin()
+                cborder = getBorderMode(border, position='middle')
               end
-            else
-              setPage(startpage)
               if !cellpos['bgcolor'].nil? and (cellpos['bgcolor'] != false)
                 SetFillColorArray(cellpos['bgcolor'])
                 fill = 1
               else
                 fill = 0
               end
-              @x = cellpos['startx']
-              @y = parent['starty']
               cw = (cellpos['endx'] - cellpos['startx']).abs
-              ch = endy - parent['starty']
+              @x = cellpos['startx']
+              # account for margin changes
+              if page > startpage
+                if @rtl and (@pagedim[page]['orm'] != @pagedim[startpage]['orm'])
+                  @x -= @pagedim[page]['orm'] - @pagedim[startpage]['orm']
+                elsif !@rtl and (@pagedim[page]['lm'] != @pagedim[startpage]['olm'])
+                  @x += @pagedim[page]['olm'] - @pagedim[startpage]['olm']
+                end
+              end
 
               prevLastH = @lasth
               # design a cell around the text
-              ccode = @fill_color + "\n" + getCellCode(cw, ch, '', border, 1, '', fill, '', 0, true)
+              ccode = @fill_color + "\n" + getCellCode(cw, ch, '', cborder, 1, '', fill, '', 0, true)
               @lasth = prevLastH
 
-              if (border != 0) or (fill == 1)
-                if !@transfmrk[@page].nil?
-                  pagemark = @transfmrk[@page]
-                  @transfmrk[@page] += (ccode + "\n").length
-                elsif @in_footer
-                  pagemark = @footerpos[@page]
-                  @footerpos[@page] += (ccode + "\n").length
-                else
-                  pagemark = @intmrk[@page]
-                  @intmrk[@page] += (ccode + "\n").length
-                end
+              if (cborder != 0) or (fill == 1)
                 pagebuff = getPageBuffer(@page)
-                pstart = pagebuff[0, pagemark]
-                pend = pagebuff[pagemark..-1]
+                pstart = pagebuff[0, @intmrk[@page]]
+                pend = pagebuff[@intmrk[@page]..-1]
                 setPageBuffer(@page, pstart + ccode + "\n" + pend)
+                @intmrk[@page] += (ccode + "\n").length
               end
             end
-          }
-          if !table_el['attribute']['cellspacing'].nil?
-            cellspacing = getHTMLUnitToUnits(table_el['attribute']['cellspacing'], 1, 'px')
-            @y += cellspacing
-          end
-          Ln(0, cell)
-          @x = parent['startx']
-          if end_page > startpage
-            if @rtl and (@pagedim[end_page]['orm'] != @pagedim[startpage]['orm'])
-              @x += @pagedim[end_page]['orm'] - @pagedim[startpage]['orm']
-            elsif !@rtl and (@pagedim[end_page]['olm'] != @pagedim[startpage]['olm'])
-              @x += @pagedim[end_page]['olm'] - @pagedim[startpage]['olm']
+          else
+            setPage(startpage)
+            if !cellpos['bgcolor'].nil? and (cellpos['bgcolor'] != false)
+              SetFillColorArray(cellpos['bgcolor'])
+              fill = 1
+            else
+              fill = 0
+            end
+            @x = cellpos['startx']
+            @y = parent['starty']
+            cw = (cellpos['endx'] - cellpos['startx']).abs
+            ch = endy - parent['starty']
+
+            prevLastH = @lasth
+            # design a cell around the text
+            ccode = @fill_color + "\n" + getCellCode(cw, ch, '', border, 1, '', fill, '', 0, true)
+            @lasth = prevLastH
+
+            if (border != 0) or (fill == 1)
+              if !@transfmrk[@page].nil?
+                pagemark = @transfmrk[@page]
+                @transfmrk[@page] += (ccode + "\n").length
+              elsif @in_footer
+                pagemark = @footerpos[@page]
+                @footerpos[@page] += (ccode + "\n").length
+              else
+                pagemark = @intmrk[@page]
+                @intmrk[@page] += (ccode + "\n").length
+              end
+              pagebuff = getPageBuffer(@page)
+              pstart = pagebuff[0, pagemark]
+              pend = pagebuff[pagemark..-1]
+              setPageBuffer(@page, pstart + ccode + "\n" + pend)
             end
           end
         }
-        if !in_table_head
-          # we are not inside a thead section
-          if dom[(parent['parent'])]['attribute']['cellpadding'] ### fix ###
-            @c_margin = @old_c_margin
-          end
-          @lasth = @font_size * @cell_height_ratio
-          if (@page == @numpages - 1) and @pageopen[@numpages]
-            # remove last blank page
-            deletePage(@numpages)
-          end
-          if !@thead_margins['top'].nil?
-            # restore top margin
-            @t_margin = @thead_margins['top']
-            @pagedim[@page]['tm'] = @t_margin
-          end
-          if table_el['attribute']['nested'].nil? or (table_el['attribute']['nested'] != 'true')
-            # reset main table header
-            @thead = ''
-            @thead_margins = {}
+        if !table_el['attribute']['cellspacing'].nil?
+          cellspacing = getHTMLUnitToUnits(table_el['attribute']['cellspacing'], 1, 'px')
+          @y += cellspacing
+        end
+        Ln(0, cell)
+        @x = parent['startx']
+        if end_page > startpage
+          if @rtl and (@pagedim[end_page]['orm'] != @pagedim[startpage]['orm'])
+            @x += @pagedim[end_page]['orm'] - @pagedim[startpage]['orm']
+          elsif !@rtl and (@pagedim[end_page]['olm'] != @pagedim[startpage]['olm'])
+            @x += @pagedim[end_page]['olm'] - @pagedim[startpage]['olm']
           end
         end
-        if tag['block']
-          unless dom[(dom[key]['parent'])]['attribute']['tablehead'] and dom[(dom[key]['parent'])]['attribute']['tablehead'] == "1" ### fix ###
-            addHTMLVertSpace(hbz / 2, 0, cell, (dom[key+1].nil? or (dom[key+1]['value'] != 'table'))) ### fix ###
-          end
-        end
-      when 'a'
-        @href = {}
-        @html_anchor = nil
-      when 'sup'
-        SetXY(GetX(), GetY() + (0.7 * parent['fontsize'] / @k))
-      when 'sub'
-        SetXY(GetX(), GetY() - (0.3 * parent['fontsize'] / @k))
-      when 'div'
-        addHTMLVertSpace(hbz, 0, cell, firstorlast)
-      when 'blockquote'
-        if @rtl
-          @r_margin -= @listindent
-        else
-          @l_margin -= @listindent
-        end
-        @listindentlevel -= 1
-        addHTMLVertSpace(hbz, hb, cell, firstorlast)
-      when 'p'
-        addHTMLVertSpace(hbz, hb, cell, firstorlast)
-      when 'pre'
-        addHTMLVertSpace(hbz, hb, cell, firstorlast)
-        @premode = false
-      when 'dl'
-        @listnum -= 1
-        if @listnum <= 0
-          @listnum = 0
-          addHTMLVertSpace(hbz, hb, cell, firstorlast)
-        else
-          addHTMLVertSpace(0, 0, cell, firstorlast)
+      }
+      if !in_table_head
+        # we are not inside a thead section
+        if dom[(parent['parent'])]['attribute']['cellpadding'] ### fix ###
+          @c_margin = @old_c_margin
         end
         @lasth = @font_size * @cell_height_ratio
-      when 'dt'
-        @lispacer = ''
-        addHTMLVertSpace(0, 0, cell, firstorlast)
-      when 'dd'
-        @lispacer = ''
-        if @rtl
-          @r_margin -= @listindent
-        else
-          @l_margin -= @listindent
+        if (@page == @numpages - 1) and @pageopen[@numpages]
+          # remove last blank page
+          deletePage(@numpages)
         end
-        @listindentlevel -= 1
-        addHTMLVertSpace(0, 0, cell, firstorlast)
-      when 'ul', 'ol'
-        @listnum -= 1
-        @lispacer = ''
-        if @rtl
-          @r_margin -= @listindent
-        else
-          @l_margin -= @listindent
+        if !@thead_margins['top'].nil?
+          # restore top margin
+          @t_margin = @thead_margins['top']
+          @pagedim[@page]['tm'] = @t_margin
         end
-        @listindentlevel -= 1
-        if @listnum <= 0
-          @listnum = 0
-          addHTMLVertSpace(hbz, hb, cell, firstorlast)
-        else
-          addHTMLVertSpace(0, 0, cell, firstorlast)
+        if table_el['attribute']['nested'].nil? or (table_el['attribute']['nested'] != 'true')
+          # reset main table header
+          @thead = ''
+          @thead_margins = {}
         end
-        @lasth = @font_size * @cell_height_ratio
-      when 'li'
-        @lispacer = ''
-        addHTMLVertSpace(0, 0, cell, firstorlast)
-      when 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'
+      end
+      if tag['block']
+        unless dom[(dom[key]['parent'])]['attribute']['tablehead'] and dom[(dom[key]['parent'])]['attribute']['tablehead'] == "1" ### fix ###
+          addHTMLVertSpace(hbz / 2, 0, cell, (dom[key+1].nil? or (dom[key+1]['value'] != 'table'))) ### fix ###
+        end
+      end
+    when 'a'
+      @href = {}
+      @html_anchor = nil
+    when 'sup'
+      SetXY(GetX(), GetY() + (0.7 * parent['fontsize'] / @k))
+    when 'sub'
+      SetXY(GetX(), GetY() - (0.3 * parent['fontsize'] / @k))
+    when 'div'
+      addHTMLVertSpace(hbz, 0, cell, firstorlast)
+    when 'blockquote'
+      if @rtl
+        @r_margin -= @listindent
+      else
+        @l_margin -= @listindent
+      end
+      @listindentlevel -= 1
+      addHTMLVertSpace(hbz, hb, cell, firstorlast)
+    when 'p'
+      addHTMLVertSpace(hbz, hb, cell, firstorlast)
+    when 'pre'
+      addHTMLVertSpace(hbz, hb, cell, firstorlast)
+      @premode = false
+    when 'dl'
+      @listnum -= 1
+      if @listnum <= 0
+        @listnum = 0
         addHTMLVertSpace(hbz, hb, cell, firstorlast)
+      else
+        addHTMLVertSpace(0, 0, cell, firstorlast)
+      end
+      @lasth = @font_size * @cell_height_ratio
+    when 'dt'
+      @lispacer = ''
+      @li_position_x = nil
+      addHTMLVertSpace(0, 0, cell, firstorlast)
+    when 'dd'
+      @lispacer = ''
+      @li_position_x = nil
+      if @rtl
+        @r_margin -= @listindent
+      else
+        @l_margin -= @listindent
+      end
+      @listindentlevel -= 1
+      addHTMLVertSpace(0, 0, cell, firstorlast)
+    when 'ul', 'ol'
+      @listnum -= 1
+      @lispacer = ''
+      @li_position_x = nil
+      if @rtl
+        @r_margin -= @listindent
+      else
+        @l_margin -= @listindent
+      end
+      @listindentlevel -= 1
+      if @listnum <= 0
+        @listnum = 0
+        addHTMLVertSpace(hbz, hb, cell, firstorlast)
+      else
+        addHTMLVertSpace(0, 0, cell, firstorlast)
+      end
+      @lasth = @font_size * @cell_height_ratio
+    when 'li'
+      @lispacer = ''
+      @li_position_x = nil
+      addHTMLVertSpace(0, 0, cell, firstorlast)
+    when 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'
+      addHTMLVertSpace(hbz, hb, cell, firstorlast)
+    when 'form' # Form fields (since 4.8.000 - 2009-09-07)
+      @form_action = ''
+      @form_enctype = 'application/x-www-form-urlencoded'
     end
+
     if dom[(dom[key]['parent'])]['attribute']['pagebreakafter']
       pba = dom[(dom[key]['parent'])]['attribute']['pagebreakafter']
       # check for pagebreak
@@ -14121,6 +15730,7 @@ protected
     width = 0
     textitem = ''
     tmpx = @x
+    @x = @li_position_x
     lspace = GetStringWidth('  ')
     if listtype == '!'
       # set default list type for unordered list
@@ -14192,6 +15802,7 @@ protected
     end
     @x = tmpx
     @lispacer = ''
+    @li_position_x = nil
   end
 
   #
@@ -14208,6 +15819,7 @@ protected
       'rMargin' => @r_margin,
       'lMargin' => @l_margin,
       'cMargin' => @c_margin,
+      'tMargin' => @t_margin,
       'LineWidth' => @line_width,
       'linestyleWidth' => @linestyle_width,
       'linestyleCap' => @linestyle_cap,
@@ -14228,24 +15840,31 @@ protected
       'listordered' => @listordered,
       'listcount' => @listcount,
       'lispacer' => @lispacer,
-      'lasth' => @lasth
+      'li_position_x' => @li_position_x,
+      'lasth' => @lasth,
+      'h' => @h,
+      'w' => @w,
+      'x' => @x,
+      'y' => @y,
     }
     return grapvars
   end
 
   #
   # Set graphic variables.
-  # [@param :gvars] array graphic variables
+  # [@param array :gvars] graphic variables
+  # [@param bool :option] set additional parameters
   # [@access protected]
   # [@since 4.2.010 (2008-11-14)]
   #
-  def setGraphicVars(gvars)
+  def setGraphicVars(gvars, option = false)
     @font_family = gvars['FontFamily']
     @font_style = gvars['FontStyle']
     @font_size_pt = gvars['FontSizePt']
     @r_margin = gvars['rMargin']
     @l_margin = gvars['lMargin']
     @c_margin = gvars['cMargin']
+    @t_margin = gvars['tMargin']
     @line_width = gvars['LineWidth']
     @linestyle_width = gvars['linestyleWidth']
     @linestyle_cap = gvars['linestyleCap']
@@ -14266,7 +15885,14 @@ protected
     @listordered = gvars['listordered']
     @listcount = gvars['listcount']
     @lispacer = gvars['lispacer']
-    #@lasth = gvars['lasth']
+    @li_position_x = gvars['li_position_x']
+    if option
+      @lasth = gvars['lasth']
+      @h = gvars['h']
+      @w = gvars['w']
+      @x = gvars['x']
+      @y = gvars['y']
+    end
     out('' + @linestyle_width + ' ' + @linestyle_cap + ' ' + @linestyle_join + ' ' + @linestyle_dash + ' ' + @draw_color + ' ' + @fill_color + '')
     unless empty_string(@font_family)
       SetFont(@font_family, @font_style, @font_size_pt)
@@ -14673,18 +16299,17 @@ public
     #global jfrompage, jtopage
     #jfrompage = frompage
     #jtopage = topage
-    #@javascript = preg_replace_callback('/this\.addField\(\'([^\']*)\',\'([^\']*)\',([0-9]+)/',
-    #create_function('$matches', 'global $jfrompage, $jtopage;
-    #  pagenum = matches[3].to_i + 1
-    #  if (pagenum >= jtopage) and (pagenum < jfrompage)
-    #    newpage = pagenum + 1
-    #  elsif pagenum == jfrompage
-    #    newpage = jtopage
-    #  else
-    #    newpage = pagenum
-    #  end
-    #  newpage -= 1
-    #  return "this.addField(\'".$matches[1]."\',\'".$matches[2]."\',".$newpage."";'), $tmpjavascript);
+    #tmpjavascript =~ /this\.addField\(\'([^\']*)\',\'([^\']*)\',([0-9]+)/
+    #pagenum = $3.to_i + 1
+    #if (pagenum >= jtopage) && (pagenum < jfrompage)
+    #  newpage = pagenum + 1
+    #elsif pagenum == jfrompage
+    #  newpage = jtopage
+    #else
+    #  newpage = pagenum
+    #end
+    #newpage -= 1
+    #@javascript = "this.addField(\'" + $1 + "\',\'" + $2 + "\'," + newpage + ""
 
     # return to last page
     lastPage(true)
@@ -15295,7 +16920,7 @@ public
   # [@param string :default] default style
   # [@param boolean :mode] if true enable rasterization, false otherwise.
   # [@author] Nicola Asuni
-  # [@access protected:
+  # [@access protected]
   # [@since 5.0.000 (2010-04-30)]
   #
   def getPathPaintOperator(style, default='S')
