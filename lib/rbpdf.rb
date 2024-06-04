@@ -13420,7 +13420,7 @@ public
     # Escape '<' character for not tag case.
     html = html.gsub(%r{(<+)([^/a-zA-Z])}){CGI.escapeHTML($1) + $2}.gsub(%r{</([^a-zA-Z])}){'&lt;/' +  $1}
     "%s" % sanitize(html,
-            :tags=> %w(a b blockquote body br dd del div dl dt em font form h1 h2 h3 h4 h5 h6 hr i img input label li ol option p pre select small span strong sub sup table td textarea th thead tr tt u ins ul),
+            :tags=> %w(a b blockquote body br code dd del div dl dt em font form h1 h2 h3 h4 h5 h6 hr i img input label li ol option p pre select small span strong sub sup table td textarea th thead tr tt u ins ul),
             :attributes => %w(cellspacing cellpadding bgcolor color value width height src size colspan rowspan style align border face href name dir class id nobr stroke strokecolor fill nested tablehead cols rows type action enctype method maxlength onclick multiple checked disabled))
   end
   protected :sanitize_html
