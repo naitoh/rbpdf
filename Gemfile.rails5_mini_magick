@@ -1,4 +1,4 @@
-# Copyright (c) 2011-2023 NAITOH Jun
+# Copyright (c) 2011-2025 NAITOH Jun
 # Released under the MIT license
 # http://www.opensource.org/licenses/MIT
 
@@ -8,5 +8,6 @@ source 'https://rubygems.org'
 gemspec
 
 gem "actionpack", "~> 5.2.8.1"
-gem "mini_magick", "< 5.0"
+gem "mini_magick"
+gem 'marcel'
 gem 'loofah', '<= 2.20.0' if RUBY_VERSION < '2.5'

@@ -29,7 +29,7 @@ RBPDF is distributed via RubyGems, and can be installed the usual way that you i
 
 If you are using image file, it is recommended you install:
 ```
-gem install mini_magick
+gem install mini_magick marcel
 ```
 or
 ```

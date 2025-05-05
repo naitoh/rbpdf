@@ -59,6 +59,12 @@ rescue LoadError
   # MiniMagick is not available
 end
 
+begin
+  require 'marcel' unless Object.const_defined?(:Marcel)
+rescue LoadError
+  # Marcel is not available
+end
+
 unless Object.const_defined?(:MiniMagick)
   begin
     # RMagick 2.14.0
