@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # Copyright (c) 2011-2018 NAITOH Jun
 # Released under the MIT license
 # http://www.opensource.org/licenses/MIT
@@ -220,11 +221,11 @@ class RbpdfTest < Test::Unit::TestCase
 
     pdf = RBPDF.new('P', 'mm', 'A4', true, "UTF-8", true)
 
-    str = 'test'.force_encoding('UTF-8')
+    str = (+'test').force_encoding('UTF-8')
     pdf.removeSHY(str)
     assert_equal 'UTF-8', str.encoding.to_s
 
-    str = 'test'.force_encoding('ASCII-8BIT')
+    str = (+'test').force_encoding('ASCII-8BIT')
     pdf.removeSHY(str)
     assert_equal 'ASCII-8BIT', str.encoding.to_s
   end

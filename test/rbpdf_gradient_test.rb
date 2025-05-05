@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # Copyright (c) 2011-2023 NAITOH Jun
 # Released under the MIT license
 # http://www.opensource.org/licenses/MIT
@@ -98,7 +99,7 @@ class RbpdfPageTest < Test::Unit::TestCase
     contents.each_line {|line| content.push line.chomp }
 
     assert_equal "<< /ShadingType 6 /ColorSpace /DeviceRGB /BitsPerCoordinate 16 /BitsPerComponent 8 /Decode[0 1 0 1 0 1 0 1 0 1] /BitsPerFlag 8 /Length 61 >> stream", content[before_size + 1]
-    assert_equal "\x00\x00\x00\x00\x00Tz33\xAB\x84\x00\x00\xFF\xFF\x00\x00\xCC\xCCTz\xCC\xCC\xAB\x84\xFF\xFF\xFF\xFF\xAB\x84\xCC\xCCTz\xFF\xFF\x00\x00\xFF\xFF33\xAB\x84\x00\x00Tz\xFF\xFF\x00\x00\x00\xC8\x00\xFF\x00\xFF\x00\x00".force_encoding('ASCII-8BIT'), content[before_size + 2]
+    assert_equal (+"\x00\x00\x00\x00\x00Tz33\xAB\x84\x00\x00\xFF\xFF\x00\x00\xCC\xCCTz\xCC\xCC\xAB\x84\xFF\xFF\xFF\xFF\xAB\x84\xCC\xCCTz\xFF\xFF\x00\x00\xFF\xFF33\xAB\x84\x00\x00Tz\xFF\xFF\x00\x00\x00\xC8\x00\xFF\x00\xFF\x00\x00").force_encoding('ASCII-8BIT'), content[before_size + 2]
     assert_equal "endstream endobj", content[before_size + 3]
     assert_equal "<< /Type /Pattern /PatternType 2 /Shading 3 0 R >> endobj", content[before_size + 5]
   end

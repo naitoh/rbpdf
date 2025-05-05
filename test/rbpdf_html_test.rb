@@ -1,4 +1,5 @@
 # coding: ASCII-8BIT
+# frozen_string_literal: true
 #
 # Copyright (c) 2011-2017 NAITOH Jun
 # Released under the MIT license
@@ -55,7 +56,7 @@ class RbpdfHtmlTest < Test::Unit::TestCase
       content = []
       contents = getPageBuffer(page)
       contents.each_line {|line| content.push line.chomp }
-      pdf_text = ''
+      pdf_text = +''
       content.each do |line|
         if line =~ /\[\((.*)\)\] TJ ET/
           pdf_text << $1

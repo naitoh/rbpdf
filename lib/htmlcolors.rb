@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 #============================================================+
 # File name   : htmlcolors.rb
 # Begin       : 2002-04-09

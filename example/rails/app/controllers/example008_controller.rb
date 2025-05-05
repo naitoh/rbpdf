@@ -1,4 +1,5 @@
 # coding: UTF-8
+# frozen_string_literal: true
 #============================================================+
 # Begin       : 2008-03-04
 # Last Update : 2010-05-20
@@ -57,10 +58,10 @@ class Example008Controller < ApplicationController
     pdf.add_page()
     
     # get esternal file content
-    utf8text=''
+    utf8text = +''
     file = PDF_UTF8TEST_TXT
     open(file,'rb') do |f|
-      utf8text<<f.read()
+      utf8text << f.read()
     end
     
     # set color for text

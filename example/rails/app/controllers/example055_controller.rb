@@ -1,4 +1,5 @@
 # coding: UTF-8
+# frozen_string_literal: true
 #============================================================+
 # Begin       : 2009-10-21
 # Last Update : 2010-05-20
@@ -59,7 +60,7 @@ class Example055Controller < ApplicationController
     # array of core font names
     core_fonts = ['courier', 'helvetica', 'times', 'symbol', 'zapfdingbats']
     
-    html = '<h1>Core Fonts Dump</h1>'
+    html = +'<h1>Core Fonts Dump</h1>'
     
     # create one HTML table for each core font
     core_fonts.each { |font|
@@ -74,7 +75,7 @@ class Example055Controller < ApplicationController
         if i != 0
           chr = pdf.unichr(i)
         else
-          chr = ''
+          chr = +''
         end
         # replace special characters
         chr.gsub!('<', '&lt;')
