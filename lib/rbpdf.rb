@@ -2648,7 +2648,7 @@ class RBPDF
       family = 'helvetica';
     end
     if (family == "symbol") or (family == "zapfdingbats")
-      style = +''
+      style = ''
     end
 
     tempstyle = style.upcase
@@ -12046,7 +12046,7 @@ public
           out = +'<<'
           out << ' /FunctionType 3'
           out << ' /Domain [0 1]'
-          functions = ''
+          functions = +''
           i = 1
           num_cols = grad['colors'].size
           1.upto(num_cols - 1) do |i|
@@ -12522,7 +12522,6 @@ protected
     if dom[key]['attribute'] and dom[key]['attribute']['class'] and !dom[key]['attribute']['class'].empty?
       selector_class = dom[key]['attribute']['class'].downcase
     end
-    id = ''
     if dom[key]['attribute'] and dom[key]['attribute']['id'] and !dom[key]['attribute']['id'].empty?
       selector_id = dom[key]['attribute']['id'].downcase
     end
@@ -12709,7 +12708,7 @@ protected
             uri.split('/').each {|path|
               uri_path = uri_path.join(path)
             }
-            cssdata = ''
+            cssdata = +''
             next unless File.exist?(uri_path)
 
             open(uri_path) do |f|
@@ -13080,7 +13079,7 @@ protected
               end
             end
             # font style
-            dom[key]['fontstyle'] ||= ""
+            dom[key]['fontstyle'] ||= +""
             if !dom[key]['style']['font-weight'].nil? and (dom[key]['style']['font-weight'][0,1].downcase == 'b')
               dom[key]['fontstyle'] << 'B'
             end
