@@ -1,4 +1,5 @@
 # coding: UTF-8
+# frozen_string_literal: true
 #============================================================+
 # Begin       : 2008-03-04
 # Last Update : 2010-05-20
@@ -111,7 +112,7 @@ class Example026Controller < ApplicationController
     
     
     # create some HTML content with text rendering modes
-    html  = '<span stroke="0" fill="true">HTML Fill text</span><br />'
+    html  = +'<span stroke="0" fill="true">HTML Fill text</span><br />'
     html << '<span stroke="0.2" fill="false">HTML Stroke text</span><br />'
     html << '<span stroke="0.2" fill="true" strokecolor="#FF0000" color="#FFFF00">HTML Fill, then stroke text</span><br />'
     html << '<span stroke="0" fill="false">HTML Neither fill nor stroke text (invisible)</span><br />'

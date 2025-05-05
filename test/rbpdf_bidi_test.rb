@@ -1,4 +1,5 @@
 # coding: ASCII-8BIT
+# frozen_string_literal: true
 #
 # Copyright (c) 2011-2017 NAITOH Jun
 # Released under the MIT license
@@ -81,7 +82,7 @@ class RbpdfTest < Test::Unit::TestCase
     utf8_chr = pdf.unichr(0x61)
     assert_equal "a", utf8_chr
     utf8_chr = pdf.unichr(0x5e2)
-    assert_equal "\xd7\xa2", utf8_chr
+    assert_equal (+"\xd7\xa2").force_encoding("ASCII-8BIT"), utf8_chr
 
     # UTF-8 string -> array of UCS4 charactor
     ary_ucs4 = pdf.UTF8StringToArray("abc")
@@ -261,7 +262,7 @@ class RbpdfTest < Test::Unit::TestCase
 
     # UCS4 charactor -> UTF-8 charactor
     utf8_chr = pdf.unichr(0x62f)
-    assert_equal "\xd8\xaf", utf8_chr
+    assert_equal (+"\xd8\xaf").force_encoding("ASCII-8BIT"), utf8_chr
 
     # UTF-8 string -> array of UCS4 charactor
     ary_ucs4 = pdf.UTF8StringToArray(ascii_str)

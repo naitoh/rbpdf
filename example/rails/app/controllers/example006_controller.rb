@@ -1,4 +1,5 @@
 # coding: UTF-8
+# frozen_string_literal: true
 #============================================================+
 # Begin       : 2008-03-04
 # Last Update : 2010-05-20
@@ -219,8 +220,8 @@ class Example006Controller < ApplicationController
     # add a page
     pdf.add_page()
     
-    textcolors = '<h1>HTML Text Colors</h1>'
-    bgcolors = '<hr /><h1>HTML Background Colors</h1>'
+    textcolors = +'<h1>HTML Text Colors</h1>'
+    bgcolors = +'<hr /><h1>HTML Background Colors</h1>'
     
     @@webcolor.each{|k,v|
     	textcolors << '<span color="#' + v + '">' + v + '</span> '

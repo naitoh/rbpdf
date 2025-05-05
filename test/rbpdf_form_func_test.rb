@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # coding: ASCII-8BIT
 # Copyright (c) 2011-2023 NAITOH Jun
 # Released under the MIT license
@@ -113,7 +114,7 @@ class RbpdfFormFuncTest < Test::Unit::TestCase
     @h = pdf.get_page_height
     k = pdf.get_scale_factor
     font_size_pt = pdf.get_font_size_pt
-    <<~EOS
+    +<<~EOS
       if(getField('tcpdfdocsaved').value != 'saved') {f#{name}=this.addField('#{name}','#{type}',#{pdf.PageNo() - 1},[#{sprintf("%.2f,%.2f,%.2f,%.2f", x * k, (@h - y) * k + 1, (x + w) * k, (@h - y - h) * k + 1)}]);
       f#{name}.textSize=#{font_size_pt};
     EOS

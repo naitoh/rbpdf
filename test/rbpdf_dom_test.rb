@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # Copyright (c) 2011-2017 NAITOH Jun
 # Released under the MIT license
 # http://www.opensource.org/licenses/MIT
@@ -278,7 +279,7 @@ class RbpdfTest < Test::Unit::TestCase
     return unless 'test'.respond_to?(:force_encoding)
 
     pdf = RBPDF.new('P', 'mm', 'A4', true, "UTF-8", true)
-    htmlcontent = 'test'.force_encoding('ASCII-8BIT')
+    htmlcontent = (+'test').force_encoding('ASCII-8BIT')
     pdf.send(:getHtmlDomArray, htmlcontent)
     assert_equal 'ASCII-8BIT', htmlcontent.encoding.to_s
   end

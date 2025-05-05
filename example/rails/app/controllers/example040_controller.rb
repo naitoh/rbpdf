@@ -1,4 +1,5 @@
 # coding: UTF-8
+# frozen_string_literal: true
 #============================================================+
 # Begin       : 2008-10-28
 # Last Update : 2010-05-20

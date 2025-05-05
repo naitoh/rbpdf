@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # Copyright (c) 2011-2017 NAITOH Jun
 # Released under the MIT license
 # http://www.opensource.org/licenses/MIT
@@ -132,7 +133,7 @@ class RbpdfTest < Test::Unit::TestCase
     return unless 'test'.respond_to?(:force_encoding)
 
     pdf = RBPDF.new
-    str = 'test'.force_encoding('UTF-8')
+    str = (+'test').force_encoding('UTF-8')
     pdf.get_string_width(str)
     assert_equal 'UTF-8', str.encoding.to_s
   end
