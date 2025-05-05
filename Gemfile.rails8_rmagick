@@ -1,4 +1,4 @@
-# Copyright (c) 2011-2023 NAITOH Jun
+# Copyright (c) 2011-2025 NAITOH Jun
 # Released under the MIT license
 # http://www.opensource.org/licenses/MIT
 
@@ -7,6 +7,5 @@ source 'https://rubygems.org'
 # Specify your gem's dependencies in rbpdf.gemspec
 gemspec
 
-gem "actionpack", "~> 5.2.8.1"
-gem "rmagick", "< 6.0"
-gem 'loofah', '<= 2.20.0' if RUBY_VERSION < '2.5'
+gem "actionpack", "~> 8.0.2"
+gem "rmagick"
