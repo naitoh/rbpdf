@@ -51,18 +51,27 @@ module Rbpdf
       return false
     end
 
+    unless Object.const_defined?(:Marcel)
+      Error('No Marcel: Non-PNG file is not supported.: ' + filename);
+      return false
+    end
+
     image = MiniMagick::Image.open(filename)
     
     width = image.width
     height = image.height
 
-    out['mime'] = image.mime_type
+    mime_type = File.open filename do |file|
+      ::Marcel::MimeType.for file
+    end
+
+    out['mime'] = mime_type
     out[0] = width
     out[1] = height
     
     # These are actually meant to return integer values But I couldn't seem to find anything saying what those values are.
     # So for now they return strings. The only place that uses this at the moment is the parsejpeg method, so I've changed that too.
-    case image.mime_type
+    case mime_type
     when "image/gif"
       out[2] = "GIF"
     when "image/jpeg"
