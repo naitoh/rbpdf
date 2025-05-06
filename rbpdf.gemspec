@@ -1,5 +1,5 @@
 # coding: utf-8
-# Copyright (c) 2011-2023 NAITOH Jun
+# Copyright (c) 2011-2025 NAITOH Jun
 # Released under the MIT license
 # http://www.opensource.org/licenses/MIT
 
