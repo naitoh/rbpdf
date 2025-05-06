@@ -5695,7 +5695,7 @@ class RBPDF
     self.instance_variables.each { |val|
       if destroyall or ((val != '@internal_encoding') and (val != '@state') and (val != '@bufferlen') and (val != '@buffer') and (val != '@diskcache') and (val != '@sign') and (val != '@signature_data') and (val != '@signature_max_length') and (val != '@byterange_string'))
         if (!preserve_objcopy or (val.to_s != '@objcopy')) and !val.nil?
-          eval("#{val} = nil")
+          instance_variable_set(val, nil)
         end
       end
     }
@@ -13618,8 +13618,8 @@ public
             # restore previous object
             rollbackTransaction(true)
             # restore previous values
-            this_method_vars.each {|vkey , vval|
-              eval("#{vkey} = vval")
+            this_method_vars.each {|vkey, vval|
+              binding.local_variable_set(vkey, vval)
             }
             # add a page (or trig AcceptPageBreak() for multicolumn mode)
             pre_y = @y
@@ -14482,7 +14482,7 @@ public
           rollbackTransaction(true)
           # restore previous values
           this_method_vars.each {|vkey , vval|
-            eval("#{vkey} = vval")
+            binding.local_variable_set(vkey, vval)
           }
           # add a page (or trig AcceptPageBreak() for multicolumn mode)
           pre_y = @y
@@ -16788,7 +16788,7 @@ public
       if this_self
         objvars = @objcopy.instance_variables
         objvars.each {|key|
-          eval("#{key} = @objcopy.instance_variable_get(key)") if key.to_s != '@objcopy'
+          instance_variable_set(key, @objcopy.instance_variable_get(key)) if key.to_s != '@objcopy'
         }
       end
       return @objcopy
