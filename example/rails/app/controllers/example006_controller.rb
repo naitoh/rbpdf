@@ -96,7 +96,7 @@ class Example006Controller < ApplicationController
     	<dd>White cold drink</dd>
     </dl>
     <div style="text-align:center">IMAGES<br />
-    <img src="' + PDF_EXAMPLE_LOGO + '" alt="test alt attribute" width="100" height="100" border="0" /><img src="' + PDF_TIGER_AI + '" alt="test alt attribute" width="100" height="100" border="0" /><img src="' + PDF_EXAMPLE_LOGO+ '" alt="test alt attribute" width="100" height="100" border="0" />
+    <img src="' + PDF_EXAMPLE_LOGO + '" alt="test alt attribute" width="100" height="100" border="0" /><img src="' + PDF_SVG_TEST_TUX + '" alt="test alt attribute" width="100" height="100" border="0" /><img src="' + PDF_EXAMPLE_LOGO+ '" alt="test alt attribute" width="100" height="100" border="0" />
     </div>'
     
     # output the HTML content
