@@ -1,3 +1,12 @@
+1.21.4 2025-05-06
+       - mini_magick v5.0 supoort and marcel gem added (#100, #102, #105)
+       - Warning "literal string will be frozen in the future" appears on Ruby 3.4 (#101, #103, #106) (by pavel)
+       - Support Ruby 3.4 and Rails 7.2/8.0 (#104)
+       - Support Ruby 3.3 and Rails 7.1 (#96)
+       - convertHTMLColorToDec was changed to deprecated. use convert_html_color_to_dec_array instead (#95)
+       - Colour gradients support (#94)
+       - Fixed putjavascript() method not being a protected method. (#93)
+
 1.21.3 2023-07-15
        - Javascript Form & XHTML Form support (#84)
 
