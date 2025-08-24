@@ -12784,6 +12784,8 @@ protected
         # preserve whitespace on <pre> tag
         html_b = html_b.gsub(/<xre([^\>]*)>(.*?)[\s](.*?)<\/pre>/mi, "<xre\\1>\\2&nbsp;\\3</pre>")
       end
+      # keep nbsp; just for multi-whitespace case or single whitespace indentation case
+      html_b = html_b.gsub(/(?<=.)(?<!&nbsp;| |>)&nbsp;(?!&nbsp;| )/, " ")
       html = html_a + html_b + html[(pos + 6)..-1]
       offset = (html_a + html_b).length
     end
