@@ -77,4 +77,68 @@ class RbpdfTest < Test::Unit::TestCase
     no = pdf.get_num_pages
     assert_equal 1, no
   end
+
+  test "write_html_cell with image percentage width" do
+    # Test that images with percentage-based width styles are actually embedded
+    pdf = RBPDF.new
+    pdf.add_page()
+
+    # Test image path - using the logo_example.png from the repo
+    img_path = File.join(File.dirname(__FILE__), '..', 'logo_example.png')
+
+    # Create PDF with image using percentage width
+    html_with_percentage = "<p>Image with percentage width:</p><img src='#{img_path}' style='width: 30%'>"
+    pdf.write_html_cell(0, 0, '', '', html_with_percentage)
+
+    # Check if the image was embedded
+    images = pdf.instance_variable_get('@images')
+    assert_equal 1, images.length, "Expected 1 image to be embedded in cache"
+
+    # More importantly, check that the PDF actually contains image data
+    # by verifying the PDF size is much larger than an empty PDF
+    output = pdf.output('', 'S')
+
+    # Create a reference PDF without any image
+    pdf_no_img = RBPDF.new
+    pdf_no_img.add_page()
+    pdf_no_img.write_html_cell(0, 0, '', '', '<p>Image with percentage width:</p>')
+    output_no_img = pdf_no_img.output('', 'S')
+
+    # PDF with image should be significantly larger (image data embedded)
+    assert output.length > output_no_img.length + 10000,
+      "Expected PDF with image (#{output.length} bytes) to be much larger than PDF without image (#{output_no_img.length} bytes). Image may not have been embedded."
+  end
+
+  test "write_html_cell with image percentage width generates output" do
+    pdf = RBPDF.new
+    pdf.add_page()
+
+    img_path = File.join(File.dirname(__FILE__), '..', 'logo_example.png')
+
+    # Test both plain and percentage width styles
+    html = <<-HTML
+      <h3>Test: Image rendering with percentage width</h3>
+      <p>Image without style (should work):</p>
+      <img src='#{img_path}'>
+      <p>Image with width=50 attribute (should work):</p>
+      <img src='#{img_path}' width='50'>
+      <p>Image with style width percentage (should work):</p>
+      <img src='#{img_path}' style='width: 30%'>
+      <p>Image with style width pixels (should work):</p>
+      <img src='#{img_path}' style='width: 50px'>
+    HTML
+
+    pdf.write_html_cell(0, 0, '', '', html)
+
+    # Generate PDF output to verify it doesn't crash
+    output = pdf.output('', 'S')
+    assert_not_nil output
+    assert output.length > 0
+
+    # Optionally write to file for manual inspection
+    if ENV['OUTPUT']
+      File.write('test_image_percentage_width.pdf', output)
+      puts "Generated test_image_percentage_width.pdf for manual inspection"
+    end
+  end
 end
