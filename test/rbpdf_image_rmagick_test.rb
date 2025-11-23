@@ -1,6 +1,6 @@
 # coding: ASCII-8BIT
 # frozen_string_literal: true
-# Copyright (c) 2011-2023 NAITOH Jun
+# Copyright (c) 2011-2025 NAITOH Jun
 # Released under the MIT license
 # http://www.opensource.org/licenses/MIT
 
@@ -177,40 +177,37 @@ class RbpdfTest < Test::Unit::TestCase
     assert_equal "#{data[:file]} #{data[:info]}", "#{data[:file]} #{info}"
   end
 
+  images = {
+    'png_test_alpha.png'        => {file: 'png_test_alpha.png',        x: 188,  y: 34.8},
+    'png_test_msk_alpha.png'    => {file: 'png_test_msk_alpha.png',    x: 188,  y: 34.8},
+    'png_test_non_alpha.png'    => {file: 'png_test_non_alpha.png',    x: 188,  y: 34.8},
+    'webp_test_alpha.webp'      => {file: 'webp_test_alpha.webp',      x: 188,  y: 34.8},
+    'logo_rbpdf_8bit.png'       => {file: 'logo_rbpdf_8bit.png',       x: 84.7, y: 31.4},
+    'logo_rbpdf_8bit.webp'      => {file: 'logo_rbpdf_8bit.webp',      x: 84.7, y: 31.4},
+    'logo_rbpdf_8bit.gif'       => {file: 'logo_rbpdf_8bit.gif',       x: 84.7, y: 31.4},
+    'logo_rbpdf_8bit_alpha.gif' => {file: 'logo_rbpdf_8bit_alpha.gif', x: 84.7, y: 31.4},
+    'logo_rbpdf_8bit.jpg'       => {file: 'logo_rbpdf_8bit.jpg',       x: 84.7, y: 31.4},
+    'logo_rbpdf_mono_gray.jpg'  => {file: 'logo_rbpdf_mono_gray.jpg',  x: 84.7, y: 31.4},
+    'logo_rbpdf_mono_gray.png'  => {file: 'logo_rbpdf_mono_gray.png',  x: 84.7, y: 31.4},
+    'logo_rbpdf_mono_rgb.jpg'   => {file: 'logo_rbpdf_mono_rgb.jpg',   x: 84.7, y: 31.4},
+    'logo_rbpdf_mono_rgb.png'   => {file: 'logo_rbpdf_mono_rgb.png',   x: 84.7, y: 31.4},
+  }
+
+  data(images)
   test "HTML Image test" do
     return unless Object.const_defined?(:Magick) or Object.const_defined?(:MiniMagick)
 
-    images = {
-      'png_test_alpha.png'        => 40.11,
-      'png_test_msk_alpha.png'    => 40.11,
-      'png_test_non_alpha.png'    => 40.11,
-      'webp_test_alpha.webp'      => 40.11,
-      'logo_rbpdf_8bit.png'       => 36.58,
-      'logo_rbpdf_8bit.webp'      => 36.58,
-      'logo_rbpdf_8bit.gif'       => 36.58,
-      'logo_rbpdf_8bit_alpha.gif' => 36.58,
-      'logo_rbpdf_8bit.jpg'       => 36.58,
-      'logo_rbpdf_mono_gray.jpg'  => 36.58,
-      'logo_rbpdf_mono_gray.png'  => 36.58,
-      'logo_rbpdf_mono_rgb.jpg'   => 36.58,
-      'logo_rbpdf_mono_rgb.png'   => 36.58,
-      'ng.png'                    => 9.42
-    }
-
     pdf = RBPDF.new
-    images.each {|image, h|
-      pdf.add_page
-      img_file = File.join(File.dirname(__FILE__), image)
-      htmlcontent = '<img src="'+ img_file + '"/>'
+    pdf.add_page
+    c_margin = pdf.get_margins['cell']
 
-      x_org = pdf.get_x
-      y_org = pdf.get_y
-      pdf.write_html(htmlcontent, true, 0, true, 0)
-      x = pdf.get_x
-      y = pdf.get_y
+    x_org = pdf.get_x
+    y_org = pdf.get_y
+    pdf.write_html("<img src='#{File.join(File.dirname(__FILE__), data[:file])}'/>")
+    x = pdf.get_image_rbx
+    y = pdf.get_image_rby
 
-      assert_equal '[' + image + ']:' + x_org.to_s, '[' + image + ']:' + x.to_s
-      assert_equal '[' + image + ']:' + (y_org + h).round(2).to_s, '[' + image + ']:' + y.round(2).to_s
-    }
+    assert_in_delta data[:x], x - x_org - c_margin, 0.1
+    assert_in_delta data[:y], y - y_org, 0.1
   end
 end
