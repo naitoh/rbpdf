@@ -1,6 +1,6 @@
 # coding: ASCII-8BIT
 # frozen_string_literal: true
-# Copyright (c) 2011-2017 NAITOH Jun
+# Copyright (c) 2011-2025 NAITOH Jun
 # Released under the MIT license
 # http://www.opensource.org/licenses/MIT
 
@@ -183,82 +183,72 @@ class RbpdfTest < Test::Unit::TestCase
     end
   end
 
+  images = {
+    'png_test_msk_alpha.png'    => {file: 'png_test_msk_alpha.png',    x: 188,  y: 34.8},
+    'png_test_non_alpha.png'    => {file: 'png_test_non_alpha.png',    x: 188,  y: 34.8},
+    'logo_rbpdf_8bit.png'       => {file: 'logo_rbpdf_8bit.png',       x: 84.7, y: 31.4},
+    'logo_rbpdf_8bit+ .png'     => {file: 'logo_rbpdf_8bit+ .png',     x: 84.7, y: 31.4},
+  }
+
+  data(images)
   test "HTML Image test without RMagick or MiniMagick" do
     return if Object.const_defined?(:Magick) or Object.const_defined?(:MiniMagick)
 
-    # no use
-    # utf8_japanese_aiueo_str  = "\xe3\x81\x82\xe3\x81\x84\xe3\x81\x86\xe3\x81\x88\xe3\x81\x8a"
+    pdf = RBPDF.new
+    pdf.add_page
+    c_margin = pdf.get_margins['cell']
 
-    images = {
-      'png_test_msk_alpha.png'    => 40.11,
-      'png_test_non_alpha.png'    => 40.11,
-      'logo_rbpdf_8bit.png'       => 36.58,
-      'logo_rbpdf_8bit .png'       => 36.58,
-      'logo_rbpdf_8bit+ .png'       => 36.58,
-      # no use
-      #'logo_rbpdf_8bit_' + utf8_japanese_aiueo_str + '.png'       => 36.58,
-      'ng.png'                    => 9.42
-    }
+    x_org = pdf.get_x
+    y_org = pdf.get_y
+    pdf.write_html("<img src='#{File.join(File.dirname(__FILE__), data[:file])}'/>")
+    x = pdf.get_image_rbx
+    y = pdf.get_image_rby
 
-    images.each {|image, h|
-      pdf = RBPDF.new
-      pdf.add_page
-      img_file = File.join(File.dirname(__FILE__), image)
-      htmlcontent = '<img src="'+ img_file + '"/>'
-
-      x_org = pdf.get_x
-      y_org = pdf.get_y
-      pdf.write_html(htmlcontent, true, 0, true, 0)
-      x = pdf.get_x
-      y = pdf.get_y
-
-      assert_equal '[' + image + ']:' + x_org.to_s, '[' + image + ']:' + x.to_s
-      assert_equal '[' + image + ']:' + (y_org + h).round(2).to_s, '[' + image + ']:' + y.round(2).to_s
-    }
+    assert_in_delta data[:x], x - x_org - c_margin, 0.1
+    assert_in_delta data[:y], y - y_org, 0.1
   end
 
+  image_sizes = {
+    # writeHTML() : not !@rtl and (@x + imgw > @w - @r_margin - @c_margin) case
+    w10_h20_cell0_over0: {width: 10, height: 20, cell: false, over: false},
+    w100_h100_cell0_over0: {width: 100, height: 100, cell: false, over: false},
+    w100_h100_cell1_over0: {width: 100, height: 100, cell: true, over: false},
+    w500_h100_cell0_over0: {width: 500, height: 100, cell: false, over: false},
+    # writeHTML() : !@rtl and (@x + imgw > @w - @r_margin - @c_margin) case
+    w600_h10_cell0_over1: {width: 600, height: 10, cell: false, over: true},
+    w600_h10_cell1_over1: {width: 600, height: 10, cell: true, over: true},
+    w600_h13_cell0_over1: {width: 600, height: 13, cell: false, over: true},
+  }
+
+  data(image_sizes)
   test "HTML Image vertically align image in line test without RMagick or MiniMagick" do
     return if Object.const_defined?(:Magick) or Object.const_defined?(:MiniMagick)
 
-    image_sizes = [
-      # writeHTML() : not !@rtl and (@x + imgw > @w - @r_margin - @c_margin) case
-      {'width' => 10,  'height' => 20, 'cell' => false},
-      {'width' => 100, 'height' => 100, 'cell' => false},
-      {'width' => 100, 'height' => 100, 'cell' => true},
-      {'width' => 500, 'height' => 100, 'cell' => false},
-      # writeHTML() : !@rtl and (@x + imgw > @w - @r_margin - @c_margin) case
-      {'width' => 600, 'height' => 10, 'cell' => false},
-      {'width' => 600, 'height' => 10, 'cell' => true},
-      {'width' => 600, 'height' => 13, 'cell' => false},
-    ]
-
     img_file = File.join(File.dirname(__FILE__), 'logo_rbpdf_8bit.png')
-    image_sizes.each {|size|
-      pdf = RBPDF.new
-      pdf.add_page
-      htmlcontent = "<body><img src='#{img_file}' width='#{size['width']}' height='#{size['height']}'/></body>"
+    pdf = RBPDF.new
+    pdf.add_page
+    htmlcontent = "<img src='#{img_file}' width='#{data[:width]}' height='#{data[:height]}'/>"
 
-      x_org = pdf.get_x
-      y_org = pdf.get_y
+    x_org = pdf.get_x
+    y_org = pdf.get_y
 
-      imgw = pdf.getHTMLUnitToUnits(size['width'])
-      imgh = pdf.getHTMLUnitToUnits(size['height'])
-      pdf.write_html(htmlcontent, true, 0, true, size['cell'])
-      x = pdf.get_x
-      y = pdf.get_y
-      w = pdf.get_page_width
-      r_margin = pdf.instance_variable_get("@r_margin")
-      lasth = pdf.get_font_size * pdf.get_cell_height_ratio
-      if x + imgw > w - r_margin
-        result = lasth * 2
-      else
-        result = lasth + imgh - pdf.get_font_size_pt / pdf.get_scale_factor
-      end
+    imgw = pdf.getHTMLUnitToUnits(data[:width])
+    imgh = pdf.getHTMLUnitToUnits(data[:height])
+    pdf.write_html(htmlcontent, true, 0, true, data[:cell])
+    x = pdf.get_image_rbx
+    y = pdf.get_image_rby
+    w = pdf.get_page_width
+    r_margin = pdf.get_margins['right']
+    c_margin = pdf.get_margins['cell']
 
-      test_name = "[ width: #{size['width']} height: #{size['height']} cell: #{size['cell']}]:"
-      assert_equal test_name + x_org.to_s, test_name + x.to_s
-      assert_equal test_name + (y_org + result).round(2).to_s, test_name + y.round(2).to_s
-    }
+    unless data[:over] == true
+      assert_in_delta imgw, x - (x_org + c_margin), 0.1
+      assert_in_delta imgh, y - y_org, 0.1
+    else
+      assert_in_delta w - r_margin - (x_org + c_margin), x - x_org, 0.1
+      ratio_wh = imgw / imgh
+      assert_in_delta (w - r_margin - x_org)/ ratio_wh, y - y_org, 0.1
+    end
   end
 
   test "HTML Image vertically align image in line and shift the annotations and links test without RMagick or MiniMagick" do

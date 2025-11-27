@@ -1,7 +1,7 @@
 # coding: ASCII-8BIT
 # frozen_string_literal: true
 #
-# Copyright (c) 2011-2017 NAITOH Jun
+# Copyright (c) 2011-2025 NAITOH Jun
 # Released under the MIT license
 # http://www.opensource.org/licenses/MIT
 
@@ -634,6 +634,104 @@ class RbpdfHtmlTest < Test::Unit::TestCase
     pdf.write_html(htmlcontent, true, 0, true, 0)
     pdf_text = pdf.get_html_text(1)
     assert_equal ' 1.text A2.text B', pdf_text # A space is placed before the img tag.
+  end
+
+  IMG_PATH = File.join(File.dirname(__FILE__), '..', 'logo_example.png')
+
+  htmls = {
+    'rtl:false, width=100%' => {html: "<img src='#{IMG_PATH}' style='width: 100%'>", percentage: 100, rtl: false},
+    'rtl:true, width=100%' => {html: "<img src='#{IMG_PATH}' style='width: 100%'>", percentage: 100, rtl: true},
+    'rtl:false, width=10%' => {html: "<img src='#{IMG_PATH}' style='width: 10%'>", percentage: 10, rtl: false},
+    'rtl:true, width=10%' => {html: "<img src='#{IMG_PATH}' style='width: 10%'>", percentage: 10, rtl: true},
+    'rtl:false, width=100% string' => {html: "test<img src='#{IMG_PATH}' style='width: 100%'>", percentage: 100, rtl: false},
+    'rtl:true, width=100% string' => {html: "test<img src='#{IMG_PATH}' style='width: 100%'>", percentage: 100, rtl: true},
+  }
+
+  data(htmls)
+  test "write_html_cell image style percentage width" do |data|
+    pdf = RBPDF.new
+    pdf.set_rtl(data[:rtl], true)
+    pdf.add_page()
+
+    margins = pdf.get_margins
+    l_margin = margins['left']
+    r_margin = margins['right']
+    c_margin = margins['cell']
+    w = pdf.get_page_width
+    x0 = pdf.get_x
+    assert_equal l_margin, x0
+
+    pdf.write_html(data[:html])
+    no = pdf.get_num_pages
+    assert_equal 1, no
+
+    width = w - l_margin - r_margin - c_margin * 2
+    img_rb_x = pdf.get_image_rbx
+
+    if data[:rtl] == false
+      # NOTE: rtl=false
+      # +-   x0      -+   c_margin  +-            width          -+
+      # +----------------------------------- @w ----------------------------------------------+
+      # +- @l_margin -+- @c_margin -+-   available_width         -+- @c_margin -+- @r_margin -+
+      #                                                           |
+      #                                                           @img_rb_x
+      # +- @l_margin -+- @c_margin -+- available_width * 0.8 -+
+      #                                                       |
+      #                                                       @img_rb_x
+      assert_in_delta(x0 + c_margin + width * (data[:percentage] / 100.0), img_rb_x, 0.1)
+    else
+      # NOTE: rtl=true
+      # +-   x0      -+   c_margin  +-            width          -+
+      # +----------------------------------- @w ----------------------------------------------+
+      # +- @l_margin -+- @c_margin -+-   available_width         -+- @c_margin -+- @r_margin -+
+      #                             |
+      #                             @img_rb_x
+      #                                 +- available_width * 0.8 -+- @c_margin -+- @r_margin -+
+      #                                 |
+      #                                 @img_rb_x
+      assert_in_delta(w - r_margin - c_margin - width * (data[:percentage] / 100.0), img_rb_x, 0.1)
+    end
+  end
+
+  htmls = {
+    'height=100%' => {html: "<img src='#{IMG_PATH}' style='height: 100%'>", percentage: 100, pno: 1},
+    'height=10%' => {html: "<img src='#{IMG_PATH}' style='height: 10%'>", percentage: 10, pno: 1},
+    'height=100% string' => {html: "test<br><img src='#{IMG_PATH}' style='height: 100%'>", percentage: 100, pno: 3},
+  }
+
+  data(htmls)
+  test "write_html_cell image style percentage height" do |data|
+    pdf = RBPDF.new
+    pdf.add_page('L')
+
+    margins = pdf.get_margins
+    t_margin = margins['top']
+    b_margin = margins['bottom']
+
+    w = pdf.get_page_width
+    h = pdf.get_page_height
+
+    y0 = pdf.get_y
+    assert_equal t_margin, y0
+
+    pdf.write_html(data[:html], false)
+    no = pdf.get_num_pages
+    assert_equal data[:pno], no
+
+    height = h - t_margin - b_margin
+    img_rb_y = pdf.get_image_rby
+
+    # NOTE:
+    # +  +
+    # |  @t_margin
+    # |  +------------------+---------------+ y0
+    # |  |                  |               |
+    # @h available_hight    height          available_hight * 0.8
+    # |  |                  |               +- @img_rb_y
+    # |  +------------------+- @img_rb_y
+    # |  @b_margin
+    # +  +
+    assert_in_delta(y0 + height * (data[:percentage] / 100.0), img_rb_y, 0.1)
   end
 
   test "write_html Character Entities test" do

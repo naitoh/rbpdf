@@ -14769,6 +14769,14 @@ public
         else
           align = 'B'
         end
+
+        # store original margin values
+        l_margin = @l_margin
+        r_margin = @r_margin
+
+        SetLeftMargin(@l_margin + @c_margin)
+        SetRightMargin(@r_margin + @c_margin)
+
         prevy = @y
         xpos = @x
         # eliminate marker spaces
@@ -14806,8 +14814,7 @@ public
         iw = 0
         if tag['width']
           # Calculate available width for percentage-based widths
-          available_width = @rtl ? (@x - @l_margin) : (@w - @r_margin - @x)
-          available_width -= 2 * @c_margin if available_width > 0
+          available_width = @w - @l_margin - @r_margin
           iw = getHTMLUnitToUnits(tag['width'], available_width, 'px', false)
         end
         ih = 0
@@ -14816,13 +14823,6 @@ public
           available_height = @h - @t_margin - @b_margin
           ih = getHTMLUnitToUnits(tag['height'], available_height, 'px', false)
         end
-
-        # store original margin values
-        l_margin = @l_margin
-        r_margin = @r_margin
-
-        SetLeftMargin(@l_margin + @c_margin)
-        SetRightMargin(@r_margin + @c_margin)
 
         result_img =
           proc_image_file(tag['attribute']['src']) do |img_file|
