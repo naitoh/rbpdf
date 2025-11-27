@@ -14805,11 +14805,16 @@ public
         end
         iw = 0
         if tag['width']
-          iw = getHTMLUnitToUnits(tag['width'], 1, 'px', false)
+          # Calculate available width for percentage-based widths
+          available_width = @rtl ? (@x - @l_margin) : (@w - @r_margin - @x)
+          available_width -= 2 * @c_margin if available_width > 0
+          iw = getHTMLUnitToUnits(tag['width'], available_width, 'px', false)
         end
         ih = 0
         if tag['height']
-          ih = getHTMLUnitToUnits(tag['height'], 1, 'px', false)
+          # Use page height for percentage-based heights
+          available_height = @h - @t_margin - @b_margin
+          ih = getHTMLUnitToUnits(tag['height'], available_height, 'px', false)
         end
 
         # store original margin values
