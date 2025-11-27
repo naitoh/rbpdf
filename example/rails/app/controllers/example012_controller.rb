@@ -55,7 +55,7 @@ class Example012Controller < ApplicationController
     style = {'width' => 0.5, 'cap' => 'butt', 'join' => 'miter', 'dash' => '10,20,5,10', 'phase' => 10, 'color' => [255, 0, 0]}
     style2 = {'width' => 0.5, 'cap' => 'butt', 'join' => 'miter', 'dash' => 0, 'color' => [255, 0, 0]}
     style3 = {'width' => 1, 'cap' => 'round', 'join' => 'round', 'dash' => '2,10', 'color' => [255, 0, 0]}
-    style4 = {'L' => 0,
+    style4 = {'L' => nil,
                     'T' => {'width' => 0.25, 'cap' => 'butt', 'join' => 'miter', 'dash' => '20,10', 'phase' => 10, 'color' => [100, 100, 255]},
                     'R' => {'width' => 0.50, 'cap' => 'round', 'join' => 'miter', 'dash' => 0, 'color' => [50, 50, 127]},
                     'B' => {'width' => 0.75, 'cap' => 'square', 'join' => 'miter', 'dash' => '30,10,5,10'}}
@@ -108,7 +108,7 @@ class Example012Controller < ApplicationController
     
     # Polygonal Line
     pdf.set_line_style({'width' => 0.5, 'cap' => 'butt', 'join' => 'miter', 'dash' => 0, 'color' => [0, 0, 164]})
-    pdf.poly_line([80,165,90,160,100,165,110,160,120,165,130,160,140,165], 'D', nil, nil)
+    pdf.poly_line([80,165,90,160,100,165,110,160,120,165,130,160,140,165], 'D')
     
     # Regular polygon
     pdf.text(5, 169, 'Regular polygon examples')
@@ -125,8 +125,8 @@ class Example012Controller < ApplicationController
     pdf.set_line_style(style5)
     pdf.star_polygon(20, 230, 15, 20, 3, 0, 1, 'F')
     pdf.star_polygon(55, 230, 15, 12, 5)
-    pdf.star_polygon(55, 230, 7, 12, 5, 45, 0, 'DF', {'all' => style7}, [220, 220, 200], 'F', [255, 200, 200])
-    pdf.star_polygon(90, 230, 15, 20, 6, 0, 1, 'DF', {'all' => style5}, [220, 220, 200], 'F', [255, 200, 200])
+    pdf.star_polygon(55, 230, 7, 12, 5, 45, 0, 'DF', {'all' => style7}, [220, 220, 200], 'F', nil, [255, 200, 100])
+    pdf.star_polygon(90, 230, 15, 20, 6, 0, 1, 'DF', {'all' => style5}, [220, 220, 200], 'F', nil, [255, 200, 100])
     pdf.star_polygon(125, 230, 15, 5, 2, 30, 1, nil, {'all' => style5}, nil, nil, style6)
     pdf.star_polygon(160, 230, 15, 10, 3)
     pdf.star_polygon(160, 230, 7, 50, 26)

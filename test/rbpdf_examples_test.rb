@@ -61,6 +61,7 @@ class RbpdfTest < Test::Unit::TestCase
     '054 : XHTML Form'                                      => '054',
     '055 : Display all characters available on core fonts.' => '055',
     '057 : Cell vertical alignments'                        => '057',
+    '058 : SVG Image'                                       => '058',
     '059 : Table Of Content using HTML templates.'          => '059',
     '060 : Advanced page settings.'                         => '060',
     '061 : XHTML + CSS'                                     => '061',

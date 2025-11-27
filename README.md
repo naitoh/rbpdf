@@ -17,6 +17,7 @@ A template plugin allowing the inclusion of ERB-enabled RBPDF template files.
 * Image
  - 8bit PNG image support without MiniMagick/RMagick library.
  - PNG(with alpha channel)/JPEG/GIF/WebP image support. (use MiniMagick or RMagick library)
+ - SVG image support. (use REXML for XML parsing.)
 
 
 ##
